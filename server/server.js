@@ -37,6 +37,9 @@ app.use(cors({
 import authRoutes from './routes/authRoutes.js';
 import clubRoutes from './routes/clubRoutes.js';
 import eventRoutes from './routes/eventRoutes.js';
+import matchRoutes from './routes/matchRoutes.js';
+import electionRoutes from './routes/electionRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 
 // Basic route
 app.get('/', (req, res) => {
@@ -47,11 +50,20 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/clubs', clubRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/matches', matchRoutes);
+app.use('/api/elections', electionRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Socket.io connection handling
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
   
+  // Join a room specific to the user's ID to receive private notifications
+  socket.on('setup', (userData) => {
+    socket.join(userData._id);
+    console.log(`User ${userData._id} joined their notification room`);
+  });
+
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
   });
@@ -60,5 +72,5 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 5000;
 
 httpServer.listen(PORT, () => {
-  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+  console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
 });

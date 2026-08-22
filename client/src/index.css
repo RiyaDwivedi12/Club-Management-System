@@ -4,6 +4,32 @@
 
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900;
+    @apply bg-[#F8F9FA] text-[#1A1A1A] font-sans antialiased;
+  }
+  ::selection {
+    background-color: #ddd6fe; /* primary-200 */
+    color: #4c1d95; /* primary-900 */
+  }
+}
+
+@layer utilities {
+  .soft-card {
+    @apply bg-white rounded-[24px] border-none;
+    box-shadow: 0 10px 40px -10px rgba(0,0,0,0.08);
+  }
+  
+  .text-gradient {
+    background-image: linear-gradient(to right, #8b5cf6, #7c3aed);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }
