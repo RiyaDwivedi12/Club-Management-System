@@ -70,6 +70,28 @@ const useClubStore = create((set, get) => ({
       set({ error: error.response?.data?.message || error.message, isLoading: false });
       toast.error(error.response?.data?.message || 'Failed to update member status');
     }
+  },
+
+  fetchPresidentClubs: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await axios.get(`${API_URL}/president`, { withCredentials: true });
+      set({ clubs: response.data, isLoading: false });
+    } catch (error) {
+      set({ error: error.response?.data?.message || error.message, isLoading: false });
+      toast.error('Failed to fetch your clubs');
+    }
+  },
+
+  fetchCoordinatorClubs: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await axios.get(`${API_URL}/coordinator`, { withCredentials: true });
+      set({ clubs: response.data, isLoading: false });
+    } catch (error) {
+      set({ error: error.response?.data?.message || error.message, isLoading: false });
+      toast.error('Failed to fetch assigned clubs');
+    }
   }
 }));
 

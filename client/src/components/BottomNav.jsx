@@ -1,9 +1,11 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Users, Calendar, User, Trophy, LayoutDashboard, Vote } from 'lucide-react';
+import { Home, Users, Calendar, User, Trophy, LayoutDashboard, Vote, Shield } from 'lucide-react';
 import { motion } from 'framer-motion';
+import useAuthStore from '../store/authStore';
 
 const BottomNav = () => {
   const location = useLocation();
+  const { user } = useAuthStore();
   
   const navItems = [
     { name: 'Home', path: '/dashboard', icon: Home },
@@ -11,8 +13,21 @@ const BottomNav = () => {
     { name: 'Events', path: '/events', icon: Calendar },
     { name: 'Matches', path: '/matches', icon: Trophy },
     { name: 'Elections', path: '/elections', icon: Vote },
-    { name: 'Profile', path: '/profile', icon: User },
   ];
+
+  if (user?.role === 'admin') {
+    navItems.push({ name: 'Admin', path: '/admin', icon: Shield });
+  }
+  if (user?.role === 'president' || user?.role === 'admin') {
+    navItems.push({ name: 'President', path: '/president', icon: Shield });
+  }
+  if (user?.role === 'faculty' || user?.role === 'admin') {
+    navItems.push({ name: 'Coordinator', path: '/coordinator', icon: Shield });
+  }
+  
+  if (user?.role !== 'admin' && user?.role !== 'president' && user?.role !== 'faculty') {
+    navItems.push({ name: 'Profile', path: '/profile', icon: User });
+  }
 
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 pb-safe z-50 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">

@@ -61,6 +61,51 @@ const useEventStore = create((set, get) => ({
       toast.error(error.response?.data?.message || 'Failed to join event');
       return false;
     }
+  },
+
+  updateEvent: async (id, eventData) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await axios.put(`${API_URL}/${id}`, eventData, { withCredentials: true });
+      set((state) => ({
+        events: state.events.map(e => e._id === id ? response.data : e),
+        isLoading: false
+      }));
+      toast.success('Event updated successfully');
+      return true;
+    } catch (error) {
+      set({ error: error.response?.data?.message || error.message, isLoading: false });
+      toast.error(error.response?.data?.message || 'Failed to update event');
+      return false;
+    }
+  },
+
+  deleteEvent: async (id) => {
+    set({ isLoading: true, error: null });
+    try {
+      await axios.delete(`${API_URL}/${id}`, { withCredentials: true });
+      set((state) => ({
+        events: state.events.filter(e => e._id !== id),
+        isLoading: false
+      }));
+      toast.success('Event deleted successfully');
+      return true;
+    } catch (error) {
+      set({ error: error.response?.data?.message || error.message, isLoading: false });
+      toast.error(error.response?.data?.message || 'Failed to delete event');
+      return false;
+    }
+  },
+
+  fetchEventsByClub: async (clubId) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await axios.get(`${API_URL}/club/${clubId}`);
+      set({ events: response.data, isLoading: false });
+    } catch (error) {
+      set({ error: error.response?.data?.message || error.message, isLoading: false });
+      toast.error('Failed to fetch club events');
+    }
   }
 }));
 

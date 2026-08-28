@@ -4,12 +4,60 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, Users, Mail, Image as ImageIcon, Check, X } from 'lucide-react';
 import useClubStore from '../store/clubStore';
 import useAuthStore from '../store/authStore';
+import axios from 'axios';
+import toast from 'react-hot-toast';
 
 const ClubDetails = () => {
   const { id } = useParams();
   const { currentClub: club, fetchClubById, requestJoinClub, leaveClub, approveMember, isLoading, error } = useClubStore();
   const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState('about');
+
+  const handlePayment = async () => {
+    try {
+      const { data: order } = await axios.post('/api/payments/order', { amount: 500, clubId: club?._id }, { withCredentials: true });
+      
+      const options = {
+        key: 'rzp_test_mock123',
+        amount: order.amount, 
+        currency: order.currency,
+        name: 'Club Management System',
+        description: `Annual fee for ${club?.name}`,
+        order_id: order.id, 
+        handler: async function (response) {
+          try {
+            const verifyRes = await axios.post('/api/payments/verify', {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              amount: 500,
+              clubId: club?._id
+            }, { withCredentials: true });
+            
+            if (verifyRes.data.success) {
+               toast.success('Payment successful! Request sent.');
+               fetchClubById(id);
+            }
+          } catch (err) {
+            toast.error('Payment verification failed.');
+          }
+        },
+        prefill: {
+          name: user?.name,
+          email: user?.email,
+        },
+        theme: { color: '#7c3aed' },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', function (response){
+         toast.error(response.error.description);
+      });
+      rzp.open();
+    } catch (error) {
+      toast.error('Could not initiate payment.');
+    }
+  };
 
   useEffect(() => {
     fetchClubById(id);
@@ -140,10 +188,11 @@ const ClubDetails = () => {
                       </button>
                     ) : (
                       <button 
-                        onClick={() => requestJoinClub(club._id)}
-                        className="w-full py-3 bg-primary-600 text-white rounded-xl font-bold shadow-soft-purple hover:-translate-y-1 transition-all"
+                        onClick={handlePayment}
+                        className="w-full py-3 bg-primary-600 text-white rounded-xl font-bold shadow-soft-purple hover:-translate-y-1 transition-all flex flex-col items-center justify-center"
                       >
-                        Request to Join
+                        <span>Pay ₹500 & Request to Join</span>
+                        <span className="text-xs text-primary-200 mt-0.5 font-medium">Secured by Razorpay</span>
                       </button>
                     )}
                   </>

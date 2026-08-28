@@ -30,6 +30,18 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: 'default.jpg' // In production, this will be a Cloudinary URL
   },
+  roll_no: {
+    type: String,
+    required: function() { return this.role === 'student'; }
+  },
+  department: {
+    type: String,
+    required: function() { return this.role === 'student'; }
+  },
+  year: {
+    type: Number,
+    required: function() { return this.role === 'student'; }
+  },
   isVerified: {
     type: Boolean,
     default: false
@@ -46,7 +58,9 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  refreshToken: String
+  refreshToken: String,
+  verificationToken: String,
+  verificationTokenExpire: Date
 }, {
   timestamps: true
 });

@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
-import { Home, Users, Calendar, LayoutDashboard, Trophy, Vote } from 'lucide-react';
+import { Home, Users, Calendar, LayoutDashboard, Trophy, Vote, Shield } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const Sidebar = () => {
@@ -16,6 +16,16 @@ const Sidebar = () => {
     { name: 'Matches', path: '/matches', icon: <Trophy size={20} /> },
     { name: 'Elections', path: '/elections', icon: <Vote size={20} /> },
   ];
+
+  if (user?.role === 'admin') {
+    navItems.push({ name: 'Admin Panel', path: '/admin', icon: <Shield size={20} /> });
+  }
+  if (user?.role === 'president' || user?.role === 'admin') {
+    navItems.push({ name: 'President Panel', path: '/president', icon: <Shield size={20} /> });
+  }
+  if (user?.role === 'faculty' || user?.role === 'admin') {
+    navItems.push({ name: 'Coordinator Panel', path: '/coordinator', icon: <Shield size={20} /> });
+  }
 
   return (
     <motion.aside 
@@ -53,10 +63,10 @@ const Sidebar = () => {
       <div className="p-6">
         <div className="flex items-center space-x-4 bg-gray-50 p-4 rounded-[20px]">
           <div className="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-bold text-lg">
-            {user.name.charAt(0).toUpperCase()}
+            {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
           </div>
           <div>
-            <p className="text-sm font-bold text-gray-900">{user.name}</p>
+            <p className="text-sm font-bold text-gray-900">{user.name || 'User'}</p>
             <p className="text-xs font-semibold text-primary-500 capitalize">{user.role}</p>
           </div>
         </div>

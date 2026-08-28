@@ -11,6 +11,12 @@ const electionSchema = new mongoose.Schema({
     ref: 'Club',
     required: true
   },
+  position: {
+    type: String,
+    required: true,
+    trim: true,
+    default: 'President'
+  },
   startDate: {
     type: Date,
     required: true

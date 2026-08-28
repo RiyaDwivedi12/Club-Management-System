@@ -40,6 +40,9 @@ import eventRoutes from './routes/eventRoutes.js';
 import matchRoutes from './routes/matchRoutes.js';
 import electionRoutes from './routes/electionRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import analyticsRoutes from './routes/analyticsRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
+import studentRoutes from './routes/studentRoutes.js';
 
 // Basic route
 app.get('/', (req, res) => {
@@ -53,6 +56,9 @@ app.use('/api/events', eventRoutes);
 app.use('/api/matches', matchRoutes);
 app.use('/api/elections', electionRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/student', studentRoutes);
 
 // Socket.io connection handling
 io.on('connection', (socket) => {

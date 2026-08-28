@@ -6,6 +6,11 @@ const clubSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  category: {
+    type: String,
+    enum: ['Sports', 'Literary', 'Cultural'],
+    required: true
+  },
   description: {
     type: String,
     required: true

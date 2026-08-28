@@ -13,6 +13,7 @@
     "axios": "^1.6.8",
     "chart.js": "^4.4.2",
     "club-management-system": "file:..",
+    "date-fns": "^4.4.0",
     "framer-motion": "^11.1.7",
     "lucide-react": "^0.378.0",
     "react": "^18.2.0",

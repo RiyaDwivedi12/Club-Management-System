@@ -1,5 +1,5 @@
 import express from 'express';
-import { createClub, getClubs, getClubById, requestJoinClub, leaveClub, approveMember } from '../controllers/clubController.js';
+import { createClub, getClubs, getClubById, requestJoinClub, leaveClub, approveMember, getPresidentClubs, getCoordinatorClubs } from '../controllers/clubController.js';
 import { protect, authorize } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -7,6 +7,9 @@ const router = express.Router();
 router.route('/')
   .get(getClubs)
   .post(protect, authorize('admin', 'faculty'), createClub);
+
+router.route('/president').get(protect, authorize('president'), getPresidentClubs);
+router.route('/coordinator').get(protect, authorize('faculty', 'admin'), getCoordinatorClubs);
 
 router.route('/:id')
   .get(getClubById);

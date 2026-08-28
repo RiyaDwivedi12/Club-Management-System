@@ -5,7 +5,7 @@ import Club from '../models/Club.js';
 // @access  Private/Admin
 const createClub = async (req, res) => {
   try {
-    const { name, description, logo, presidentId, facultyId, gallery } = req.body;
+    const { name, category, description, logo, presidentId, facultyId, gallery } = req.body;
 
     const clubExists = await Club.findOne({ name });
     if (clubExists) {
@@ -14,6 +14,7 @@ const createClub = async (req, res) => {
 
     const club = await Club.create({
       name,
+      category,
       description,
       logo,
       presidentId,
@@ -163,4 +164,33 @@ const approveMember = async (req, res) => {
   }
 };
 
-export { createClub, getClubs, getClubById, requestJoinClub, leaveClub, approveMember };
+// @desc    Get clubs for a president
+// @route   GET /api/clubs/president
+// @access  Private/President
+const getPresidentClubs = async (req, res) => {
+  try {
+    const clubs = await Club.find({ presidentId: req.user._id })
+      .populate('members', 'name email profilePicture roll_no department')
+      .populate('pendingRequests', 'name email profilePicture roll_no department');
+    res.json(clubs);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get clubs for a faculty coordinator
+// @route   GET /api/clubs/coordinator
+// @access  Private/Faculty
+const getCoordinatorClubs = async (req, res) => {
+  try {
+    const clubs = await Club.find({ facultyId: req.user._id })
+      .populate('presidentId', 'name email')
+      .populate('members', 'name email profilePicture roll_no department')
+      .populate('pendingRequests', 'name email profilePicture roll_no department');
+    res.json(clubs);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export { createClub, getClubs, getClubById, requestJoinClub, leaveClub, approveMember, getPresidentClubs, getCoordinatorClubs };

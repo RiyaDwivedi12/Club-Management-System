@@ -6,6 +6,11 @@ const paymentSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  clubId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Club',
+    required: true
+  },
   razorpayOrderId: {
     type: String,
     required: true
@@ -19,7 +24,7 @@ const paymentSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['success', 'failed', 'pending'],
+    enum: ['success', 'failed', 'pending', 'Paid', 'Pending'],
     default: 'pending'
   },
   date: {
