@@ -1,8 +1,11 @@
 import express from 'express';
-import { createMatch, getMatches, updateScore, endMatch } from '../controllers/matchController.js';
+import { createMatch, getMatches, updateScore, endMatch, getLeaderboard } from '../controllers/matchController.js';
 import { protect, authorize } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
+
+router.route('/leaderboard')
+  .get(getLeaderboard);
 
 router.route('/')
   .get(getMatches)

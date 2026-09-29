@@ -7,10 +7,22 @@ import crypto from 'crypto';
 // @route   POST /api/auth/register
 // @access  Public
 const registerUser = async (req, res) => {
-  const { name, email, role, roll_no, department, year } = req.body;
+  const { name, username, email, role, roll_no, department, year, secretCode } = req.body;
+
+  // Validate secret code for privileged roles
+  const trimmedSecret = secretCode ? secretCode.trim() : '';
+  if (role === 'admin' && trimmedSecret !== (process.env.ADMIN_SECRET || 'admin123')) {
+    return res.status(400).json({ message: 'Invalid Admin Secret Code' });
+  }
+  if (role === 'faculty' && trimmedSecret !== (process.env.FACULTY_SECRET || 'faculty123')) {
+    return res.status(400).json({ message: 'Invalid Faculty Secret Code' });
+  }
+  if (role === 'president' && trimmedSecret !== (process.env.PRESIDENT_SECRET || 'president123')) {
+    return res.status(400).json({ message: 'Invalid President Secret Code' });
+  }
 
   try {
-    const userExists = await User.findOne({ email });
+    const userExists = await User.findOne({ $or: [{ email }, { username }] });
 
     if (userExists) {
       return res.status(400).json({ message: 'User already exists' });
@@ -25,6 +37,7 @@ const registerUser = async (req, res) => {
 
     const user = await User.create({
       name,
+      username,
       email,
       password: dummyPassword,
       role: role || 'student',
@@ -58,9 +71,10 @@ const registerUser = async (req, res) => {
         role: user.role,
       });
     } else {
-      res.status(400).json({ message: 'Invalid user data' });
+      res.status(400).json({ message: 'Invalid user data. Please check all required fields.' });
     }
   } catch (error) {
+    console.error('Registration Error:', error.message);
     res.status(500).json({ message: error.message });
   }
 };
@@ -69,20 +83,51 @@ const registerUser = async (req, res) => {
 // @route   POST /api/auth/login
 // @access  Public
 const authUser = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, secretCode, role } = req.body;
 
   try {
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ $or: [{ email: email }, { username: email }] }).select('+password');
 
-    if (user && (await user.matchPassword(password))) {
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // Determine authentication based on role
+    let isAuthenticated = false;
+    
+    if (['admin', 'faculty', 'president'].includes(role)) {
+      // Use Secret Code for privileged roles
+      const trimmedSecret = secretCode ? secretCode.trim() : '';
+      console.log('Login attempt for role:', role, '| Secret Code entered:', trimmedSecret);
+      
+      if (role === 'admin' && trimmedSecret === (process.env.ADMIN_SECRET || 'admin123')) {
+        isAuthenticated = true;
+      } else if (role === 'faculty' && trimmedSecret === (process.env.FACULTY_SECRET || 'faculty123')) {
+        isAuthenticated = true;
+      } else if (role === 'president' && trimmedSecret === (process.env.PRESIDENT_SECRET || 'president123')) {
+        isAuthenticated = true;
+      } else {
+        return res.status(401).json({ message: `Invalid ${role} Secret Code` });
+      }
+    } else {
+      // Use normal password for students/others
+      isAuthenticated = await user.matchPassword(password);
+    }
+
+    if (isAuthenticated) {
+      // Validate role if provided by the frontend
+      if (role && user.role !== role) {
+        return res.status(401).json({ message: `Account found, but you are not registered as a ${role}. Please select the correct tab.` });
+      }
+
       // Check if user is blocked
       if (user.isBlocked) {
         return res.status(403).json({ message: 'Account blocked by administrator' });
       }
 
-      // Check if user is verified
-      if (!user.isVerified) {
-        return res.status(401).json({ message: 'Please verify your email address to log in' });
+      // Check if email is verified (skip for privileged roles using secret code)
+      if (!user.isVerified && !['admin', 'faculty', 'president'].includes(role)) {
+        return res.status(401).json({ message: 'Please verify your email before logging in' });
       }
 
       generateToken(res, user._id);
@@ -144,7 +189,7 @@ const verifyOTP = async (req, res) => {
     const { email, otp } = req.body;
     
     const user = await User.findOne({
-      email,
+      $or: [{ email }, { username: email }],
       verificationToken: otp,
       verificationTokenExpire: { $gt: Date.now() }
     });
@@ -167,7 +212,7 @@ const setupPassword = async (req, res) => {
     const { email, otp, password } = req.body;
     
     const user = await User.findOne({
-      email,
+      $or: [{ email }, { username: email }],
       verificationToken: otp,
       verificationTokenExpire: { $gt: Date.now() }
     });
@@ -182,7 +227,14 @@ const setupPassword = async (req, res) => {
     user.verificationTokenExpire = undefined;
     await user.save();
 
-    res.json({ message: 'Password set successfully. You can now log in.' });
+    generateToken(res, user._id);
+    res.json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      profilePicture: user.profilePicture
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -194,7 +246,7 @@ const setupPassword = async (req, res) => {
 const resendVerification = async (req, res) => {
   const { email } = req.body;
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ $or: [{ email }, { username: email }] });
     
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -222,6 +274,75 @@ const resendVerification = async (req, res) => {
   }
 };
 
+// @desc    Forgot Password - send OTP
+// @route   POST /api/auth/forgot-password
+// @access  Public
+const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+  try {
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ 
+      $or: [
+        { email: new RegExp('^' + normalizedEmail + '$', 'i') }, 
+        { username: new RegExp('^' + normalizedEmail + '$', 'i') }
+      ] 
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    user.verificationToken = otp;
+    user.verificationTokenExpire = Date.now() + 15 * 60 * 1000;
+    await user.save();
+
+    const message = `Hello ${user.name},\n\nYou have requested to reset your password. Please use the following One-Time Password (OTP) to reset it:\n\n${otp}\n\nThis OTP will expire in 15 minutes.`;
+
+    await sendEmail({
+      email: user.email,
+      subject: 'Password Reset OTP - Club Management System',
+      message,
+    });
+
+    res.json({ message: 'Password reset OTP sent to email' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Reset Password with OTP
+// @route   POST /api/auth/reset-password
+// @access  Public
+const resetPassword = async (req, res) => {
+  try {
+    const { email, otp, password } = req.body;
+    
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await User.findOne({
+      $or: [
+        { email: new RegExp('^' + normalizedEmail + '$', 'i') }, 
+        { username: new RegExp('^' + normalizedEmail + '$', 'i') }
+      ],
+      verificationToken: otp.trim(),
+      verificationTokenExpire: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    }
+
+    user.password = password;
+    user.verificationToken = undefined;
+    user.verificationTokenExpire = undefined;
+    await user.save();
+
+    res.json({ message: 'Password has been reset successfully. You can now log in.' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // @desc    Get all users (Admin only)
 // @route   GET /api/auth/users
 // @access  Private/Admin
@@ -242,5 +363,7 @@ export {
   verifyOTP,
   setupPassword,
   resendVerification,
+  forgotPassword,
+  resetPassword,
   getAllUsers
 };

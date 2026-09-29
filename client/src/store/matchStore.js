@@ -6,6 +6,7 @@ const API_URL = '/api/matches';
 
 const useMatchStore = create((set, get) => ({
   matches: [],
+  leaderboard: [],
   currentMatch: null,
   isLoading: false,
   error: null,
@@ -61,6 +62,30 @@ const useMatchStore = create((set, get) => ({
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to end match');
       return false;
+    }
+  },
+
+  updateMatchFromSocket: (updatedMatch) => {
+    set((state) => {
+      // Only update if it exists in current state, else might just add it or ignore
+      const exists = state.matches.find(m => m._id === updatedMatch._id);
+      if (exists) {
+        return {
+          matches: state.matches.map(m => m._id === updatedMatch._id ? updatedMatch : m)
+        };
+      }
+      return state;
+    });
+  },
+
+  fetchLeaderboard: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await axios.get(`${API_URL}/leaderboard`);
+      set({ leaderboard: response.data, isLoading: false });
+    } catch (error) {
+      set({ error: error.response?.data?.message || error.message, isLoading: false });
+      toast.error('Failed to fetch leaderboard');
     }
   }
 }));

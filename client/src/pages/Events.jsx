@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import useEventStore from '../store/eventStore';
 import useAuthStore from '../store/authStore';
 import EventCard from '../components/EventCard';
-import { Filter, Plus } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Filter, Plus, Calendar as CalendarIcon } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const Events = () => {
   const { events, fetchEvents, joinEvent, isLoading, error } = useEventStore();
@@ -24,15 +24,21 @@ const Events = () => {
   const canCreateEvent = user && (user.role === 'president' || user.role === 'faculty' || user.role === 'admin');
 
   return (
-    <div className="p-4 md:p-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.4 }}
+      className="p-4 md:p-8 relative min-h-screen"
+    >
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
         <div>
-          <h1 className="text-3xl font-black text-gray-900 mb-2">Campus Events</h1>
-          <p className="text-gray-500 font-medium">Discover and participate in exciting activities.</p>
+          <h1 className="text-4xl font-black text-gray-900 mb-2 tracking-tight">Campus Events</h1>
+          <p className="text-gray-500 font-medium text-lg">Discover and participate in exciting activities.</p>
         </div>
         
         <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2 bg-white p-1 rounded-2xl shadow-sm border border-gray-100">
+          <div className="flex items-center space-x-2 bg-white p-2 rounded-2xl border border-gray-200 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:border-primary-300 transition-colors">
             <Filter size={18} className="text-primary-500 ml-3" />
             <select 
               value={filter}
@@ -49,10 +55,10 @@ const Events = () => {
           {canCreateEvent && (
             <button 
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center space-x-2 bg-primary-600 hover:bg-primary-700 text-white px-5 py-3 rounded-2xl font-bold shadow-soft-purple transition-transform hover:-translate-y-1"
+              className="hidden md:flex items-center space-x-2 bg-primary-600 hover:bg-primary-700 text-white px-6 py-4 rounded-2xl font-black shadow-[0_8px_20px_-8px_rgba(79,70,229,0.5)] transition-all hover:-translate-y-1 hover:shadow-[0_12px_24px_-8px_rgba(79,70,229,0.6)]"
             >
-              <Plus size={18} />
-              <span className="hidden sm:inline">Create Event</span>
+              <Plus size={20} />
+              <span>Create Event</span>
             </button>
           )}
         </div>
@@ -72,26 +78,45 @@ const Events = () => {
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+          className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6 lg:gap-8"
         >
-          {filteredEvents.length > 0 ? (
-            filteredEvents.map((event, index) => (
-              <motion.div
-                key={event._id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.1 }}
-                className="h-full"
+          <AnimatePresence>
+            {filteredEvents.length > 0 ? (
+              filteredEvents.map((event, index) => (
+                <motion.div
+                  key={event._id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                  transition={{ delay: index * 0.05, duration: 0.3 }}
+                  className="h-full"
+                >
+                  <EventCard event={event} onJoin={handleJoin} />
+                </motion.div>
+              ))
+            ) : (
+              <motion.div 
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }}
+                className="col-span-full py-16 text-center text-gray-500 font-medium bg-white rounded-[32px] border border-dashed border-gray-200"
               >
-                <EventCard event={event} onJoin={handleJoin} />
+                <CalendarIcon size={48} className="mx-auto text-gray-300 mb-4" />
+                <p className="text-lg">No events found for this filter.</p>
               </motion.div>
-            ))
-          ) : (
-            <div className="col-span-full py-12 text-center text-gray-500 font-medium bg-white rounded-3xl shadow-sm border border-gray-100">
-              No events found for this filter.
-            </div>
-          )}
+            )}
+          </AnimatePresence>
         </motion.div>
+      )}
+
+      {/* FAB for Mobile Create Event */}
+      {canCreateEvent && (
+        <button 
+          onClick={() => setShowCreateModal(true)}
+          className="md:hidden fixed bottom-24 right-6 w-14 h-14 bg-primary-600 text-white rounded-full flex items-center justify-center shadow-[0_8px_20px_-8px_rgba(79,70,229,0.8)] z-40 hover:bg-primary-700 hover:scale-105 transition-all"
+        >
+          <Plus size={24} />
+        </button>
       )}
       
       {/* Basic Create Event Modal Placeholder */}
@@ -104,7 +129,7 @@ const Events = () => {
           </div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 };
 

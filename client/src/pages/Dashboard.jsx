@@ -15,6 +15,7 @@ import {
   Legend,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
+import StatCard from '../components/StatCard';
 
 ChartJS.register(
   CategoryScale,
@@ -25,21 +26,6 @@ ChartJS.register(
   Tooltip,
   Filler,
   Legend
-);
-
-const StatCard = ({ title, value, icon, colorClass, delay }) => (
-  <motion.div 
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay }}
-    className="soft-card p-6 flex flex-col items-center text-center hover:-translate-y-1 transition-transform duration-300"
-  >
-    <div className={`p-4 rounded-2xl mb-4 ${colorClass}`}>
-      {icon}
-    </div>
-    <p className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-1">{title}</p>
-    <h4 className="text-3xl font-black text-gray-900">{value}</h4>
-  </motion.div>
 );
 
 const Dashboard = () => {
@@ -120,15 +106,20 @@ const Dashboard = () => {
 
   return (
     <div className="w-full">
-      <div className="mb-8 p-8 rounded-[32px] bg-primary-100 text-primary-900 relative overflow-hidden shadow-soft">
+      <div className="mb-8 p-8 rounded-[32px] bg-primary-900 text-white relative overflow-hidden shadow-2xl">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary-800 to-primary-900 opacity-90 z-0"></div>
         <div className="relative z-10">
-          <h1 className="text-3xl font-black mb-2 flex items-center gap-2">
+          <h1 className="text-4xl font-black mb-2 flex items-center gap-2 tracking-tight">
             Hello, {user?.name ? user.name.split(' ')[0] : 'User'}!
           </h1>
-          <p className="text-primary-700 font-medium text-lg max-w-md">What do you want to explore today?</p>
+          <p className="text-primary-100 font-medium text-lg max-w-md">What do you want to explore today?</p>
         </div>
-        <div className="absolute right-0 top-0 h-full w-1/2 bg-gradient-to-l from-primary-200 to-transparent opacity-50"></div>
-        <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-white rounded-full opacity-20 blur-2xl"></div>
+        <motion.div 
+          animate={{ scale: [1, 1.1, 1], rotate: [0, 45, 0] }} 
+          transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+          className="absolute -right-20 -top-20 w-80 h-80 bg-primary-500 rounded-full mix-blend-multiply filter blur-[80px] opacity-60 z-0"
+        />
+        <div className="absolute right-10 bottom-0 h-full w-1/3 bg-gradient-to-l from-white/10 to-transparent z-0"></div>
       </div>
 
       {isAdminView ? (
@@ -137,11 +128,11 @@ const Dashboard = () => {
           
           {error && <div className="bg-red-50 text-red-500 font-bold p-4 rounded-xl mb-6">{error}</div>}
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <StatCard title="Total Users" value={analytics?.metrics?.totalUsers || 0} icon={<Users size={28} />} colorClass="bg-blue-100 text-blue-600" delay={0.1} />
-            <StatCard title="Total Clubs" value={analytics?.metrics?.totalClubs || 0} icon={<Activity size={28} />} colorClass="bg-green-100 text-green-600" delay={0.2} />
-            <StatCard title="Events" value={analytics?.metrics?.totalEvents || 0} icon={<Calendar size={28} />} colorClass="bg-red-100 text-red-500" delay={0.3} />
-            <StatCard title="Revenue (₹)" value={analytics?.metrics?.totalRevenue || 0} icon={<Award size={28} />} colorClass="bg-orange-100 text-orange-500" delay={0.4} />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+            <StatCard title="Total Users" value={analytics?.metrics?.totalUsers || 0} icon={Users} colorClass="text-blue-600" bgClass="bg-blue-50" chartColor="#2563eb" />
+            <StatCard title="Total Clubs" value={analytics?.metrics?.totalClubs || 0} icon={Activity} colorClass="text-green-600" bgClass="bg-green-50" chartColor="#16a34a" />
+            <StatCard title="Events" value={analytics?.metrics?.totalEvents || 0} icon={Calendar} colorClass="text-red-500" bgClass="bg-red-50" chartColor="#ef4444" />
+            <StatCard title="Revenue (₹)" value={analytics?.metrics?.totalRevenue || 0} icon={Award} colorClass="text-orange-500" bgClass="bg-orange-50" chartColor="#f97316" />
           </div>
 
           <div className="soft-card p-6 border-l-4 border-l-primary-500 mb-8">
@@ -155,58 +146,64 @@ const Dashboard = () => {
         <>
           <h2 className="text-xl font-bold text-gray-900 mb-4">Your Dashboard</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div className="soft-card p-6">
-              <h3 className="text-lg font-black text-gray-900 mb-4 border-b border-gray-100 pb-2">Upcoming Events</h3>
+          <div className="grid grid-cols-1 gap-8 mb-8">
+            <div className="bg-white rounded-[32px] p-8 shadow-sm border border-gray-100">
+              <h3 className="text-xl font-black text-gray-900 mb-6 flex items-center gap-2"><Calendar className="text-primary-500" /> Upcoming Events</h3>
               {upcomingEvents.length > 0 ? (
-                <div className="space-y-4">
+                <div className="flex overflow-x-auto gap-6 pb-4 hide-scrollbar snap-x">
                   {upcomingEvents.map(event => (
-                    <div key={event._id} className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
-                      <div className="bg-primary-100 text-primary-600 p-3 rounded-xl font-bold text-center">
-                        <div className="text-sm">{new Date(event.date).toLocaleString('default', { month: 'short' })}</div>
-                        <div className="text-xl">{new Date(event.date).getDate()}</div>
+                    <motion.div whileHover={{ y: -5 }} key={event._id} className="min-w-[280px] md:min-w-[320px] bg-gray-50 border border-gray-100 rounded-2xl p-4 snap-start shadow-sm transition-all hover:shadow-md cursor-pointer">
+                      <div className="flex gap-4 items-start">
+                        <div className="bg-white border border-gray-100 text-center rounded-xl overflow-hidden shadow-sm shrink-0 flex flex-col w-16">
+                          <div className="bg-primary-600 text-white text-[10px] font-black uppercase py-1 tracking-wider">{new Date(event.date).toLocaleString('default', { month: 'short' })}</div>
+                          <div className="text-xl font-black text-gray-900 py-2">{new Date(event.date).getDate()}</div>
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-gray-900 text-lg leading-tight mb-1">{event.title}</h4>
+                          <p className="text-sm text-gray-500 line-clamp-2">{event.description}</p>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="font-bold text-gray-900">{event.title}</h4>
-                        <p className="text-sm text-gray-500 line-clamp-1">{event.description}</p>
-                      </div>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center py-10 opacity-50">
+                <div className="flex flex-col items-center justify-center py-10 opacity-50 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
                   <Calendar size={48} className="text-gray-400 mb-4" />
                   <p className="text-gray-500 font-bold">No Upcoming Events</p>
                 </div>
               )}
             </div>
             
-            <div className="soft-card p-6">
-              <h3 className="text-lg font-black text-gray-900 mb-4 border-b border-gray-100 pb-2">Your Clubs</h3>
+            <div className="bg-white rounded-[32px] p-8 shadow-sm border border-gray-100">
+              <h3 className="text-xl font-black text-gray-900 mb-6 flex items-center gap-2"><Users className="text-primary-500" /> My Clubs</h3>
               {memberships.length > 0 ? (
-                <div className="space-y-4">
-                  {memberships.map(membership => (
-                    <div key={membership._id} className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
-                      <div className="w-12 h-12 bg-primary-100 rounded-xl overflow-hidden shrink-0">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {memberships.map((membership, idx) => (
+                    <motion.div 
+                      key={membership._id} 
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: idx * 0.1 }}
+                      className="flex flex-col items-center p-6 bg-gray-50 hover:bg-primary-50 hover:border-primary-100 border border-gray-100 rounded-2xl text-center transition-colors cursor-pointer group"
+                    >
+                      <div className="w-16 h-16 bg-white shadow-sm border border-gray-100 rounded-2xl overflow-hidden mb-3 group-hover:scale-110 transition-transform">
                         {membership.clubId?.logo ? (
                           <img src={membership.clubId.logo} alt={membership.clubId.name} className="w-full h-full object-cover" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-primary-600 font-bold">
+                          <div className="w-full h-full flex items-center justify-center text-primary-600 font-black text-2xl">
                             {membership.clubId?.name?.charAt(0)}
                           </div>
                         )}
                       </div>
-                      <div className="flex-1">
-                        <h4 className="font-bold text-gray-900">{membership.clubId?.name}</h4>
-                        <span className={`text-xs font-bold px-2 py-1 rounded-full ${membership.status === 'Approved' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>
-                          {membership.status}
-                        </span>
-                      </div>
-                    </div>
+                      <h4 className="font-bold text-gray-900 text-sm mb-2">{membership.clubId?.name}</h4>
+                      <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${membership.status === 'Approved' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>
+                        {membership.status}
+                      </span>
+                    </motion.div>
                   ))}
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center py-10 opacity-50">
+                <div className="flex flex-col items-center justify-center py-10 opacity-50 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
                   <Users size={48} className="text-gray-400 mb-4" />
                   <p className="text-gray-500 font-bold">Not enrolled in any clubs</p>
                 </div>

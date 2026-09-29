@@ -20,8 +20,23 @@ try {
 // @access  Private
 const createOrder = async (req, res) => {
   try {
-    const { amount, clubId } = req.body;
+    const { clubId } = req.body;
     
+    if (!clubId) {
+        return res.status(400).json({ message: 'Club ID is required' });
+    }
+
+    const club = await Club.findById(clubId);
+    if (!club) {
+        return res.status(404).json({ message: 'Club not found' });
+    }
+    
+    if (!club.isAcceptingMembers) {
+        return res.status(400).json({ message: 'This club is not currently accepting members' });
+    }
+
+    const amount = club.joinFee || 500;
+
     // Ensure amount is valid
     if (!amount || amount <= 0) {
         return res.status(400).json({ message: 'Invalid amount' });
@@ -75,6 +90,10 @@ const verifyPayment = async (req, res) => {
         // Add user to club pending requests
         const club = await Club.findById(clubId);
         if (club) {
+            if (!club.isAcceptingMembers) {
+                // If somehow they paid but recruitment closed, we still record payment but maybe not add them.
+                // For now, we'll still add them since they paid, but ideally they shouldn't have been able to pay.
+            }
             if (!club.pendingRequests.includes(req.user._id) && !club.members.includes(req.user._id)) {
                  club.pendingRequests.push(req.user._id);
                  await club.save();

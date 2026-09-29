@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Users, Calendar, User, Trophy, LayoutDashboard, Vote, Shield } from 'lucide-react';
+import { Home, Users, Calendar, User, Trophy, LayoutDashboard, Vote, Shield, Medal, MessageSquare } from 'lucide-react';
 import { motion } from 'framer-motion';
 import useAuthStore from '../store/authStore';
 
@@ -9,10 +9,10 @@ const BottomNav = () => {
   
   const navItems = [
     { name: 'Home', path: '/dashboard', icon: Home },
+    { name: 'Chat', path: '/chat', icon: MessageSquare },
     { name: 'Explore', path: '/clubs', icon: Users },
     { name: 'Events', path: '/events', icon: Calendar },
-    { name: 'Matches', path: '/matches', icon: Trophy },
-    { name: 'Elections', path: '/elections', icon: Vote },
+    { name: 'Rank', path: '/leaderboard', icon: Medal },
   ];
 
   if (user?.role === 'admin') {

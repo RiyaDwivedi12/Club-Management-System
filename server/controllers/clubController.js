@@ -193,4 +193,26 @@ const getCoordinatorClubs = async (req, res) => {
   }
 };
 
-export { createClub, getClubs, getClubById, requestJoinClub, leaveClub, approveMember, getPresidentClubs, getCoordinatorClubs };
+// @desc    Update recruitment phase for clubs
+// @route   PUT /api/clubs/recruitment
+// @access  Private (Admin)
+const updateRecruitmentPhase = async (req, res) => {
+  try {
+    const { clubIds, joinFee, isAcceptingMembers } = req.body;
+    
+    if (!clubIds || !Array.isArray(clubIds) || clubIds.length === 0) {
+      return res.status(400).json({ message: 'Please select at least one club' });
+    }
+
+    await Club.updateMany(
+      { _id: { $in: clubIds } },
+      { $set: { isAcceptingMembers, joinFee: joinFee || 500 } }
+    );
+    
+    res.json({ message: `Recruitment phase updated for ${clubIds.length} clubs` });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export { createClub, getClubs, getClubById, requestJoinClub, leaveClub, approveMember, getPresidentClubs, getCoordinatorClubs, updateRecruitmentPhase };

@@ -6,6 +6,7 @@ import useMatchStore from '../store/matchStore';
 import { Shield, Users, Calendar, Trophy, Check, X, Edit, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import StatusBadge from '../components/StatusBadge';
 
 const PresidentDashboard = () => {
   const { user } = useAuthStore();
@@ -18,7 +19,7 @@ const PresidentDashboard = () => {
   const [selectedClub, setSelectedClub] = useState(null);
 
   // Form states
-  const [eventForm, setEventForm] = useState({ title: '', description: '', category: 'Sports', maxParticipants: 0, date: '', poster: '' });
+  const [eventForm, setEventForm] = useState({ title: '', description: '', category: 'Sports', maxParticipants: 0, date: '', poster: '', requiresApproval: false });
   const [isEditingEvent, setIsEditingEvent] = useState(false);
   const [editingEventId, setEditingEventId] = useState(null);
 
@@ -57,7 +58,7 @@ const PresidentDashboard = () => {
     } else {
       await createEvent({ ...eventForm, clubId: selectedClub._id });
     }
-    setEventForm({ title: '', description: '', category: 'Sports', maxParticipants: 0, date: '', poster: '' });
+    setEventForm({ title: '', description: '', category: 'Sports', maxParticipants: 0, date: '', poster: '', requiresApproval: false });
     setIsEditingEvent(false);
     setEditingEventId(null);
     fetchEventsByClub(selectedClub._id);
@@ -72,7 +73,8 @@ const PresidentDashboard = () => {
       category: event.category,
       maxParticipants: event.maxParticipants,
       date: new Date(event.date).toISOString().slice(0, 16),
-      poster: event.poster
+      poster: event.poster,
+      requiresApproval: event.requiresApproval || false
     });
     setActiveTab('events');
   };
@@ -215,12 +217,22 @@ const PresidentDashboard = () => {
                       <input required type="number" min="0" value={eventForm.maxParticipants} onChange={e => setEventForm({...eventForm, maxParticipants: parseInt(e.target.value)})} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
                     </div>
                   </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <input 
+                      type="checkbox" 
+                      id="requiresApproval" 
+                      checked={eventForm.requiresApproval} 
+                      onChange={e => setEventForm({...eventForm, requiresApproval: e.target.checked})} 
+                      className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                    />
+                    <label htmlFor="requiresApproval" className="text-sm font-bold text-gray-700">Requires Approval (Off-campus or high budget)</label>
+                  </div>
                   <div className="flex gap-2 pt-2">
                     <button type="submit" className="flex-1 bg-primary-600 text-white font-bold py-3 rounded-lg hover:bg-primary-700 transition-colors">
                       {isEditingEvent ? 'Update Event' : 'Create Event'}
                     </button>
                     {isEditingEvent && (
-                      <button type="button" onClick={() => { setIsEditingEvent(false); setEventForm({ title: '', description: '', category: 'Sports', maxParticipants: 0, date: '', poster: '' }); }} className="px-4 bg-gray-200 text-gray-700 font-bold rounded-lg hover:bg-gray-300">Cancel</button>
+                      <button type="button" onClick={() => { setIsEditingEvent(false); setEventForm({ title: '', description: '', category: 'Sports', maxParticipants: 0, date: '', poster: '', requiresApproval: false }); }} className="px-4 bg-gray-200 text-gray-700 font-bold rounded-lg hover:bg-gray-300">Cancel</button>
                     )}
                   </div>
                 </form>
@@ -232,7 +244,12 @@ const PresidentDashboard = () => {
                   {events.length === 0 ? <p className="text-gray-500">No events yet.</p> : events.map(event => (
                     <div key={event._id} className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                       <div>
-                        <h3 className="font-bold text-lg">{event.title}</h3>
+                        <h3 className="font-bold text-lg flex items-center gap-2">
+                          {event.title}
+                          {event.requiresApproval && (
+                            <StatusBadge status={event.approvalStatus} note={event.approvalNote} />
+                          )}
+                        </h3>
                         <p className="text-sm text-gray-500">{new Date(event.date).toLocaleString()}</p>
                       </div>
                       <div className="flex gap-2">

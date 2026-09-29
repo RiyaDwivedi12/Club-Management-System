@@ -15,7 +15,7 @@ const ClubDetails = () => {
 
   const handlePayment = async () => {
     try {
-      const { data: order } = await axios.post('/api/payments/order', { amount: 500, clubId: club?._id }, { withCredentials: true });
+      const { data: order } = await axios.post('/api/payments/order', { clubId: club?._id }, { withCredentials: true });
       
       const options = {
         key: 'rzp_test_mock123',
@@ -30,7 +30,7 @@ const ClubDetails = () => {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
-              amount: 500,
+              amount: club.joinFee || 500,
               clubId: club?._id
             }, { withCredentials: true });
             
@@ -186,13 +186,20 @@ const ClubDetails = () => {
                       >
                         Request Pending...
                       </button>
-                    ) : (
+                    ) : club.isAcceptingMembers ? (
                       <button 
                         onClick={handlePayment}
                         className="w-full py-3 bg-primary-600 text-white rounded-xl font-bold shadow-soft-purple hover:-translate-y-1 transition-all flex flex-col items-center justify-center"
                       >
-                        <span>Pay ₹500 & Request to Join</span>
+                        <span>Pay ₹{club.joinFee || 500} & Request to Join</span>
                         <span className="text-xs text-primary-200 mt-0.5 font-medium">Secured by Razorpay</span>
+                      </button>
+                    ) : (
+                      <button 
+                        disabled
+                        className="w-full py-3 bg-gray-100 text-gray-400 rounded-xl font-bold cursor-not-allowed flex items-center justify-center"
+                      >
+                        Recruitment Closed
                       </button>
                     )}
                   </>

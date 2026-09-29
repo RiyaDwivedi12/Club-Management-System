@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import useClubStore from '../store/clubStore';
 import ClubCard from '../components/ClubCard';
 import { Search } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const Clubs = () => {
   const { clubs, fetchClubs, isLoading, error } = useClubStore();
@@ -15,23 +15,29 @@ const Clubs = () => {
   const filteredClubs = clubs.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
-    <div className="p-4 md:p-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.4 }}
+      className="p-4 md:p-8"
+    >
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
         <div>
-          <h1 className="text-3xl font-black text-gray-900 mb-2">Clubs</h1>
-          <p className="text-gray-500 font-medium">Find and join communities that match your interests.</p>
+          <h1 className="text-4xl font-black text-gray-900 mb-2 tracking-tight">Discover Clubs</h1>
+          <p className="text-gray-500 font-medium text-lg">Find and join communities that match your interests.</p>
         </div>
         
-        <div className="relative w-full md:w-72">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <Search size={18} className="text-gray-400" />
+        <div className="relative w-full md:w-80 group">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-transform group-focus-within:scale-110 group-focus-within:text-primary-500">
+            <Search size={20} className="text-gray-400 group-focus-within:text-primary-500 transition-colors" />
           </div>
           <input
             type="text"
-            placeholder="Search clubs..."
+            placeholder="Search clubs by name..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-white rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm text-gray-700 font-medium placeholder-gray-400"
+            className="w-full pl-12 pr-4 py-4 bg-white rounded-2xl focus:outline-none focus:ring-4 focus:ring-primary-500/20 focus:border-primary-500 border border-transparent shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] text-gray-900 font-medium placeholder-gray-400 transition-all"
           />
         </div>
       </div>
@@ -50,27 +56,36 @@ const Clubs = () => {
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8"
         >
-          {filteredClubs.length > 0 ? (
-            filteredClubs.map((club, index) => (
-              <motion.div
-                key={club._id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
+          <AnimatePresence>
+            {filteredClubs.length > 0 ? (
+              filteredClubs.map((club, index) => (
+                <motion.div
+                  key={club._id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                  transition={{ delay: index * 0.05, duration: 0.3 }}
+                >
+                  <ClubCard club={club} />
+                </motion.div>
+              ))
+            ) : (
+              <motion.div 
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }}
+                className="col-span-full py-16 text-center text-gray-500 font-medium bg-white rounded-[32px] border border-dashed border-gray-200"
               >
-                <ClubCard club={club} />
+                <Search size={48} className="mx-auto text-gray-300 mb-4" />
+                <p className="text-lg">No clubs found matching your search.</p>
               </motion.div>
-            ))
-          ) : (
-            <div className="col-span-full py-12 text-center text-gray-500 font-medium bg-white rounded-3xl">
-              No clubs found matching your search.
-            </div>
-          )}
+            )}
+          </AnimatePresence>
         </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 };
 

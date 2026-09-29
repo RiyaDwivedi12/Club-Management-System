@@ -39,7 +39,20 @@ const clubSchema = new mongoose.Schema({
   pendingRequests: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
-  }]
+  }],
+  isAcceptingMembers: {
+    type: Boolean,
+    default: false
+  },
+  joinFee: {
+    type: Number,
+    default: 500
+  },
+  status: {
+    type: String,
+    enum: ['pending', 'approved', 'suspended'],
+    default: 'approved'
+  }
 }, {
   timestamps: true
 });

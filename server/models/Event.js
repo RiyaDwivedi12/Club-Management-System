@@ -39,6 +39,33 @@ const eventSchema = new mongoose.Schema({
     type: String,
     enum: ['upcoming', 'ongoing', 'completed'],
     default: 'upcoming'
+  },
+  approvalStatus: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending'
+  },
+  approvedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  approvalNote: {
+    type: String,
+    default: ''
+  },
+  requiresApproval: {
+    type: Boolean,
+    default: false
+  },
+  approvalOverride: {
+    overriddenBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    overriddenAt: Date,
+    reason: String,
+    previousStatus: String
   }
 }, {
   timestamps: true

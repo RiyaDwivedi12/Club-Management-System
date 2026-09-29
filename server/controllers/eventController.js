@@ -1,18 +1,21 @@
 import Event from '../models/Event.js';
 import Club from '../models/Club.js';
+import Notification from '../models/Notification.js';
 
 // @desc    Create a new event
 // @route   POST /api/events
 // @access  Private (President/Admin)
 const createEvent = async (req, res) => {
   try {
-    const { title, description, clubId, date, category, maxParticipants, poster } = req.body;
+    const { title, description, clubId, date, category, maxParticipants, poster, requiresApproval } = req.body;
 
     // Verify club exists
     const club = await Club.findById(clubId);
     if (!club) {
       return res.status(404).json({ message: 'Club not found' });
     }
+
+    const approvalStatus = requiresApproval ? 'pending' : 'approved';
 
     const event = await Event.create({
       title,
@@ -22,8 +25,18 @@ const createEvent = async (req, res) => {
       category,
       maxParticipants,
       poster: poster || '',
-      participants: []
+      participants: [],
+      requiresApproval: requiresApproval || false,
+      approvalStatus
     });
+
+    if (requiresApproval && club.facultyId) {
+      await Notification.create({
+        user: club.facultyId,
+        message: `New event "${title}" from ${club.name} requires your approval.`,
+        type: 'club_approval'
+      });
+    }
 
     res.status(201).json(event);
   } catch (error) {
@@ -150,4 +163,114 @@ const getEventsByClub = async (req, res) => {
   }
 };
 
-export { createEvent, getEvents, getEventById, joinEvent, updateEvent, deleteEvent, getEventsByClub };
+// @desc    Approve an event
+// @route   PUT /api/events/:id/approve
+// @access  Private (Faculty/Admin)
+const approveEvent = async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.id);
+    if (!event) return res.status(404).json({ message: 'Event not found' });
+
+    const club = await Club.findById(event.clubId);
+    if (!club) return res.status(404).json({ message: 'Associated club not found' });
+
+    if (club.facultyId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized to approve events for this club' });
+    }
+
+    event.approvalStatus = 'approved';
+    event.approvedBy = req.user._id;
+    event.approvalNote = req.body.note || '';
+    await event.save();
+
+    await Notification.create({
+      user: club.presidentId,
+      message: `Your event "${event.title}" has been approved.`,
+      type: 'club_approval'
+    });
+
+    res.json(event);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Reject an event
+// @route   PUT /api/events/:id/reject
+// @access  Private (Faculty/Admin)
+const rejectEvent = async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.id);
+    if (!event) return res.status(404).json({ message: 'Event not found' });
+
+    const club = await Club.findById(event.clubId);
+    if (!club) return res.status(404).json({ message: 'Associated club not found' });
+
+    if (club.facultyId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized to reject events for this club' });
+    }
+
+    event.approvalStatus = 'rejected';
+    event.approvedBy = req.user._id;
+    event.approvalNote = req.body.note || 'No reason provided';
+    await event.save();
+
+    await Notification.create({
+      user: club.presidentId,
+      message: `Your event "${event.title}" has been rejected. Reason: ${event.approvalNote}`,
+      type: 'club_approval'
+    });
+
+    res.json(event);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Override an event's approval status
+// @route   PUT /api/events/:id/override
+// @access  Private (Faculty/Admin)
+const overrideEvent = async (req, res) => {
+  try {
+    const { status, reason } = req.body; // status should be 'approved' or 'rejected'
+    if (!['approved', 'rejected', 'pending'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status provided' });
+    }
+    if (!reason) {
+      return res.status(400).json({ message: 'Override reason is required' });
+    }
+
+    const event = await Event.findById(req.params.id);
+    if (!event) return res.status(404).json({ message: 'Event not found' });
+
+    const club = await Club.findById(event.clubId);
+    if (!club) return res.status(404).json({ message: 'Associated club not found' });
+
+    if (club.facultyId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized to override events for this club' });
+    }
+
+    const prevStatus = event.approvalStatus;
+
+    event.approvalStatus = status;
+    event.approvalOverride = {
+      overriddenBy: req.user._id,
+      overriddenAt: new Date(),
+      reason: reason,
+      previousStatus: prevStatus
+    };
+    await event.save();
+
+    await Notification.create({
+      user: club.presidentId,
+      message: `The approval status of your event "${event.title}" was overridden to ${status}. Reason: ${reason}`,
+      type: 'club_approval'
+    });
+
+    res.json(event);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export { createEvent, getEvents, getEventById, joinEvent, updateEvent, deleteEvent, getEventsByClub, approveEvent, rejectEvent, overrideEvent };

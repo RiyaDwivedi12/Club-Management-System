@@ -3,15 +3,18 @@ import useAuthStore from '../store/authStore';
 import useClubStore from '../store/clubStore';
 import useEventStore from '../store/eventStore';
 import useMatchStore from '../store/matchStore';
-import { Users, Calendar, Trophy, Check, X, ShieldCheck, Edit, Trash2 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Users, Calendar, Trophy, Check, X, ShieldCheck, Edit, Trash2, CheckSquare, Activity, CheckCircle2, Inbox } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import StatCard from '../components/StatCard';
+import EmptyState from '../components/EmptyState';
+import ApprovalCard from '../components/ApprovalCard';
 
 const CoordinatorDashboard = () => {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const { clubs, fetchCoordinatorClubs, approveMember } = useClubStore();
-  const { events, fetchEventsByClub, createEvent, updateEvent, deleteEvent } = useEventStore();
+  const { events, fetchEventsByClub, createEvent, updateEvent, deleteEvent, approveEvent, rejectEvent, overrideEvent } = useEventStore();
   const { matches, fetchMatches } = useMatchStore();
 
   const [activeTab, setActiveTab] = useState('overview');
@@ -21,6 +24,10 @@ const CoordinatorDashboard = () => {
   const [eventForm, setEventForm] = useState({ title: '', description: '', category: 'Sports', maxParticipants: 0, date: '', poster: '' });
   const [isEditingEvent, setIsEditingEvent] = useState(false);
   const [editingEventId, setEditingEventId] = useState(null);
+  
+  const [approvalNote, setApprovalNote] = useState('');
+  const [showOverrideModal, setShowOverrideModal] = useState(null);
+  const [approvalFilter, setApprovalFilter] = useState('pending');
 
   useEffect(() => {
     if (user?.role !== 'faculty' && user?.role !== 'admin') {
@@ -84,6 +91,28 @@ const CoordinatorDashboard = () => {
     }
   };
 
+  const handleApprove = async (id) => {
+    await approveEvent(id, approvalNote);
+    setApprovalNote('');
+    fetchEventsByClub(selectedClub._id);
+  };
+
+  const handleReject = async (id) => {
+    if (!approvalNote) {
+      alert("Please provide a reason for rejection in the note field.");
+      return;
+    }
+    await rejectEvent(id, approvalNote);
+    setApprovalNote('');
+    fetchEventsByClub(selectedClub._id);
+  };
+
+  const handleOverride = async (id, status, reason) => {
+    await overrideEvent(id, status, reason);
+    setShowOverrideModal(null);
+    fetchEventsByClub(selectedClub._id);
+  };
+
   const tabClass = (tabName) => 
     `flex items-center gap-2 px-6 py-4 font-bold transition-all border-b-2 ${activeTab === tabName ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-400 hover:text-gray-600'}`;
 
@@ -123,26 +152,18 @@ const CoordinatorDashboard = () => {
           <button onClick={() => setActiveTab('overview')} className={tabClass('overview')}><ShieldCheck size={18}/> Overview</button>
           <button onClick={() => setActiveTab('members')} className={tabClass('members')}><Users size={18}/> Members</button>
           <button onClick={() => setActiveTab('events')} className={tabClass('events')}><Calendar size={18}/> Events</button>
+          <button onClick={() => setActiveTab('approvals')} className={tabClass('approvals')}><CheckSquare size={18}/> Approvals {events.filter(e => e.approvalStatus === 'pending').length > 0 && <span className="w-2 h-2 bg-red-500 rounded-full inline-block ml-1"></span>}</button>
           <button onClick={() => setActiveTab('matches')} className={tabClass('matches')}><Trophy size={18}/> Matches</button>
         </div>
 
         <div className="p-6 md:p-8">
           {activeTab === 'overview' && selectedClub && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                 <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
-                   <h3 className="text-gray-500 font-bold mb-2">Total Members</h3>
-                   <p className="text-4xl font-black text-gray-900">{selectedClub.members?.length || 0}</p>
-                 </div>
-                 <div className="bg-orange-50 p-6 rounded-2xl border border-orange-100">
-                   <h3 className="text-orange-600 font-bold mb-2">Pending Requests</h3>
-                   <p className="text-4xl font-black text-orange-700">{selectedClub.pendingRequests?.length || 0}</p>
-                 </div>
-                 <div className="bg-primary-50 p-6 rounded-2xl border border-primary-100">
-                   <h3 className="text-primary-600 font-bold mb-2">Club President</h3>
-                   <p className="text-lg font-bold text-primary-900 truncate">{selectedClub.presidentId?.name || 'Not Assigned'}</p>
-                   <p className="text-sm text-primary-700 truncate">{selectedClub.presidentId?.email}</p>
-                 </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                 <StatCard title="Total Clubs" value={clubs.length} icon={ShieldCheck} />
+                 <StatCard title="Pending Approvals" value={events.filter(e => e.approvalStatus === 'pending').length} icon={CheckSquare} colorClass="text-amber-600" bgClass="bg-amber-50" chartColor="#d97706" />
+                 <StatCard title="Active Events" value={events.length} icon={Calendar} colorClass="text-green-600" bgClass="bg-green-50" chartColor="#16a34a" />
+                 <StatCard title="Matches (Month)" value={matches.length} icon={Activity} colorClass="text-blue-600" bgClass="bg-blue-50" chartColor="#2563eb" />
                </div>
             </motion.div>
           )}
@@ -247,6 +268,61 @@ const CoordinatorDashboard = () => {
                </div>
              </div>
            </motion.div>
+          )}
+
+          {activeTab === 'approvals' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+              <div className="flex items-center gap-2 border-b border-gray-100 pb-4 overflow-x-auto hide-scrollbar">
+                <button onClick={() => setApprovalFilter('all')} className={`px-4 py-2 rounded-full text-sm font-bold transition-colors whitespace-nowrap ${approvalFilter === 'all' ? 'bg-slate-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>All ({events.length})</button>
+                <button onClick={() => setApprovalFilter('pending')} className={`px-4 py-2 rounded-full text-sm font-bold transition-colors whitespace-nowrap ${approvalFilter === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Pending ({events.filter(e => e.approvalStatus === 'pending').length})</button>
+                <button onClick={() => setApprovalFilter('approved')} className={`px-4 py-2 rounded-full text-sm font-bold transition-colors whitespace-nowrap ${approvalFilter === 'approved' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Approved ({events.filter(e => e.approvalStatus === 'approved').length})</button>
+                <button onClick={() => setApprovalFilter('rejected')} className={`px-4 py-2 rounded-full text-sm font-bold transition-colors whitespace-nowrap ${approvalFilter === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Rejected ({events.filter(e => e.approvalStatus === 'rejected').length})</button>
+              </div>
+
+              <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+                {events.filter(e => approvalFilter === 'all' ? true : e.approvalStatus === approvalFilter).length === 0 ? (
+                  <EmptyState icon={CheckCircle2} title="Nothing here!" description="No events match this filter." />
+                ) : (
+                  <AnimatePresence mode="popLayout">
+                    {events.filter(e => approvalFilter === 'all' ? true : e.approvalStatus === approvalFilter).map(event => (
+                      <div key={event._id} className="relative">
+                        <ApprovalCard event={event} onApprove={handleApprove} onReject={handleReject} isRemoving={false} />
+                        {event.approvalStatus !== 'pending' && (
+                          <div className="absolute top-4 right-4 md:top-6 md:right-6 z-10">
+                            <button onClick={() => setShowOverrideModal(event)} className="px-3 py-1.5 bg-white border border-gray-200 shadow-sm text-xs font-bold text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
+                              Override Status
+                            </button>
+                          </div>
+                        )}
+                        {event.approvalOverride?.reason && (
+                          <div className="absolute bottom-4 right-4 md:bottom-6 md:right-6 z-10 text-xs text-orange-600 font-bold bg-orange-50 px-2 py-1 rounded">
+                            Override: {event.approvalOverride.reason}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </AnimatePresence>
+                )}
+              </div>
+              
+              {showOverrideModal && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                  <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
+                    <h3 className="text-xl font-black mb-2">Override Status</h3>
+                    <p className="text-sm text-gray-500 mb-4">You are about to change the status of "{showOverrideModal.title}".</p>
+                    <select id="overrideStatus" className="w-full mb-4 px-4 py-2 border border-gray-200 rounded-lg outline-none" defaultValue={showOverrideModal.approvalStatus === 'approved' ? 'rejected' : 'approved'}>
+                      <option value="approved">Approved</option>
+                      <option value="rejected">Rejected</option>
+                    </select>
+                    <textarea id="overrideReason" placeholder="Reason for override (Required)" className="w-full mb-4 px-4 py-2 border border-gray-200 rounded-lg outline-none" rows="3"></textarea>
+                    <div className="flex gap-2 justify-end">
+                      <button onClick={() => setShowOverrideModal(null)} className="px-4 py-2 font-bold text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
+                      <button onClick={() => handleOverride(showOverrideModal._id, document.getElementById('overrideStatus').value, document.getElementById('overrideReason').value)} className="px-4 py-2 font-bold text-white bg-primary-600 hover:bg-primary-700 rounded-lg">Confirm Override</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </motion.div>
           )}
 
           {activeTab === 'matches' && (

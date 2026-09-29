@@ -3,17 +3,24 @@ import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } f
 import { Toaster } from 'react-hot-toast';
 import useAuthStore from './store/authStore';
 import useNotificationStore from './store/notificationStore';
+import useMatchStore from './store/matchStore';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import Clubs from './pages/Clubs';
 import ClubDetails from './pages/ClubDetails';
 import Events from './pages/Events';
 import Matches from './pages/Matches';
+import Leaderboard from './pages/Leaderboard';
+import Elections from './pages/Elections';
 import RefereeDashboard from './pages/RefereeDashboard';
 import AdminPanel from './pages/AdminPanel';
 import PresidentDashboard from './pages/PresidentDashboard';
 import CoordinatorDashboard from './pages/CoordinatorDashboard';
+import Profile from './pages/Profile';
+import Chat from './pages/Chat';
 import Sidebar from './components/Sidebar';
 import BottomNav from './components/BottomNav';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -22,7 +29,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const AppLayout = ({ children }) => {
   const { user, logout } = useAuthStore();
-  const { notifications, unreadCount, initSocket, disconnectSocket, fetchNotifications, markAsRead } = useNotificationStore();
+  const { notifications, unreadCount, initSocket, disconnectSocket, fetchNotifications, markAsRead, socket } = useNotificationStore();
+  const { updateMatchFromSocket } = useMatchStore();
   const [showNotifications, setShowNotifications] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -36,10 +44,33 @@ const AppLayout = ({ children }) => {
     return () => disconnectSocket();
   }, [user, initSocket, disconnectSocket, fetchNotifications]);
 
+  useEffect(() => {
+    if (socket) {
+      socket.on('match_score_update', updateMatchFromSocket);
+      socket.on('match_status_change', updateMatchFromSocket);
+    }
+    return () => {
+      if (socket) {
+        socket.off('match_score_update', updateMatchFromSocket);
+        socket.off('match_status_change', updateMatchFromSocket);
+      }
+    };
+  }, [socket, updateMatchFromSocket]);
+
   return (
     <div className="min-h-screen bg-dark-900 text-slate-200 flex flex-col font-sans">
       <Toaster position="top-center" toastOptions={{ 
-        className: 'rounded-xl shadow-lg font-bold text-sm bg-dark-800 text-white border border-slate-700',
+        style: {
+          background: '#ffffff',
+          color: '#1f2937',
+          fontWeight: 'bold',
+          borderRadius: '12px'
+        },
+        error: {
+          style: {
+            color: '#ef4444',
+          },
+        },
       }} />
       
       {/* Header */}
@@ -50,13 +81,20 @@ const AppLayout = ({ children }) => {
               <div className="w-10 h-10 rounded-lg bg-primary-500 flex items-center justify-center text-dark-900 font-black text-xl shadow-neon skew-x-[-10deg]">
                 <span className="skew-x-[10deg]">C</span>
               </div>
-              <span className="text-2xl font-black tracking-tighter uppercase text-white hidden sm:block">Athletics<span className="text-primary-500">Hub</span></span>
+              <span className="text-2xl font-black tracking-tighter uppercase text-gray-900 hidden sm:block">Club<span className="text-primary-500">Sphere</span></span>
             </Link>
           </div>
           
-          <nav>
-            {user ? (
-              <div className="flex items-center space-x-4">
+          <nav className="hidden md:flex items-center gap-8">
+            {!user ? (
+              <>
+                <Link to="/login" className="text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors">Login</Link>
+                <Link to="/register" className="text-sm font-bold bg-primary-600 text-white px-6 py-2.5 rounded-full hover:bg-primary-700 hover:shadow-soft-purple transition-all hover:-translate-y-0.5">
+                  Join the club
+                </Link>
+              </>
+            ) : (
+              <div className="flex items-center space-x-6">
                 <div className="relative">
                   <button 
                     onClick={() => setShowNotifications(!showNotifications)}
@@ -94,35 +132,18 @@ const AppLayout = ({ children }) => {
                     </div>
                   )}
                 </div>
-                
-                <button 
-                  onClick={logout} 
-                  className="flex items-center space-x-2 text-slate-400 hover:text-red-500 font-bold transition-colors bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-lg uppercase tracking-wider text-sm"
-                >
-              <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center text-primary-600 font-bold text-xl">
-                C
-              </div>
-              <span className="text-xl font-bold tracking-tight text-gray-900 hidden sm:block">
-                Athletics<span className="text-primary-600">Hub</span>
-              </span>
-            </Link>
-          </div>
 
-          <nav className="hidden md:flex items-center gap-8">
-            {!user ? (
-              <>
-                <Link to="/login" className="text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors">Login</Link>
-                <Link to="/register" className="text-sm font-bold bg-primary-600 text-white px-6 py-2.5 rounded-full hover:bg-primary-700 hover:shadow-soft-purple transition-all hover:-translate-y-0.5">
-                  Join the club
-                </Link>
-              </>
-            ) : (
-              <button 
-                onClick={logout}
-                className="text-sm font-bold text-red-500 hover:text-red-600 transition-colors"
-              >
-                Logout
-              </button>
+                <div className="font-bold text-gray-700">
+                  {user.name}
+                </div>
+
+                <button 
+                  onClick={logout}
+                  className="text-sm font-bold text-red-500 hover:text-red-600 transition-colors"
+                >
+                  Logout
+                </button>
+              </div>
             )}
           </nav>
 
@@ -235,11 +256,16 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/chat" element={<Chat />} />
           <Route path="/clubs" element={<Clubs />} />
           <Route path="/clubs/:id" element={<ClubDetails />} />
           <Route path="/events" element={<Events />} />
           <Route path="/matches" element={<Matches />} />
+          <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/elections" element={<Elections />} />
           <Route path="/referee" element={<RefereeDashboard />} />
           <Route element={<ProtectedRoute allowedRoles={['admin']} />}>

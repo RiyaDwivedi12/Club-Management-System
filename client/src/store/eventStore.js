@@ -106,6 +106,57 @@ const useEventStore = create((set, get) => ({
       set({ error: error.response?.data?.message || error.message, isLoading: false });
       toast.error('Failed to fetch club events');
     }
+  },
+
+  approveEvent: async (id, note = '') => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await axios.put(`${API_URL}/${id}/approve`, { note }, { withCredentials: true });
+      set((state) => ({
+        events: state.events.map(e => e._id === id ? response.data : e),
+        isLoading: false
+      }));
+      toast.success('Event approved successfully');
+      return true;
+    } catch (error) {
+      set({ error: error.response?.data?.message || error.message, isLoading: false });
+      toast.error(error.response?.data?.message || 'Failed to approve event');
+      return false;
+    }
+  },
+
+  rejectEvent: async (id, note) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await axios.put(`${API_URL}/${id}/reject`, { note }, { withCredentials: true });
+      set((state) => ({
+        events: state.events.map(e => e._id === id ? response.data : e),
+        isLoading: false
+      }));
+      toast.success('Event rejected successfully');
+      return true;
+    } catch (error) {
+      set({ error: error.response?.data?.message || error.message, isLoading: false });
+      toast.error(error.response?.data?.message || 'Failed to reject event');
+      return false;
+    }
+  },
+
+  overrideEvent: async (id, status, reason) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await axios.put(`${API_URL}/${id}/override`, { status, reason }, { withCredentials: true });
+      set((state) => ({
+        events: state.events.map(e => e._id === id ? response.data : e),
+        isLoading: false
+      }));
+      toast.success(`Event status overridden to ${status}`);
+      return true;
+    } catch (error) {
+      set({ error: error.response?.data?.message || error.message, isLoading: false });
+      toast.error(error.response?.data?.message || 'Failed to override event');
+      return false;
+    }
   }
 }));
 

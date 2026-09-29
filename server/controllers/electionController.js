@@ -114,6 +114,11 @@ const vote = async (req, res) => {
 
     await election.save();
 
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('voteUpdate', { electionId: election._id, candidateId, newVotes: candidate.votes });
+    }
+
     res.json({ message: 'Vote cast successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });

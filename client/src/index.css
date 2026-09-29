@@ -6,6 +6,9 @@
   body {
     @apply bg-[#F8F9FA] text-[#1A1A1A] font-sans antialiased;
   }
+  input, textarea, select {
+    @apply text-black;
+  }
   ::selection {
     background-color: #ddd6fe; /* primary-200 */
     color: #4c1d95; /* primary-900 */

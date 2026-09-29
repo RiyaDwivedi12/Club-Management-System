@@ -59,6 +59,24 @@ const useElectionStore = create((set, get) => ({
       toast.error(error.response?.data?.message || 'Failed to cast vote');
       return false;
     }
+  },
+
+  updateVoteCount: (electionId, candidateId, newVotes) => {
+    set((state) => ({
+      elections: state.elections.map((election) => {
+        if (election._id === electionId) {
+          return {
+            ...election,
+            candidates: election.candidates.map((c) =>
+              c.candidateId._id === candidateId || c.candidateId === candidateId
+                ? { ...c, votes: newVotes }
+                : c
+            ),
+          };
+        }
+        return election;
+      }),
+    }));
   }
 }));
 

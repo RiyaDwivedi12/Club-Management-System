@@ -42,6 +42,22 @@ const matchSchema = new mongoose.Schema({
   timer: {
     type: Number,
     default: 0
+  },
+  round: {
+    type: Number,
+    default: 1
+  },
+  teamAId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Team'
+  },
+  teamBId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Team'
+  },
+  nextMatchId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Match'
   }
 }, {
   timestamps: true

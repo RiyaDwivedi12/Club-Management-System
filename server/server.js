@@ -24,6 +24,8 @@ const io = new Server(httpServer, {
   }
 });
 
+app.set('io', io);
+
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
@@ -43,6 +45,8 @@ import notificationRoutes from './routes/notificationRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import studentRoutes from './routes/studentRoutes.js';
+import tournamentRoutes from './routes/tournamentRoutes.js';
+import gameRoutes from './routes/gameRoutes.js';
 
 // Basic route
 app.get('/', (req, res) => {
@@ -59,6 +63,8 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/student', studentRoutes);
+app.use('/api/tournaments', tournamentRoutes);
+app.use('/api/games', gameRoutes);
 
 // Socket.io connection handling
 io.on('connection', (socket) => {
