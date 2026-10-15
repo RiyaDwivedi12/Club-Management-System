@@ -84,12 +84,15 @@ const Login = () => {
         
         <form onSubmit={submitHandler}>
           <div className="mb-4">
-            <label className="block text-gray-700 font-medium mb-2">Email Address or Username</label>
+            <label className="block text-gray-700 font-bold mb-2">
+              {loginRole === 'student' ? 'Student Roll Number (from ID card), Email, or Username' : 'Email Address or Username'}
+            </label>
             <input 
               type="text" 
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 transition-shadow"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              placeholder={loginRole === 'student' ? 'e.g. 23CS012 or dwivedi@college.edu' : 'Enter email or username'}
               required
             />
           </div>

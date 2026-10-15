@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
-import { Home, Users, Calendar, LayoutDashboard, Trophy, Vote, Shield, Medal, User, MessageSquare } from 'lucide-react';
+import { Home, Users, Calendar, LayoutDashboard, Trophy, Vote, Shield, Medal, User, MessageSquare, Award } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const Sidebar = () => {
@@ -16,10 +16,15 @@ const Sidebar = () => {
     { name: 'Clubs', path: '/clubs', icon: <Users size={20} /> },
     { name: 'Events', path: '/events', icon: <Calendar size={20} /> },
     { name: 'Matches', path: '/matches', icon: <Trophy size={20} /> },
+    { name: 'Tournaments', path: '/tournaments', icon: <Trophy size={20} /> },
     { name: 'Leaderboard', path: '/leaderboard', icon: <Medal size={20} /> },
+    { name: 'Certificates', path: '/certificates', icon: <Award size={20} /> },
     { name: 'Elections', path: '/elections', icon: <Vote size={20} /> },
   ];
 
+  if (user?.role === 'referee' || user?.role === 'admin') {
+    navItems.push({ name: 'Referee Terminal', path: '/referee', icon: <Shield size={20} /> });
+  }
   if (user?.role === 'admin') {
     navItems.push({ name: 'Admin Panel', path: '/admin', icon: <Shield size={20} /> });
   }

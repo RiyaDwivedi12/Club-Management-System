@@ -9,7 +9,22 @@ const paymentSchema = new mongoose.Schema({
   clubId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Club',
-    required: true
+    required: false
+  },
+  eventId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Event',
+    required: false
+  },
+  paymentType: {
+    type: String,
+    enum: ['membership_fee', 'event_registration', 'fine', 'other'],
+    default: 'membership_fee'
+  },
+  receiptNumber: {
+    type: String,
+    unique: true,
+    sparse: true
   },
   razorpayOrderId: {
     type: String,
@@ -22,10 +37,41 @@ const paymentSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
+  paymentMethod: {
+    type: String,
+    default: 'Razorpay'
+  },
   status: {
     type: String,
-    enum: ['success', 'failed', 'pending', 'Paid', 'Pending'],
+    enum: ['success', 'failed', 'pending', 'Paid', 'Pending', 'refunded'],
     default: 'pending'
+  },
+  refundStatus: {
+    type: String,
+    enum: ['none', 'requested', 'refunded', 'rejected'],
+    default: 'none'
+  },
+  refundReason: {
+    type: String
+  },
+  refundAmount: {
+    type: Number,
+    default: 0
+  },
+  feeWaiverApprovedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  feeWaiverReason: {
+    type: String
+  },
+  reconciled: {
+    type: Boolean,
+    default: true
+  },
+  academicYear: {
+    type: String,
+    default: '2025-2026'
   },
   date: {
     type: Date,
@@ -33,6 +79,15 @@ const paymentSchema = new mongoose.Schema({
   }
 }, {
   timestamps: true
+});
+
+// Auto-generate receipt number before save if not present
+paymentSchema.pre('save', function(next) {
+  if (!this.receiptNumber) {
+    const randomHex = Math.floor(100000 + Math.random() * 900000);
+    this.receiptNumber = `RCP-${new Date().getFullYear()}-${randomHex}`;
+  }
+  next();
 });
 
 const Payment = mongoose.model('Payment', paymentSchema);

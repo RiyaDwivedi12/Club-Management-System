@@ -1,31 +1,36 @@
 import Match from '../models/Match.js';
 import User from '../models/User.js';
 import crypto from 'crypto';
+import xlsx from 'xlsx';
 
 // @desc    Create a new match
 // @route   POST /api/matches
 // @access  Private (Faculty/Admin)
 const createMatch = async (req, res) => {
   try {
-    const { tournamentId, teamA, teamB, date, refereeEmail } = req.body;
+    const { tournamentId, teamA, teamB, date, refereeEmail, refereeId } = req.body;
 
-    // Find referee by email or create a temporary one if it doesn't exist
-    let referee = await User.findOne({ email: refereeEmail });
+    let referee = null;
+    if (refereeId) {
+      referee = await User.findById(refereeId);
+    } else if (refereeEmail) {
+      referee = await User.findOne({ email: refereeEmail.trim().toLowerCase() });
+    }
     
-    if (!referee) {
+    if (!referee && refereeEmail) {
       // Create a temporary referee account
       const tempPassword = crypto.randomBytes(8).toString('hex');
       referee = await User.create({
         name: `Referee for ${teamA} vs ${teamB}`,
-        email: refereeEmail,
+        email: refereeEmail.trim().toLowerCase(),
         password: tempPassword,
         role: 'referee',
         isVerified: true
       });
-      // In a real app, email the tempPassword to the referee
       console.log(`Temporary Referee Password for ${refereeEmail}: ${tempPassword}`);
-    } else if (referee.role !== 'referee') {
-      return res.status(400).json({ message: 'User with this email is not a referee.' });
+    } else if (!referee) {
+      // Fallback to current authenticated admin/user
+      referee = req.user;
     }
 
     const match = await Match.create({
@@ -225,4 +230,64 @@ const getLeaderboard = async (req, res) => {
   }
 };
 
-export { createMatch, getMatches, updateScore, endMatch, getLeaderboard };
+// @desc    Upload matches from Excel
+// @route   POST /api/matches/upload
+// @access  Private (Admin/Faculty/President)
+const uploadMatches = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Please upload an Excel file' });
+    }
+
+    const workbook = xlsx.readFile(req.file.path);
+    const sheetName = workbook.SheetNames[0];
+    const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+    // Expected format: TeamA | TeamB | Date | RefereeEmail | Status
+    // We can also have an optional Winner column
+    const matches = [];
+
+    for (const row of data) {
+      if (row.TeamA && row.TeamB) {
+        let refereeId;
+        
+        if (row.RefereeEmail) {
+          let referee = await User.findOne({ email: row.RefereeEmail });
+          if (!referee) {
+            const tempPassword = crypto.randomBytes(8).toString('hex');
+            referee = await User.create({
+              name: `Referee for ${row.TeamA} vs ${row.TeamB}`,
+              email: row.RefereeEmail,
+              password: tempPassword,
+              role: 'referee',
+              isVerified: true
+            });
+          }
+          refereeId = referee._id;
+        } else {
+          // Fallback to the current user (admin)
+          refereeId = req.user._id;
+        }
+
+        const match = await Match.create({
+          teamA: row.TeamA,
+          teamB: row.TeamB,
+          date: row.Date ? new Date(row.Date) : new Date(),
+          refereeId,
+          status: row.Status || 'scheduled',
+          winner: row.Winner || ''
+        });
+        matches.push(match);
+      }
+    }
+
+    // Clean up the uploaded file (optional, but good practice. Assuming fs is available, but let's skip for simplicity or require fs)
+    
+    res.status(201).json({ message: `${matches.length} matches uploaded successfully`, matches });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export { createMatch, getMatches, updateScore, endMatch, getLeaderboard, uploadMatches };
+

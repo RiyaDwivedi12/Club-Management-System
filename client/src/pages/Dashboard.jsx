@@ -40,15 +40,22 @@ const Dashboard = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        if (user?.role === 'admin' || user?.role === 'president') {
+        if (user?.role === 'admin' || user?.role === 'president' || user?.role === 'faculty') {
           const { data } = await axios.get('/api/analytics', { withCredentials: true });
           setAnalytics(data);
         } else {
-          const [memRes, evtRes] = await Promise.all([
-            axios.get('/api/student/memberships', { withCredentials: true }),
-            axios.get('/api/events', { withCredentials: true })
-          ]);
-          setMemberships(memRes.data || []);
+          const promises = [axios.get('/api/events', { withCredentials: true })];
+          if (user?.role === 'student') {
+            promises.push(axios.get('/api/student/memberships', { withCredentials: true }));
+          }
+
+          const results = await Promise.all(promises);
+          const evtRes = results[0];
+          const memRes = user?.role === 'student' ? results[1] : null;
+
+          if (memRes) {
+            setMemberships(memRes.data || []);
+          }
           
           const now = new Date();
           const upcoming = (evtRes.data || []).filter(e => new Date(e.date) > now).slice(0, 3);
@@ -102,7 +109,7 @@ const Dashboard = () => {
      return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-primary-600" size={48} /></div>;
   }
 
-  const isAdminView = user?.role === 'admin' || user?.role === 'president';
+  const isAdminView = user?.role === 'admin' || user?.role === 'president' || user?.role === 'faculty';
 
   return (
     <div className="w-full">

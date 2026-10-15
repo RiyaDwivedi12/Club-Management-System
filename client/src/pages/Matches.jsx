@@ -2,18 +2,63 @@ import { useState, useEffect } from 'react';
 import useMatchStore from '../store/matchStore';
 import useAuthStore from '../store/authStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Calendar, Shield, Plus, Filter, Activity } from 'lucide-react';
+import { Trophy, Calendar, Shield, Plus, Filter, Activity, X } from 'lucide-react';
 import { format } from 'date-fns';
+import axios from 'axios';
+import toast from 'react-hot-toast';
 
 const Matches = () => {
-  const { matches, fetchMatches, isLoading, error } = useMatchStore();
+  const { matches, fetchMatches, createMatch, isLoading, error } = useMatchStore();
   const { user } = useAuthStore();
   const [filter, setFilter] = useState('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [tournaments, setTournaments] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [formData, setFormData] = useState({
+    teamA: '',
+    teamB: '',
+    refereeEmail: '',
+    date: '',
+    tournamentId: ''
+  });
 
   useEffect(() => {
     fetchMatches();
+    axios.get('/api/tournaments').then(res => setTournaments(res.data || [])).catch(console.error);
   }, [fetchMatches]);
+
+  const handleScheduleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.teamA.trim() || !formData.teamB.trim() || !formData.date) {
+      toast.error('Please enter Team A, Team B, and Match Date/Time');
+      return;
+    }
+
+    if (formData.teamA.trim().toLowerCase() === formData.teamB.trim().toLowerCase()) {
+      toast.error('Team A and Team B must be different');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const success = await createMatch({
+        teamA: formData.teamA.trim(),
+        teamB: formData.teamB.trim(),
+        refereeEmail: formData.refereeEmail.trim() || user?.email,
+        date: formData.date,
+        tournamentId: formData.tournamentId || undefined
+      });
+
+      if (success) {
+        setShowCreateModal(false);
+        setFormData({ teamA: '', teamB: '', refereeEmail: '', date: '', tournamentId: '' });
+        fetchMatches();
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const filteredMatches = filter === 'all' ? matches : matches.filter(m => m.status === filter);
   
@@ -180,16 +225,114 @@ const Matches = () => {
         </button>
       )}
       
-      {/* Schedule Match Modal Placeholder */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-8 max-w-md w-full">
-             <h2 className="text-2xl font-black mb-4">Schedule Match</h2>
-             <p className="text-gray-500 mb-6">Match scheduling form goes here.</p>
-             <button onClick={() => setShowCreateModal(false)} className="w-full py-3 bg-gray-100 rounded-xl font-bold">Close</button>
+      {/* Functional Schedule Match Modal */}
+      <AnimatePresence>
+        {showCreateModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white rounded-[32px] p-8 max-w-xl w-full shadow-2xl border border-gray-100 my-8 max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="text-2xl font-black text-gray-900 tracking-tight">Schedule Match</h2>
+                  <p className="text-sm font-semibold text-gray-400">Set up a fixture between two campus teams</p>
+                </div>
+                <button 
+                  onClick={() => setShowCreateModal(false)}
+                  className="p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleScheduleSubmit} className="space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-black uppercase text-gray-400 mb-2 tracking-wider">Team A *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. CSE-Alpha or Mavericks"
+                      value={formData.teamA}
+                      onChange={(e) => setFormData({ ...formData, teamA: e.target.value })}
+                      className="w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-gray-800 font-bold focus:outline-none focus:ring-4 focus:ring-primary-500/20 focus:border-primary-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-black uppercase text-gray-400 mb-2 tracking-wider">Team B *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. ECE-Beta or Warriors"
+                      value={formData.teamB}
+                      onChange={(e) => setFormData({ ...formData, teamB: e.target.value })}
+                      className="w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-gray-800 font-bold focus:outline-none focus:ring-4 focus:ring-primary-500/20 focus:border-primary-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black uppercase text-gray-400 mb-2 tracking-wider">Date & Time *</label>
+                  <input
+                    type="datetime-local"
+                    required
+                    value={formData.date}
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    className="w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-gray-800 font-bold focus:outline-none focus:ring-4 focus:ring-primary-500/20 focus:border-primary-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black uppercase text-gray-400 mb-2 tracking-wider">Referee Email</label>
+                  <input
+                    type="email"
+                    placeholder="referee@example.com (Auto-creates referee account if new)"
+                    value={formData.refereeEmail}
+                    onChange={(e) => setFormData({ ...formData, refereeEmail: e.target.value })}
+                    className="w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-gray-800 font-medium focus:outline-none focus:ring-4 focus:ring-primary-500/20 focus:border-primary-500"
+                  />
+                  <p className="text-xs text-gray-400 mt-1 font-semibold">Leave blank to assign yourself or edit later.</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black uppercase text-gray-400 mb-2 tracking-wider">Associated Tournament (Optional)</label>
+                  <select
+                    value={formData.tournamentId}
+                    onChange={(e) => setFormData({ ...formData, tournamentId: e.target.value })}
+                    className="w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-gray-800 font-bold focus:outline-none focus:ring-4 focus:ring-primary-500/20 focus:border-primary-500"
+                  >
+                    <option value="">Friendly / Standalone Match</option>
+                    {tournaments.map(t => (
+                      <option key={t._id} value={t._id}>{t.name} ({t.wing})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateModal(false)}
+                    className="px-6 py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-2xl transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-8 py-3.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-2xl shadow-soft-purple transition-all hover:-translate-y-0.5 disabled:opacity-50"
+                  >
+                    {isSubmitting ? 'Scheduling...' : 'Schedule Match'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };

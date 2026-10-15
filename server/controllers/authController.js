@@ -83,13 +83,21 @@ const registerUser = async (req, res) => {
 // @route   POST /api/auth/login
 // @access  Public
 const authUser = async (req, res) => {
-  const { email, password, secretCode, role } = req.body;
+  const { email, identifier, roll_no, password, secretCode, role } = req.body;
+  const loginInput = (roll_no || identifier || email || '').trim();
 
   try {
-    const user = await User.findOne({ $or: [{ email: email }, { username: email }] }).select('+password');
+    const user = await User.findOne({ 
+      $or: [
+        { email: new RegExp('^' + loginInput + '$', 'i') }, 
+        { username: new RegExp('^' + loginInput + '$', 'i') },
+        { roll_no: loginInput },
+        { roll_no: new RegExp('^' + loginInput + '$', 'i') }
+      ] 
+    }).select('+password');
 
     if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: 'Invalid credentials. Please check your Roll Number, Email, or Password.' });
     }
 
     // Determine authentication based on role
@@ -165,13 +173,72 @@ const getUserProfile = async (req, res) => {
     const user = await User.findById(req.user._id);
 
     if (user) {
+      let stats = {};
+      if (user.role === 'student') {
+        const Membership = (await import('../models/Membership.js')).default;
+        const Team = (await import('../models/Team.js')).default;
+        
+        const clubsJoined = await Membership.countDocuments({ studentId: user._id, status: 'Approved' });
+        const gamesPlayed = await Team.countDocuments({ students: user._id });
+        
+        stats = {
+          clubsJoined,
+          gamesPlayed,
+          department: user.department,
+          year: user.year,
+          roll_no: user.roll_no
+        };
+      } else if (user.role === 'admin') {
+        const Club = (await import('../models/Club.js')).default;
+        const UserMod = (await import('../models/User.js')).default;
+        const Event = (await import('../models/Event.js')).default;
+        
+        const totalClubs = await Club.countDocuments({});
+        const totalUsers = await UserMod.countDocuments({});
+        const totalEvents = await Event.countDocuments({});
+        const pendingEvents = await Event.countDocuments({ approvalStatus: 'pending' });
+
+        stats = {
+          totalClubs,
+          totalUsers,
+          totalEvents,
+          pendingEvents
+        };
+      } else if (user.role === 'faculty') {
+        const Club = (await import('../models/Club.js')).default;
+        const Event = (await import('../models/Event.js')).default;
+
+        const advisedClubs = await Club.countDocuments({ facultyId: user._id });
+        const pendingEvents = await Event.countDocuments({ approvalStatus: 'pending' });
+
+        stats = {
+          advisedClubs,
+          pendingEvents
+        };
+      } else if (user.role === 'president') {
+        const Club = (await import('../models/Club.js')).default;
+        const Event = (await import('../models/Event.js')).default;
+
+        const ledClubs = await Club.countDocuments({ presidentId: user._id });
+        const userClubIds = await Club.find({ presidentId: user._id }).distinct('_id');
+        const eventsCreated = await Event.countDocuments({ clubId: { $in: userClubIds } });
+
+        stats = {
+          ledClubs,
+          eventsCreated
+        };
+      }
+
       res.json({
         _id: user._id,
         name: user.name,
+        username: user.username,
         email: user.email,
         role: user.role,
         profilePicture: user.profilePicture,
-        isVerified: user.isVerified
+        isVerified: user.isVerified,
+        createdAt: user.createdAt,
+        ...stats
       });
     } else {
       res.status(404).json({ message: 'User not found' });
@@ -355,6 +422,34 @@ const getAllUsers = async (req, res) => {
   }
 };
 
+// @desc    Upload profile picture
+// @route   POST /api/auth/profile-pic
+// @access  Private
+const uploadProfilePicture = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Set the profile picture URL to the relative path of the uploaded file
+    const profilePicPath = `/uploads/${req.file.filename}`;
+    user.profilePicture = profilePicPath;
+    await user.save();
+
+    res.json({
+      message: 'Profile picture updated successfully',
+      profilePicture: profilePicPath
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export {
   registerUser,
   authUser,
@@ -365,5 +460,6 @@ export {
   resendVerification,
   forgotPassword,
   resetPassword,
-  getAllUsers
+  getAllUsers,
+  uploadProfilePicture
 };

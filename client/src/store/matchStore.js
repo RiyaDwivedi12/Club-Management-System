@@ -87,6 +87,27 @@ const useMatchStore = create((set, get) => ({
       set({ error: error.response?.data?.message || error.message, isLoading: false });
       toast.error('Failed to fetch leaderboard');
     }
+  },
+
+  uploadMatchesFromExcel: async (file) => {
+    set({ isLoading: true, error: null });
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await axios.post(`${API_URL}/upload`, formData, { 
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      set((state) => ({ matches: [...state.matches, ...response.data.matches], isLoading: false }));
+      toast.success(response.data.message || 'Matches uploaded successfully');
+      return true;
+    } catch (error) {
+      set({ error: error.response?.data?.message || error.message, isLoading: false });
+      toast.error(error.response?.data?.message || 'Failed to upload matches');
+      return false;
+    }
   }
 }));
 

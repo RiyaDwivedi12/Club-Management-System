@@ -3,8 +3,8 @@ import mongoose from 'mongoose';
 const tournamentSchema = new mongoose.Schema({
   name: { type: String, required: true },
   clubId: { type: mongoose.Schema.Types.ObjectId, ref: 'Club' },
-  gameId: { type: mongoose.Schema.Types.ObjectId, ref: 'Game', required: true },
-  wing: { type: String, enum: ['Junior', 'Senior'], required: true },
+  gameId: { type: mongoose.Schema.Types.ObjectId, ref: 'Game' },
+  wing: { type: String, enum: ['Junior', 'Senior', 'General'], default: 'General' },
   sections: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Team' }],
   status: { type: String, enum: ['upcoming', 'ongoing', 'completed'], default: 'ongoing' },
   rounds: { type: Number, required: true },

@@ -2,6 +2,8 @@ import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import Payment from '../models/Payment.js';
 import Club from '../models/Club.js';
+import User from '../models/User.js';
+import Membership from '../models/Membership.js';
 
 // Initialize Razorpay
 // Note: We use process.env for keys. Fallback to mock behavior if razorpay is not installed/configured perfectly.
@@ -87,18 +89,28 @@ const verifyPayment = async (req, res) => {
             status: 'success'
         });
 
-        // Add user to club pending requests
+        // Add user to club members
         const club = await Club.findById(clubId);
         if (club) {
-            if (!club.isAcceptingMembers) {
-                // If somehow they paid but recruitment closed, we still record payment but maybe not add them.
-                // For now, we'll still add them since they paid, but ideally they shouldn't have been able to pay.
-            }
-            if (!club.pendingRequests.includes(req.user._id) && !club.members.includes(req.user._id)) {
-                 club.pendingRequests.push(req.user._id);
+            if (!club.members.includes(req.user._id)) {
+                 club.members.push(req.user._id);
+                 // If they were in pending, remove them
+                 club.pendingRequests = club.pendingRequests.filter(id => id.toString() !== req.user._id.toString());
                  await club.save();
             }
         }
+
+        // Add to user's clubMemberships
+        await User.findByIdAndUpdate(req.user._id, {
+            $addToSet: { clubMemberships: clubId }
+        });
+
+        // Synchronize with Membership model
+        await Membership.findOneAndUpdate(
+            { studentId: req.user._id, clubId },
+            { status: 'Approved' },
+            { upsert: true, new: true }
+        );
 
         res.json({ message: 'Payment verified successfully', success: true });
     } else {

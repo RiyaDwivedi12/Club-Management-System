@@ -95,16 +95,19 @@ const generateBracket = async (tournamentId, teams, refereeId) => {
 export const uploadGameExcel = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
-    const { gameId } = req.params;
+    const gameId = req.params?.gameId || null;
     
-    const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+    const workbook = req.file.buffer 
+      ? xlsx.read(req.file.buffer, { type: 'buffer' })
+      : xlsx.readFile(req.file.path);
+
     const sheetName = workbook.SheetNames[0];
     const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
     
     const parsedSections = data.map(row => ({
-      name: row['Section Name'],
-      classOrYear: row['Class/Year'],
-      wing: row['Wing'] || 'Senior', // Default to Senior if missing
+      name: row['Section Name'] || row['Team Name'] || row['Team'] || 'Team',
+      classOrYear: row['Class/Year'] || row['Year'] || 'General',
+      wing: row['Wing'] || 'Senior',
       rollNumbers: row['Student Roll Numbers'] ? row['Student Roll Numbers'].toString().split(',') : []
     }));
     
@@ -120,8 +123,8 @@ export const uploadGameExcel = async (req, res) => {
         name: sec.name,
         classOrYear: sec.classOrYear,
         wing: sec.wing,
-        clubId,
-        gameId
+        clubId: clubId || null,
+        gameId: gameId || null
       });
     }));
     
@@ -147,7 +150,7 @@ export const uploadGameExcel = async (req, res) => {
     
     if (seniorTeams.length > 0) {
       const sTourney = await Tournament.create({
-        name: `${name} (Senior)`,
+        name: seniorTeams.length === teamDocs.length ? name : `${name} (Senior)`,
         clubId,
         gameId,
         wing: 'Senior',
@@ -158,8 +161,32 @@ export const uploadGameExcel = async (req, res) => {
       await sTourney.save();
       createdTournaments.push(sTourney);
     }
+
+    if (createdTournaments.length === 0 && teamDocs.length > 0) {
+      const tourney = await Tournament.create({
+        name,
+        clubId,
+        gameId,
+        wing: 'General',
+        sections: teamDocs.map(t => t._id),
+        rounds: 0
+      });
+      tourney.rounds = await generateBracket(tourney._id, teamDocs, refereeId);
+      await tourney.save();
+      createdTournaments.push(tourney);
+    }
     
     res.json(createdTournaments);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getTournamentById = async (req, res) => {
+  try {
+    const tournament = await Tournament.findById(req.params.id).populate('clubId').populate('sections');
+    if (!tournament) return res.status(404).json({ message: 'Tournament not found' });
+    res.json(tournament);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

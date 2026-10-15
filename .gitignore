@@ -33,6 +33,8 @@ dist-ssr/
 # Build outputs
 client/dist
 server/build
+server/uploads/*
+!server/uploads/.gitkeep
 
 # Miscellaneous
 coverage/
@@ -41,3 +43,4 @@ coverage/
 # User exclusions
 *.md
 agentfile
+

@@ -1,4 +1,5 @@
 import Club from '../models/Club.js';
+import Membership from '../models/Membership.js';
 
 // @desc    Create a new club
 // @route   POST /api/clubs
@@ -84,6 +85,13 @@ const requestJoinClub = async (req, res) => {
     club.pendingRequests.push(req.user._id);
     await club.save();
 
+    // Synchronize with Membership model
+    await Membership.findOneAndUpdate(
+      { studentId: req.user._id, clubId: club._id },
+      { status: 'Pending' },
+      { upsert: true, new: true }
+    );
+
     res.json({ message: 'Join request sent successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -113,6 +121,9 @@ const leaveClub = async (req, res) => {
       (clubId) => clubId.toString() !== club._id.toString()
     );
     await user.save();
+
+    // Synchronize with Membership model
+    await Membership.findOneAndDelete({ studentId: req.user._id, clubId: club._id });
 
     res.json({ message: 'Successfully left the club' });
   } catch (error) {
@@ -155,6 +166,20 @@ const approveMember = async (req, res) => {
           userToApprove.clubMemberships.push(club._id);
           await userToApprove.save();
       }
+
+      // Synchronize with Membership model
+      await Membership.findOneAndUpdate(
+        { studentId: userId, clubId: club._id },
+        { status: 'Approved' },
+        { upsert: true, new: true }
+      );
+    } else {
+      // Synchronize rejection with Membership model
+      await Membership.findOneAndUpdate(
+        { studentId: userId, clubId: club._id },
+        { status: 'Rejected' },
+        { upsert: true, new: true }
+      );
     }
 
     await club.save();
@@ -215,4 +240,46 @@ const updateRecruitmentPhase = async (req, res) => {
   }
 };
 
-export { createClub, getClubs, getClubById, requestJoinClub, leaveClub, approveMember, getPresidentClubs, getCoordinatorClubs, updateRecruitmentPhase };
+// @desc    Add a photo URL to club gallery
+// @route   POST /api/clubs/:id/gallery
+// @access  Private (President/Faculty/Admin)
+const addGalleryPhoto = async (req, res) => {
+  try {
+    const { imageUrl } = req.body;
+    if (!imageUrl) {
+      return res.status(400).json({ message: 'Image URL is required' });
+    }
+
+    const club = await Club.findById(req.params.id);
+    if (!club) return res.status(404).json({ message: 'Club not found' });
+
+    const userIdStr = req.user._id.toString();
+    const isLeadership = (club.presidentId && club.presidentId.toString() === userIdStr) ||
+                         (club.facultyId && club.facultyId.toString() === userIdStr) ||
+                         req.user.role === 'admin';
+
+    if (!isLeadership) {
+      return res.status(403).json({ message: 'Not authorized to update gallery' });
+    }
+
+    club.gallery.push(imageUrl);
+    await club.save();
+
+    res.json({ message: 'Photo added to gallery successfully', gallery: club.gallery });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export { 
+  createClub, 
+  getClubs, 
+  getClubById, 
+  requestJoinClub, 
+  leaveClub, 
+  approveMember, 
+  getPresidentClubs, 
+  getCoordinatorClubs, 
+  updateRecruitmentPhase,
+  addGalleryPhoto 
+};

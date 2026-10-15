@@ -1,8 +1,8 @@
-import { Calendar, Clock, MapPin, Users } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, QrCode } from 'lucide-react';
 import { motion } from 'framer-motion';
 import useAuthStore from '../store/authStore';
 
-const EventCard = ({ event, onJoin }) => {
+const EventCard = ({ event, onJoin, onViewPass }) => {
   const { user } = useAuthStore();
   
   const formattedDate = new Date(event.date).toLocaleDateString('en-US', {
@@ -57,21 +57,28 @@ const EventCard = ({ event, onJoin }) => {
         </div>
         
         {user && user.role === 'student' && event.status === 'upcoming' && (
-          <button 
-            onClick={() => onJoin && onJoin(event._id)}
-            disabled={isJoined}
-            className={`w-full mt-auto py-3 rounded-xl font-black text-sm uppercase tracking-wider transition-all ${
-              isJoined 
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                : 'bg-primary-600 text-white hover:bg-primary-700 shadow-soft-purple hover:-translate-y-0.5'
-            }`}
-          >
-            {isJoined ? 'Already Joined' : 'Join Event'}
-          </button>
+          <div className="mt-auto">
+            {isJoined ? (
+              <button 
+                onClick={() => onViewPass && onViewPass(event)}
+                className="w-full py-2.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 border border-emerald-200 transition"
+              >
+                <QrCode size={16} /> View Event Pass
+              </button>
+            ) : (
+              <button 
+                onClick={() => onJoin && onJoin(event._id)}
+                className="w-full py-3 rounded-xl font-black text-sm uppercase tracking-wider transition-all bg-primary-600 text-white hover:bg-primary-700 shadow-soft-purple hover:-translate-y-0.5"
+              >
+                Join Event
+              </button>
+            )}
+          </div>
         )}
       </div>
     </motion.div>
   );
 };
+
 
 export default EventCard;

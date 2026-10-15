@@ -61,6 +61,12 @@ export const joinClub = async (req, res) => {
       status: 'Pending'
     });
 
+    // Synchronize with Club.pendingRequests
+    if (!club.pendingRequests.includes(studentId)) {
+      club.pendingRequests.push(studentId);
+      await club.save();
+    }
+
     res.status(201).json({ message: 'Successfully applied to join the club', membership });
   } catch (error) {
     res.status(500).json({ message: error.message });

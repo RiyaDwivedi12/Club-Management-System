@@ -1,11 +1,11 @@
 import Election from '../models/Election.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
+import AuditLog from '../models/AuditLog.js';
 
-// Helper to create and emit a notification (if io was passed to req, but for now we'll just save to DB)
+// Helper to create and emit a notification
 const createNotification = async (userId, message, type, link) => {
   await Notification.create({ user: userId, message, type, link });
-  // In a full implementation, we would also: req.app.get('io').to(userId.toString()).emit('notification', newNotification);
 };
 
 // @desc    Create an election
@@ -21,6 +21,17 @@ const createElection = async (req, res) => {
       startDate,
       endDate,
       candidates: []
+    });
+
+    await AuditLog.create({
+      action: 'ELECTION_CREATED',
+      performedBy: req.user._id,
+      performedByName: req.user.name,
+      performedByRole: req.user.role,
+      targetType: 'Election',
+      targetId: election._id,
+      details: { title, clubId, startDate, endDate },
+      status: 'SUCCESS'
     });
 
     res.status(201).json(election);
@@ -41,21 +52,18 @@ const addCandidate = async (req, res) => {
       return res.status(404).json({ message: 'Election not found' });
     }
 
-    // Check if user exists
     const user = await User.findById(candidateId);
     if (!user) {
-        return res.status(404).json({ message: 'Candidate user not found' });
+      return res.status(404).json({ message: 'Candidate user not found' });
     }
 
-    // Check if already a candidate
     if (election.candidates.some(c => c.candidateId.toString() === candidateId)) {
-        return res.status(400).json({ message: 'User is already a candidate in this election' });
+      return res.status(400).json({ message: 'User is already a candidate in this election' });
     }
 
     election.candidates.push({ candidateId, manifesto, votes: 0 });
     await election.save();
 
-    // Notify the candidate
     await createNotification(candidateId, `You have been added as a candidate for: ${election.title}`, 'election', '/elections');
 
     res.json(election);
@@ -64,21 +72,40 @@ const addCandidate = async (req, res) => {
   }
 };
 
-// @desc    Get all elections
+// @desc    Get all elections (masks interim results for secret ballot privacy while active)
 // @route   GET /api/elections
 // @access  Public
 const getElections = async (req, res) => {
   try {
     const elections = await Election.find({})
-        .populate('clubId', 'name logo')
-        .populate('candidates.candidateId', 'name profilePicture');
-    res.json(elections);
+      .populate('clubId', 'name logo')
+      .populate('candidates.candidateId', 'name profilePicture department');
+
+    const now = new Date();
+    const sanitizedElections = elections.map(e => {
+      const isConcluded = now > new Date(e.endDate);
+      const electionObj = e.toObject();
+
+      // If election is currently ongoing, hide individual candidate vote counts to keep ballots secret!
+      if (!isConcluded) {
+        electionObj.isSecretPhase = true;
+        electionObj.candidates = electionObj.candidates.map(c => ({
+          ...c,
+          votes: null // Hidden during active voting
+        }));
+      } else {
+        electionObj.isSecretPhase = false;
+      }
+      return electionObj;
+    });
+
+    res.json(sanitizedElections);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// @desc    Vote in an election
+// @desc    Vote in an election (secret ballot enforced)
 // @route   POST /api/elections/:id/vote
 // @access  Private
 const vote = async (req, res) => {
@@ -92,21 +119,21 @@ const vote = async (req, res) => {
 
     const now = new Date();
     if (now < new Date(election.startDate)) {
-        return res.status(400).json({ message: 'Election has not started yet' });
+      return res.status(400).json({ message: 'Election has not started yet' });
     }
     if (now > new Date(election.endDate)) {
-        return res.status(400).json({ message: 'Election has ended' });
+      return res.status(400).json({ message: 'Election has ended. Ballots are closed.' });
     }
 
     // Check if user already voted
     if (election.votedUsers.includes(req.user._id)) {
-        return res.status(400).json({ message: 'You have already voted in this election' });
+      return res.status(400).json({ message: 'You have already voted in this election' });
     }
 
     // Find candidate and increment vote
     const candidate = election.candidates.find(c => c.candidateId.toString() === candidateId);
     if (!candidate) {
-        return res.status(404).json({ message: 'Candidate not found in this election' });
+      return res.status(404).json({ message: 'Candidate not found in this election' });
     }
 
     candidate.votes += 1;
@@ -114,15 +141,32 @@ const vote = async (req, res) => {
 
     await election.save();
 
+    // Broadcast only overall turnout update to preserve secret ballot
     const io = req.app.get('io');
     if (io) {
-      io.emit('voteUpdate', { electionId: election._id, candidateId, newVotes: candidate.votes });
+      io.emit('electionTurnoutUpdate', { 
+        electionId: election._id, 
+        totalTurnout: election.votedUsers.length 
+      });
     }
 
-    res.json({ message: 'Vote cast successfully' });
+    // Audit log (keeps the voter's choice confidential)
+    await AuditLog.create({
+      action: 'BALLOT_CAST',
+      performedBy: req.user._id,
+      performedByName: req.user.name,
+      performedByRole: req.user.role,
+      targetType: 'Election',
+      targetId: election._id,
+      details: { electionTitle: election.title, ballotTimestamp: new Date() },
+      status: 'SUCCESS'
+    });
+
+    res.json({ message: 'Secret ballot recorded successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
 export { createElection, addCandidate, getElections, vote };
+

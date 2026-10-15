@@ -12,6 +12,24 @@ const ClubDetails = () => {
   const { currentClub: club, fetchClubById, requestJoinClub, leaveClub, approveMember, isLoading, error } = useClubStore();
   const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState('about');
+  const [galleryUrl, setGalleryUrl] = useState('');
+  const [isAddingPhoto, setIsAddingPhoto] = useState(false);
+
+  const handleAddPhoto = async (e) => {
+    e.preventDefault();
+    if (!galleryUrl.trim()) return toast.error('Please enter an image URL');
+    setIsAddingPhoto(true);
+    try {
+      await axios.post(`/api/clubs/${club._id}/gallery`, { imageUrl: galleryUrl.trim() }, { withCredentials: true });
+      toast.success('Photo added to gallery!');
+      setGalleryUrl('');
+      fetchClubById(id);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to add photo');
+    } finally {
+      setIsAddingPhoto(false);
+    }
+  };
 
   const handlePayment = async () => {
     try {
@@ -133,18 +151,47 @@ const ClubDetails = () => {
                   <p className="text-gray-600 leading-relaxed font-medium">{club.description}</p>
                 </div>
                 
-                {club.gallery && club.gallery.length > 0 && (
-                  <div>
-                    <h2 className="text-2xl font-black text-gray-900 mb-4 flex items-center">
-                      <ImageIcon size={24} className="mr-2 text-primary-500" /> Gallery
+                <div>
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-2xl font-black text-gray-900 flex items-center">
+                      <ImageIcon size={24} className="mr-2 text-primary-500" /> Club Gallery ({club.gallery?.length || 0})
                     </h2>
+                  </div>
+
+                  {isLeadership && (
+                    <form onSubmit={handleAddPhoto} className="mb-6 p-4 bg-gray-50 rounded-2xl border border-gray-200 flex flex-col sm:flex-row gap-3">
+                      <input
+                        type="url"
+                        required
+                        placeholder="Paste image URL (e.g. https://...)..."
+                        value={galleryUrl}
+                        onChange={(e) => setGalleryUrl(e.target.value)}
+                        className="flex-1 px-4 py-2.5 bg-white border border-gray-200 rounded-xl font-medium text-sm text-gray-800 outline-none focus:ring-2 focus:ring-primary-500"
+                      />
+                      <button
+                        type="submit"
+                        disabled={isAddingPhoto}
+                        className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl text-sm transition-all whitespace-nowrap disabled:opacity-50"
+                      >
+                        {isAddingPhoto ? 'Adding...' : 'Add to Gallery'}
+                      </button>
+                    </form>
+                  )}
+
+                  {club.gallery && club.gallery.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       {club.gallery.map((img, i) => (
-                        <img key={i} src={img} alt={`Gallery ${i}`} className="rounded-xl h-32 w-full object-cover shadow-sm" />
+                        <div key={i} className="rounded-2xl overflow-hidden h-36 border border-gray-100 shadow-sm group relative">
+                          <img src={img} alt={`Gallery ${i}`} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                        </div>
                       ))}
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <div className="p-8 border border-dashed border-gray-200 rounded-2xl text-center text-gray-400 font-medium text-sm">
+                      No gallery photos uploaded yet.
+                    </div>
+                  )}
+                </div>
               </div>
               
               <div className="space-y-6">

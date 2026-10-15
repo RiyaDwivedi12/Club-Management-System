@@ -7,9 +7,15 @@ import cookieParser from 'cookie-parser';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import connectDB from './config/db.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 // Load env vars
 dotenv.config();
+
+// ES module fix for __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Connect to database
 connectDB();
@@ -29,12 +35,17 @@ app.set('io', io);
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 app.use(morgan('dev'));
 app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:5173',
   credentials: true
 }));
+
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 import authRoutes from './routes/authRoutes.js';
 import clubRoutes from './routes/clubRoutes.js';
@@ -47,6 +58,13 @@ import paymentRoutes from './routes/paymentRoutes.js';
 import studentRoutes from './routes/studentRoutes.js';
 import tournamentRoutes from './routes/tournamentRoutes.js';
 import gameRoutes from './routes/gameRoutes.js';
+import messageRoutes from './routes/messageRoutes.js';
+import certificateRoutes from './routes/certificateRoutes.js';
+import studentDirectoryRoutes from './routes/studentDirectoryRoutes.js';
+import financeRoutes from './routes/financeRoutes.js';
+import attendanceRoutes from './routes/attendanceRoutes.js';
+import venueRoutes from './routes/venueRoutes.js';
+import auditLogRoutes from './routes/auditLogRoutes.js';
 
 // Basic route
 app.get('/', (req, res) => {
@@ -65,6 +83,14 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/student', studentRoutes);
 app.use('/api/tournaments', tournamentRoutes);
 app.use('/api/games', gameRoutes);
+app.use('/api/messages', messageRoutes);
+app.use('/api/certificates', certificateRoutes);
+app.use('/api/student-directory', studentDirectoryRoutes);
+app.use('/api/finance', financeRoutes);
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/venues', venueRoutes);
+app.use('/api/audit-logs', auditLogRoutes);
+
 
 // Socket.io connection handling
 io.on('connection', (socket) => {
@@ -74,6 +100,16 @@ io.on('connection', (socket) => {
   socket.on('setup', (userData) => {
     socket.join(userData._id);
     console.log(`User ${userData._id} joined their notification room`);
+  });
+
+  socket.on('joinChat', (clubId) => {
+    socket.join(clubId);
+    console.log(`User joined club chat room: ${clubId}`);
+  });
+
+  socket.on('leaveChat', (clubId) => {
+    socket.leave(clubId);
+    console.log(`User left club chat room: ${clubId}`);
   });
 
   socket.on('disconnect', () => {

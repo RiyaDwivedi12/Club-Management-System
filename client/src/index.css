@@ -36,3 +36,26 @@
     scrollbar-width: none;
   }
 }
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printable-certificate, #printable-certificate * {
+    visibility: visible;
+  }
+  #printable-certificate {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100vw !important;
+    height: 100vh !important;
+    border: none !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+  }
+  @page {
+    size: landscape;
+    margin: 0;
+  }
+}

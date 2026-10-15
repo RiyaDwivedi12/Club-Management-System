@@ -24,7 +24,7 @@ const matchSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['scheduled', 'live', 'completed', 'cancelled', 'walkover'],
+    enum: ['scheduled', 'live', 'completed', 'cancelled', 'walkover', 'disqualified'],
     default: 'scheduled'
   },
   scoreA: {
