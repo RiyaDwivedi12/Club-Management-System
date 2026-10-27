@@ -2041,7 +2041,6 @@ const AdminPanel = () => {
                             Candidate 1 (Profile 1)
                           </span>
                         </div>
-                        <div>
                         {/* Student Roll Number & Name Inputs */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <div>
