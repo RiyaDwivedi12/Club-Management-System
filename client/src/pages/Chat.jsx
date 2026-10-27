@@ -1,16 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import useClubStore from '../store/clubStore';
-import { Send, Loader, Hash, Search, MoreVertical } from 'lucide-react';
+import { Send, Loader, Hash, Search, MoreVertical, MessageSquare } from 'lucide-react';
 import socket from '../utils/socket';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
 const Chat = () => {
   const { user } = useAuthStore();
+  const navigate = useNavigate();
   const { clubs, fetchClubs } = useClubStore();
+  const [searchParams] = useSearchParams();
+  const queryClubId = searchParams.get('clubId');
   
-  const [activeClubId, setActiveClubId] = useState(null);
+  const [activeClubId, setActiveClubId] = useState(queryClubId || null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [isFetchingMessages, setIsFetchingMessages] = useState(false);
@@ -18,8 +22,12 @@ const Chat = () => {
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
+    if (!user) {
+      navigate('/', { replace: true });
+      return;
+    }
     fetchClubs();
-  }, [fetchClubs]);
+  }, [user, navigate, fetchClubs]);
 
   // Filter clubs the user is a part of, or all clubs if admin
   const myClubs = clubs.filter(club => {
@@ -37,10 +45,12 @@ const Chat = () => {
   );
 
   useEffect(() => {
-    if (myClubs.length > 0 && !activeClubId) {
+    if (queryClubId && myClubs.some(c => c._id === queryClubId)) {
+      setActiveClubId(queryClubId);
+    } else if (myClubs.length > 0 && !activeClubId) {
       setActiveClubId(myClubs[0]._id);
     }
-  }, [myClubs, activeClubId]);
+  }, [myClubs, activeClubId, queryClubId]);
 
   useEffect(() => {
     if (!activeClubId) return;
@@ -138,22 +148,22 @@ const Chat = () => {
               <button
                 key={club._id}
                 onClick={() => setActiveClubId(club._id)}
-                className={`w-full text-left flex items-center px-3 py-3 hover:bg-[#f5f6f6] transition-colors ${
-                  activeClubId === club._id ? 'bg-[#f0f2f5]' : ''
+                className={`w-full text-left flex items-center px-4 py-3.5 transition-colors cursor-pointer ${
+                  activeClubId === club._id ? 'bg-teal-50/80 border-l-4 border-l-teal-600' : 'hover:bg-gray-50'
                 }`}
               >
-                <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center shrink-0 overflow-hidden mr-3">
+                <div className="w-11 h-11 rounded-xl bg-teal-100 flex items-center justify-center shrink-0 overflow-hidden mr-3">
                    {club.logo ? (
                      <img src={club.logo} alt={club.name} className="w-full h-full object-cover"/>
                    ) : (
-                     <Hash size={20} className="text-gray-500" />
+                     <Hash size={20} className="text-teal-700" />
                    )}
                 </div>
-                <div className="flex-1 border-b border-gray-100 pb-3 pt-1">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-[17px] text-[#111b21] truncate">{club.name}</span>
+                <div className="flex-1 min-w-0 border-b border-gray-100 pb-2">
+                  <div className="flex justify-between items-center mb-0.5">
+                    <span className="text-sm font-black text-gray-900 truncate">{club.name}</span>
                   </div>
-                  <span className="text-[14px] text-[#667781] truncate block">Group chat for {club.name}</span>
+                  <span className="text-xs text-gray-500 font-medium truncate block">Club discussion channel</span>
                 </div>
               </button>
             ))
@@ -255,9 +265,9 @@ const Chat = () => {
             <button 
               type="submit"
               disabled={!newMessage.trim()}
-              className="text-[#54656f] hover:text-[#111b21] transition-colors p-2 h-[42px] flex items-center justify-center disabled:opacity-50"
+              className="bg-teal-600 hover:bg-teal-700 text-white rounded-xl transition-all p-2.5 h-[42px] w-[42px] flex items-center justify-center disabled:opacity-40 shadow-sm cursor-pointer"
             >
-              <Send size={24} />
+              <Send size={18} />
             </button>
           </form>
         )}

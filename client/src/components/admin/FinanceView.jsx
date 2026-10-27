@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { DollarSign, Receipt, CreditCard, CheckCircle, XCircle, Download, Search, ShieldAlert, Award, FileText } from 'lucide-react';
+import { DollarSign, Receipt, CreditCard, CheckCircle, XCircle, Download, Search, ShieldAlert, Award, FileText, Building2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import ClassFeeManagementView from './ClassFeeManagementView';
 
 const FinanceView = ({ clubs = [] }) => {
   const [subTab, setSubTab] = useState('transactions'); // transactions, budgets, waivers
@@ -181,10 +182,20 @@ const FinanceView = ({ clubs = [] }) => {
       )}
 
       {/* Sub Tabs */}
-      <div className="flex border-b border-gray-200 gap-6">
+      <div className="flex border-b border-gray-200 gap-6 overflow-x-auto">
+        <button
+          onClick={() => setSubTab('classes')}
+          className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-1.5 shrink-0 ${
+            subTab === 'classes' ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-400 hover:text-gray-700'
+          }`}
+        >
+          <Building2 size={16} />
+          <span>Department & Class Fee Cards</span>
+          <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-black rounded-full">NEW</span>
+        </button>
         <button
           onClick={() => setSubTab('transactions')}
-          className={`pb-3 text-sm font-bold border-b-2 transition ${
+          className={`pb-3 text-sm font-bold border-b-2 transition shrink-0 ${
             subTab === 'transactions' ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-400 hover:text-gray-700'
           }`}
         >
@@ -207,6 +218,11 @@ const FinanceView = ({ clubs = [] }) => {
           Fee Waivers & Financial Aid
         </button>
       </div>
+
+      {/* 0. Department & Class Fee Cards Tab */}
+      {subTab === 'classes' && (
+        <ClassFeeManagementView clubs={clubs} />
+      )}
 
       {/* 1. Transactions Tab */}
       {subTab === 'transactions' && (

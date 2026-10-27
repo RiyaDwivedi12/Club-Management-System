@@ -24,13 +24,13 @@ const useElectionStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await axios.post(API_URL, electionData, { withCredentials: true });
-      set((state) => ({ elections: [...state.elections, response.data], isLoading: false }));
+      set((state) => ({ elections: [response.data, ...state.elections], isLoading: false }));
       toast.success('Election created successfully');
-      return true;
+      return response.data;
     } catch (error) {
       set({ error: error.response?.data?.message || error.message, isLoading: false });
       toast.error(error.response?.data?.message || 'Failed to create election');
-      return false;
+      return null;
     }
   },
 
@@ -40,7 +40,7 @@ const useElectionStore = create((set, get) => ({
       set((state) => ({
         elections: state.elections.map(e => e._id === electionId ? response.data : e)
       }));
-      toast.success('Candidate added');
+      toast.success('Candidate added to matchup!');
       return true;
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to add candidate');
@@ -48,15 +48,57 @@ const useElectionStore = create((set, get) => ({
     }
   },
 
+  nominateCandidate: async (electionId, data) => {
+    try {
+      const response = await axios.post(`${API_URL}/${electionId}/nominate`, data, { withCredentials: true });
+      set((state) => ({
+        elections: state.elections.map(e => e._id === electionId ? response.data : e)
+      }));
+      toast.success('Nomination submitted successfully!');
+      return true;
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to submit nomination');
+      return false;
+    }
+  },
+
   vote: async (electionId, candidateId) => {
     try {
-      await axios.post(`${API_URL}/${electionId}/vote`, { candidateId }, { withCredentials: true });
-      toast.success('Vote cast successfully!');
-      // Re-fetch to get updated vote counts
+      const res = await axios.post(`${API_URL}/${electionId}/vote`, { candidateId }, { withCredentials: true });
+      toast.success(res.data?.message || 'Vote cast successfully!');
+      // Update locally & re-fetch
       await get().fetchElections();
       return true;
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to cast vote');
+      return false;
+    }
+  },
+
+  concludeElection: async (electionId) => {
+    try {
+      const response = await axios.post(`${API_URL}/${electionId}/conclude`, {}, { withCredentials: true });
+      set((state) => ({
+        elections: state.elections.map(e => e._id === electionId ? response.data.election : e)
+      }));
+      toast.success(response.data?.message || 'Election concluded! Winner leadership privileges elevated.');
+      return true;
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to conclude election');
+      return false;
+    }
+  },
+
+  deleteElection: async (electionId) => {
+    try {
+      await axios.delete(`${API_URL}/${electionId}`, { withCredentials: true });
+      set((state) => ({
+        elections: state.elections.filter(e => e._id !== electionId)
+      }));
+      toast.success('Election deleted successfully');
+      return true;
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to delete election');
       return false;
     }
   },
@@ -68,7 +110,7 @@ const useElectionStore = create((set, get) => ({
           return {
             ...election,
             candidates: election.candidates.map((c) =>
-              c.candidateId._id === candidateId || c.candidateId === candidateId
+              c.candidateId?._id === candidateId || c.candidateId === candidateId
                 ? { ...c, votes: newVotes }
                 : c
             ),

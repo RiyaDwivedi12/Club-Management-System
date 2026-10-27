@@ -144,7 +144,9 @@ export const payFee = async (req, res) => {
 export const getMyPayments = async (req, res) => {
   try {
     const payments = await Payment.find({ userId: req.user._id })
-      .populate('clubId', 'name category');
+      .populate('clubId', 'name category logo joinFee description')
+      .populate('userId', 'name email roll_no department year section className')
+      .sort({ createdAt: -1 });
     res.json(payments);
   } catch (error) {
     res.status(500).json({ message: error.message });

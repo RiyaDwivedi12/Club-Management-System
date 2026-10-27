@@ -1,24 +1,29 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import useAuthStore from '../store/authStore';
 import { 
   User, Mail, Shield, Book, Award, Activity, Loader2, Camera, CheckCircle, 
   Gamepad2, GraduationCap, Calendar, Users, CheckSquare, Trophy, Key, 
   ArrowRight, Lock, Server, Radio, ShieldCheck, Vote, CreditCard, ChevronRight,
-  Eye, Download
+  Eye, Download, Receipt, Building2, CheckCircle2, Hash
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CertificateTemplate from '../components/CertificateTemplate';
+import PaymentReceiptModal from '../components/PaymentReceiptModal';
 
 const Profile = () => {
   const { user, setCredentials } = useAuthStore();
+  const navigate = useNavigate();
   const [memberships, setMemberships] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
   const [studentCertificates, setStudentCertificates] = useState([]);
   const [selectedCertForPreview, setSelectedCertForPreview] = useState(null);
+  const [studentPayments, setStudentPayments] = useState([]);
+  const [selectedReceiptForPreview, setSelectedReceiptForPreview] = useState(null);
+  const [studentActiveTab, setStudentActiveTab] = useState('clubs');
   const [adminStats, setAdminStats] = useState({
     totalClubs: 0,
     totalUsers: 0,
@@ -26,8 +31,17 @@ const Profile = () => {
     pendingEvents: 0
   });
   const fileInputRef = useRef(null);
+  const hasFetchedRef = useRef(false);
 
   useEffect(() => {
+    if (!user) {
+      navigate('/', { replace: true });
+      return;
+    }
+
+    if (hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
+
     const fetchProfileData = async () => {
       try {
         const profileRes = await axios.get('/api/auth/profile', { withCredentials: true });
@@ -57,12 +71,14 @@ const Profile = () => {
             });
           }
         } else if (currentRole === 'student') {
-          const [memRes, certRes] = await Promise.all([
-            axios.get('/api/student/memberships', { withCredentials: true }),
-            axios.get('/api/certificates/my-certificates', { withCredentials: true })
+          const [memRes, certRes, payRes] = await Promise.all([
+            axios.get('/api/student/memberships', { withCredentials: true }).catch(() => ({ data: [] })),
+            axios.get('/api/certificates/my-certificates', { withCredentials: true }).catch(() => ({ data: [] })),
+            axios.get('/api/payments/my-payments', { withCredentials: true }).catch(() => ({ data: [] }))
           ]);
           setMemberships(memRes.data || []);
           setStudentCertificates(certRes.data || []);
+          setStudentPayments(payRes.data || []);
         }
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to fetch profile details');
@@ -71,10 +87,8 @@ const Profile = () => {
       }
     };
 
-    if (user) {
-      fetchProfileData();
-    }
-  }, [user]);
+    fetchProfileData();
+  }, [user?._id, navigate, setCredentials]);
 
   if (loading) {
     return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-primary-600" size={48} /></div>;
@@ -241,12 +255,20 @@ const Profile = () => {
 
         {/* Student Stats Bar */}
         {isStudent && (
-          <div className="relative z-10 mt-8 pt-6 border-t border-white/20 grid grid-cols-3 gap-4 text-center">
+          <div className="relative z-10 mt-8 pt-6 border-t border-white/20 grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
             <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-sm border border-white/10 hover:bg-white/20 transition-all">
               <div className="flex items-center justify-center gap-2 text-primary-100 mb-1 font-bold text-xs uppercase tracking-wider">
                 <Book size={16} /> Clubs Joined
               </div>
               <div className="text-3xl font-black">{user?.clubsJoined || memberships.length || 0}</div>
+            </div>
+            <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-sm border border-white/10 hover:bg-white/20 transition-all">
+              <div className="flex items-center justify-center gap-2 text-primary-100 mb-1 font-bold text-xs uppercase tracking-wider">
+                <Receipt size={16} /> Paid Receipts
+              </div>
+              <div className="text-3xl font-black text-emerald-300">
+                {studentPayments.filter(p => p.status === 'success' || p.status === 'Paid').length}
+              </div>
             </div>
             <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-sm border border-white/10 hover:bg-white/20 transition-all">
               <div className="flex items-center justify-center gap-2 text-primary-100 mb-1 font-bold text-xs uppercase tracking-wider">
@@ -431,7 +453,7 @@ const Profile = () => {
                 </Link>
 
                 <Link 
-                  to="/admin?tab=admin" 
+                  to="/admin?tab=settings&section=roles" 
                   className="p-4 rounded-2xl border border-gray-100 bg-gray-50/50 hover:bg-purple-50/60 hover:border-purple-200 transition-all group flex flex-col justify-between"
                 >
                   <div className="flex items-center justify-between mb-3">
@@ -441,24 +463,24 @@ const Profile = () => {
                     <ChevronRight size={18} className="text-gray-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all" />
                   </div>
                   <div>
-                    <div className="font-bold text-gray-900 text-sm group-hover:text-purple-700">Manage Admins</div>
-                    <div className="text-xs text-gray-500 mt-0.5">Provision staff accounts</div>
+                    <div className="font-bold text-gray-900 text-sm group-hover:text-purple-700">Roles & Privileges</div>
+                    <div className="text-xs text-gray-500 mt-0.5">Delegate permissions & provision staff</div>
                   </div>
                 </Link>
 
                 <Link 
-                  to="/dashboard" 
-                  className="p-4 rounded-2xl border border-gray-100 bg-gray-50/50 hover:bg-emerald-50/60 hover:border-emerald-200 transition-all group flex flex-col justify-between"
+                  to="/admin?tab=settings" 
+                  className="p-4 rounded-2xl border border-gray-100 bg-gray-50/50 hover:bg-blue-50/60 hover:border-blue-200 transition-all group flex flex-col justify-between"
                 >
                   <div className="flex items-center justify-between mb-3">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold">
-                      <Activity size={18} />
+                    <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
+                      <Shield size={18} />
                     </div>
-                    <ChevronRight size={18} className="text-gray-400 group-hover:text-emerald-600 group-hover:translate-x-1 transition-all" />
+                    <ChevronRight size={18} className="text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
                   </div>
                   <div>
-                    <div className="font-bold text-gray-900 text-sm group-hover:text-emerald-700">System Analytics</div>
-                    <div className="text-xs text-gray-500 mt-0.5">Charts, users & revenue</div>
+                    <div className="font-bold text-gray-900 text-sm group-hover:text-blue-700">Settings & Appearance</div>
+                    <div className="text-xs text-gray-500 mt-0.5">Profile credentials & dark mode</div>
                   </div>
                 </Link>
               </div>
@@ -600,36 +622,224 @@ const Profile = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="col-span-1 md:col-span-2 space-y-6">
             <div className="soft-card p-6">
-              <h2 className="text-xl font-black text-gray-900 mb-4 flex items-center gap-2">
-                <Book size={24} className="text-primary-500" /> My Clubs
-              </h2>
-              {error && <div className="bg-red-50 text-red-500 p-3 rounded-xl mb-4 font-bold text-sm">{error}</div>}
-              
-              {memberships.length > 0 ? (
-                <div className="space-y-4">
-                  {memberships.map((mem) => (
-                    <div key={mem._id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                      <div className="w-12 h-12 bg-primary-100 rounded-xl overflow-hidden shrink-0 flex items-center justify-center text-primary-600 font-black">
-                        {mem.clubId?.logo ? (
-                          <img src={mem.clubId.logo} alt={mem.clubId.name} className="w-full h-full object-cover" />
-                        ) : (
-                          mem.clubId?.name?.charAt(0)
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-bold text-gray-900 text-lg">{mem.clubId?.name}</h4>
-                        <p className="text-sm text-gray-500">Joined on {new Date(mem.createdAt).toLocaleDateString()}</p>
-                      </div>
-                      <div className={`px-3 py-1 rounded-full text-xs font-black ${mem.status === 'Approved' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>
-                        {mem.status}
-                      </div>
-                    </div>
-                  ))}
+              {/* Student Section Tabs */}
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-4 mb-5">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setStudentActiveTab('clubs')}
+                    className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
+                      studentActiveTab === 'clubs'
+                        ? 'bg-teal-600 text-white shadow-xs'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    <Book size={15} />
+                    <span>My Clubs & Memberships</span>
+                    <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-white/20">
+                      {memberships.length}
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => setStudentActiveTab('payments')}
+                    className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
+                      studentActiveTab === 'payments'
+                        ? 'bg-teal-600 text-white shadow-xs'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    <Receipt size={15} />
+                    <span>Payment Receipts</span>
+                    <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-white/20">
+                      {studentPayments.length}
+                    </span>
+                  </button>
                 </div>
-              ) : (
-                <div className="text-center py-8 opacity-50">
-                  <Activity size={48} className="mx-auto text-gray-400 mb-3" />
-                  <p className="text-gray-500 font-bold">You haven't joined any clubs yet.</p>
+
+                <span className="text-[11px] font-bold text-slate-400">
+                  {studentActiveTab === 'clubs' ? 'Active Registrations' : 'Official Ledgers'}
+                </span>
+              </div>
+
+              {error && <div className="bg-red-50 text-red-500 p-3 rounded-xl mb-4 font-bold text-sm">{error}</div>}
+
+              {/* TAB 1: CLUBS & MEMBERSHIP STATUS */}
+              {studentActiveTab === 'clubs' && (
+                <>
+                  {memberships.length > 0 ? (
+                    <div className="space-y-4">
+                      {memberships.map((mem) => {
+                        const clubPayment = studentPayments.find(
+                          p => (p.clubId?._id === mem.clubId?._id || p.clubId === mem.clubId?._id) && (p.status === 'success' || p.status === 'Paid')
+                        ) || (user?.paymentStatus && studentPayments.length > 0 ? studentPayments[0] : null);
+
+                        return (
+                          <div key={mem._id} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 hover:border-gray-200 transition-all">
+                            <div className="flex items-center gap-4">
+                              <div className="w-12 h-12 bg-teal-100 rounded-xl overflow-hidden shrink-0 flex items-center justify-center text-teal-700 font-black">
+                                {mem.clubId?.logo ? (
+                                  <img src={mem.clubId.logo} alt={mem.clubId.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  mem.clubId?.name?.charAt(0)
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <Link to={`/clubs/${mem.clubId?._id}`} className="font-bold text-gray-900 text-base hover:text-teal-600 transition truncate block">
+                                  {mem.clubId?.name}
+                                </Link>
+                                <p className="text-xs text-gray-500">
+                                  Joined on {new Date(mem.createdAt).toLocaleDateString()} • {mem.clubId?.category || 'Student Club'}
+                                </p>
+                              </div>
+                              <div className={`px-3 py-1 rounded-full text-xs font-black shrink-0 ${
+                                mem.status === 'Approved' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-600'
+                              }`}>
+                                {mem.status}
+                              </div>
+                            </div>
+
+                            {/* Club Payment Record Card */}
+                            {clubPayment ? (
+                              <div className="mt-3.5 p-3 bg-emerald-50/90 rounded-xl border border-emerald-200/80 flex flex-wrap items-center justify-between gap-2.5 text-xs">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                                    <ShieldCheck size={14} />
+                                  </div>
+                                  <div>
+                                    <span className="font-extrabold text-slate-800">Fee Paid: ₹{clubPayment.amount}</span>
+                                    <span className="text-slate-500 ml-2 font-mono text-[11px]">
+                                      #{clubPayment.receiptNumber || `RCP-${(clubPayment._id || '').slice(-6).toUpperCase()}`}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[11px] font-bold text-slate-500 hidden sm:inline">
+                                    {clubPayment.paymentMethod || 'Razorpay / UPI'}
+                                  </span>
+                                  <button
+                                    onClick={() => setSelectedReceiptForPreview({
+                                      ...clubPayment,
+                                      clubId: mem.clubId,
+                                      userId: user
+                                    })}
+                                    className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-bold text-[11px] flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+                                  >
+                                    <Receipt size={12} className="text-teal-400" />
+                                    <span>View Receipt</span>
+                                  </button>
+                                </div>
+                              </div>
+                            ) : mem.clubId?.joinFee === 0 ? (
+                              <div className="mt-2.5 px-3 py-1.5 bg-teal-50/60 rounded-xl border border-teal-100 flex items-center justify-between text-xs text-teal-800 font-medium">
+                                <span>Free Club Membership</span>
+                                <span className="text-[11px] font-bold text-teal-600">No dues required</span>
+                              </div>
+                            ) : (
+                              <div className="mt-2.5 px-3 py-2 bg-amber-50/70 rounded-xl border border-amber-200/80 flex items-center justify-between text-xs text-amber-900 font-medium">
+                                <span>Membership Dues: ₹{mem.clubId?.joinFee || 500}</span>
+                                <Link 
+                                  to={`/clubs/${mem.clubId?._id}`}
+                                  className="text-[11px] font-bold text-amber-700 hover:text-amber-900 underline"
+                                >
+                                  Complete Payment →
+                                </Link>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-10 opacity-70">
+                      <Activity size={44} className="mx-auto text-gray-400 mb-2" />
+                      <p className="text-gray-600 font-bold">You haven't joined any clubs yet.</p>
+                      <Link to="/clubs" className="inline-block mt-3 px-4 py-2 bg-teal-600 text-white text-xs font-bold rounded-xl hover:bg-teal-700 transition">
+                        Explore Campus Clubs
+                      </Link>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* TAB 2: DETAILED PAYMENT RECEIPTS & INVOICES */}
+              {studentActiveTab === 'payments' && (
+                <div className="space-y-3">
+                  {studentPayments.length > 0 ? (
+                    studentPayments.map((pmt) => (
+                      <div 
+                        key={pmt._id} 
+                        className="p-4 bg-white rounded-2xl border border-slate-200/80 hover:border-teal-300 hover:shadow-xs transition-all space-y-2.5"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                              <Receipt size={18} />
+                            </div>
+                            <div>
+                              <h4 className="font-black text-slate-900 text-sm">
+                                {pmt.clubId?.name || 'Institutional Club Membership Fee'}
+                              </h4>
+                              <p className="text-[11px] font-mono text-slate-500 mt-0.5">
+                                Receipt #{pmt.receiptNumber || `RCP-${pmt._id.slice(-6).toUpperCase()}`}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="text-right">
+                            <span className="font-black text-base text-emerald-600 block">
+                              ₹{Number(pmt.amount || 0).toLocaleString('en-IN')}
+                            </span>
+                            <span className="inline-block px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-black rounded-md uppercase">
+                              {pmt.status || 'Paid'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+                          <div className="flex flex-wrap items-center gap-3 text-slate-500 text-[11px]">
+                            <span>
+                              Mode: <strong className="text-slate-700">{pmt.paymentMethod || 'Razorpay'}</strong>
+                            </span>
+                            <span>•</span>
+                            <span>
+                              {new Date(pmt.createdAt || pmt.date || Date.now()).toLocaleDateString(undefined, {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric'
+                              })}
+                            </span>
+                            {pmt.offlineNotes && (
+                              <>
+                                <span>•</span>
+                                <span className="text-slate-600 italic truncate max-w-[200px]" title={pmt.offlineNotes}>
+                                  {pmt.offlineNotes}
+                                </span>
+                              </>
+                            )}
+                          </div>
+
+                          <button
+                            onClick={() => setSelectedReceiptForPreview({
+                              ...pmt,
+                              userId: pmt.userId || user
+                            })}
+                            className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+                          >
+                            <Receipt size={13} className="text-teal-400" />
+                            <span>View / Print Receipt</span>
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-12 bg-slate-50 rounded-2xl p-6 border border-dashed border-slate-200">
+                      <Receipt size={40} className="mx-auto text-slate-400 mb-2" />
+                      <p className="text-slate-700 font-bold text-sm">No payment receipts on file yet</p>
+                      <p className="text-slate-500 text-xs mt-1 max-w-sm mx-auto">
+                        When you pay club membership dues online or your fees are recorded by the campus admin, your verified institutional receipts will appear right here.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -639,9 +849,9 @@ const Profile = () => {
             <div className="soft-card p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-black text-gray-900 flex items-center gap-2">
-                  <Award size={24} className="text-primary-500" /> Certificates ({studentCertificates.length})
+                  <Award size={24} className="text-teal-600" /> Certificates ({studentCertificates.length})
                 </h2>
-                <Link to="/certificates" className="text-xs font-bold text-primary-600 hover:underline">
+                <Link to="/certificates" className="text-xs font-bold text-teal-600 hover:underline">
                   All Credentials
                 </Link>
               </div>
@@ -649,7 +859,7 @@ const Profile = () => {
               {studentCertificates.length > 0 ? (
                 <div className="space-y-3 max-h-[460px] overflow-y-auto pr-1">
                   {studentCertificates.map(cert => (
-                    <div key={cert._id} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 hover:border-primary-200 transition-all">
+                    <div key={cert._id} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 hover:border-teal-200 transition-all">
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
@@ -669,7 +879,7 @@ const Profile = () => {
                       </h4>
 
                       {cert.teamName && (
-                        <div className="text-xs text-primary-600 font-semibold mt-1">
+                        <div className="text-xs text-teal-600 font-semibold mt-1">
                           Team/Class: {cert.teamName}
                         </div>
                       )}
@@ -690,7 +900,7 @@ const Profile = () => {
                             year: cert.year || user?.year,
                             tournamentName: cert.title || cert.tournamentId?.name
                           })}
-                          className="flex-1 py-1.5 px-3 bg-primary-600 text-white rounded-xl text-xs font-bold hover:bg-primary-700 flex items-center justify-center gap-1 transition-colors"
+                          className="flex-1 py-1.5 px-3 bg-teal-600 text-white rounded-xl text-xs font-bold hover:bg-teal-700 flex items-center justify-center gap-1 transition-colors"
                         >
                           <Eye size={13} /> View
                         </button>
@@ -708,7 +918,7 @@ const Profile = () => {
                 </div>
               ) : (
                 <div className="text-center py-8 opacity-70 bg-gray-50 rounded-2xl p-4">
-                  <Award size={36} className="mx-auto text-primary-400 mb-2" />
+                  <Award size={36} className="mx-auto text-teal-500 mb-2" />
                   <p className="text-gray-800 font-bold text-sm">No certificates yet</p>
                   <p className="text-gray-500 text-xs mt-1">
                     Certificates issued by your Club President, Teacher, or Admin for your match victories will appear right here!
@@ -725,6 +935,15 @@ const Profile = () => {
         <CertificateTemplate
           cert={selectedCertForPreview}
           onClose={() => setSelectedCertForPreview(null)}
+        />
+      )}
+
+      {/* Payment Receipt Voucher Modal */}
+      {selectedReceiptForPreview && (
+        <PaymentReceiptModal
+          receipt={selectedReceiptForPreview}
+          student={user}
+          onClose={() => setSelectedReceiptForPreview(null)}
         />
       )}
     </div>

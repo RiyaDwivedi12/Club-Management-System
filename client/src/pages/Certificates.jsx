@@ -3,7 +3,7 @@ import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Award, Download, ShieldCheck, CheckCircle2, Search, Plus, Trophy, Calendar, 
-  Eye, FileText, Sparkles, AlertCircle, Printer, Users, CheckSquare, Square, 
+  Eye, FileText, AlertCircle, Printer, Users, CheckSquare, Square, 
   Filter, Check, GraduationCap, X, ChevronRight, Shield
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -234,16 +234,16 @@ const Certificates = () => {
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto font-sans pb-24">
       {/* Header Banner */}
-      <div className="mb-8 p-8 md:p-10 rounded-[32px] bg-gradient-to-br from-dark-900 via-primary-950 to-slate-900 text-white relative overflow-hidden shadow-2xl border border-slate-800">
+      <div className="mb-8 p-8 md:p-10 rounded-3xl bg-gradient-to-r from-teal-700 via-teal-600 to-emerald-700 text-white relative overflow-hidden shadow-lg">
         <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-500/20 text-primary-400 font-bold text-xs uppercase tracking-wider mb-3">
-              <Award size={14} /> Official Academic & Sports Credentials
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-teal-100 font-bold text-xs uppercase tracking-wider mb-3 border border-white/20">
+              <Award size={14} className="text-teal-200" /> Official Academic & Sports Credentials
             </div>
             <h1 className="text-3xl md:text-5xl font-black mb-2 tracking-tight">
-              Certificates & <span className="text-primary-400">Merit Awards</span>
+              Certificates & Merit Awards
             </h1>
-            <p className="text-slate-400 font-medium text-base md:text-lg max-w-2xl">
+            <p className="text-teal-100 font-medium text-sm md:text-base max-w-2xl">
               Sanctioned by Club Presidents, Faculty Coordinators, and Administrators. Authenticated with cryptographic hash codes and delivered directly to student profiles.
             </p>
           </div>
@@ -251,25 +251,22 @@ const Certificates = () => {
           {canIssue && (
             <button
               onClick={() => setActiveTab('issue')}
-              className="flex items-center gap-2 px-6 py-3.5 bg-primary-600 hover:bg-primary-500 text-white font-black rounded-2xl shadow-soft-purple transition-all hover:scale-105"
+              className="flex items-center gap-2 px-6 py-3.5 bg-white text-teal-700 hover:bg-teal-50 font-bold rounded-2xl shadow-md transition-all hover:scale-105 cursor-pointer"
             >
               <Plus size={18} />
               <span>Issue New Certificates</span>
             </button>
           )}
         </div>
-
-        {/* Glows */}
-        <div className="absolute -right-20 -top-20 w-80 h-80 bg-primary-600 opacity-20 rounded-full blur-3xl pointer-events-none" />
       </div>
 
       {/* Navigation Tabs */}
       <div className="flex flex-wrap bg-gray-100 p-1.5 rounded-2xl mb-8 gap-1.5">
         <button
           onClick={() => setActiveTab('my')}
-          className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
+          className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer ${
             activeTab === 'my'
-              ? 'bg-white text-primary-600 shadow-sm'
+              ? 'bg-teal-600 text-white shadow-sm'
               : 'text-gray-500 hover:text-gray-900'
           }`}
         >
@@ -278,9 +275,9 @@ const Certificates = () => {
 
         <button
           onClick={() => setActiveTab('verify')}
-          className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
+          className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer ${
             activeTab === 'verify'
-              ? 'bg-white text-primary-600 shadow-sm'
+              ? 'bg-teal-600 text-white shadow-sm'
               : 'text-gray-500 hover:text-gray-900'
           }`}
         >
@@ -291,9 +288,9 @@ const Certificates = () => {
           <>
             <button
               onClick={() => setActiveTab('issue')}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer ${
                 activeTab === 'issue'
-                  ? 'bg-white text-primary-600 shadow-sm'
+                  ? 'bg-teal-600 text-white shadow-sm'
                   : 'text-gray-500 hover:text-gray-900'
               }`}
             >
@@ -302,9 +299,9 @@ const Certificates = () => {
 
             <button
               onClick={() => setActiveTab('all')}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer ${
                 activeTab === 'all'
-                  ? 'bg-white text-primary-600 shadow-sm'
+                  ? 'bg-teal-600 text-white shadow-sm'
                   : 'text-gray-500 hover:text-gray-900'
               }`}
             >

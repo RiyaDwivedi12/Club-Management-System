@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { QrCode, CheckCircle2, AlertTriangle, Users, Award, Search, Calendar, Clock, ShieldCheck, Sparkles } from 'lucide-react';
+import { QrCode, CheckCircle2, AlertTriangle, Users, Award, Search, Calendar, Clock, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const AttendanceQrView = ({ events = [] }) => {
@@ -228,7 +228,7 @@ const AttendanceQrView = ({ events = [] }) => {
               disabled={issuingCerts || !attendanceData?.stats?.totalAttended}
               className="mt-3 py-2 px-3 bg-white text-indigo-900 rounded-xl text-xs font-bold hover:bg-indigo-50 transition shadow-sm disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
-              <Sparkles size={14} />
+              <Award size={14} />
               {issuingCerts ? 'Issuing...' : 'Issue Verified Certificates'}
             </button>
           </div>

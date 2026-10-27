@@ -6,7 +6,6 @@ import {
   Users,
   Calendar,
   AlertTriangle,
-  Sparkles,
   DollarSign,
   PieChart,
   BarChart3,
@@ -122,7 +121,7 @@ const AnalyticsReportsView = () => {
                 <span className="text-[10px] uppercase font-black tracking-wider px-2 py-0.5 bg-white/70 rounded-md">
                   {item.category}
                 </span>
-                <Sparkles size={14} className="opacity-70" />
+                <TrendingUp size={14} className="opacity-70" />
               </div>
               <h4 className="font-bold text-sm mt-1">{item.title}</h4>
               <p className="text-xs opacity-80 mt-1 font-medium">{item.description}</p>

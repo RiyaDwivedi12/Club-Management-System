@@ -1,5 +1,6 @@
 import Message from '../models/Message.js';
 import Club from '../models/Club.js';
+import { notifyClubMembers } from '../utils/notify.js';
 
 // @desc    Get all messages for a club
 // @route   GET /api/messages/:clubId
@@ -69,11 +70,22 @@ const sendMessage = async (req, res) => {
 
     const populatedMessage = await message.populate('sender', 'name');
 
-    // Socket.io emit
+    // Socket.io emit to active chat room
     const io = req.app.get('io');
     if (io) {
       io.to(req.params.clubId).emit('newMessage', populatedMessage);
     }
+
+    // Send notifications to club members
+    const senderName = req.user.name || 'A member';
+    const previewText = text.length > 55 ? text.substring(0, 52) + '...' : text;
+    notifyClubMembers(io, {
+      club,
+      senderId: req.user._id,
+      message: `💬 ${senderName} in ${club.name}: "${previewText}"`,
+      type: 'club_message',
+      link: `/chat`
+    }).catch((err) => console.error('Notification dispatch error:', err));
 
     res.status(201).json(populatedMessage);
   } catch (error) {

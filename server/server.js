@@ -17,8 +17,12 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+import { seedDefaultRoles } from './seedRoles.js';
+
 // Connect to database
-connectDB();
+connectDB().then(() => {
+  seedDefaultRoles();
+});
 
 const app = express();
 const httpServer = createServer(app);
@@ -65,6 +69,7 @@ import financeRoutes from './routes/financeRoutes.js';
 import attendanceRoutes from './routes/attendanceRoutes.js';
 import venueRoutes from './routes/venueRoutes.js';
 import auditLogRoutes from './routes/auditLogRoutes.js';
+import classFeeRoutes from './routes/classFeeRoutes.js';
 
 // Basic route
 app.get('/', (req, res) => {
@@ -87,6 +92,7 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/certificates', certificateRoutes);
 app.use('/api/student-directory', studentDirectoryRoutes);
 app.use('/api/finance', financeRoutes);
+app.use('/api/class-fees', classFeeRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/venues', venueRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
@@ -119,6 +125,6 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 5000;
 
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
 });

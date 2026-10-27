@@ -43,4 +43,6 @@ coverage/
 # User exclusions
 *.md
 agentfile
+server/data/
+
 

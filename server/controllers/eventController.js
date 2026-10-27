@@ -1,6 +1,7 @@
 import Event from '../models/Event.js';
 import Club from '../models/Club.js';
 import Notification from '../models/Notification.js';
+import { createAndSendNotification, notifyClubMembers } from '../utils/notify.js';
 
 // @desc    Create a new event
 // @route   POST /api/events
@@ -30,13 +31,25 @@ const createEvent = async (req, res) => {
       approvalStatus
     });
 
+    const io = req.app.get('io');
+
     if (requiresApproval && club.facultyId) {
-      await Notification.create({
-        user: club.facultyId,
+      await createAndSendNotification(io, {
+        userId: club.facultyId,
         message: `New event "${title}" from ${club.name} requires your approval.`,
-        type: 'club_approval'
+        type: 'club_approval',
+        link: '/events'
       });
     }
+
+    // Notify club members about the new event
+    await notifyClubMembers(io, {
+      club,
+      senderId: req.user._id,
+      message: `📅 New Event in ${club.name}: "${title}" has been announced!`,
+      type: 'event_announcement',
+      link: '/events'
+    });
 
     res.status(201).json(event);
   } catch (error) {

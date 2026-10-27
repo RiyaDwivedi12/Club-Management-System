@@ -28,7 +28,7 @@ const paymentSchema = new mongoose.Schema({
   },
   razorpayOrderId: {
     type: String,
-    required: true
+    required: false
   },
   razorpayPaymentId: {
     type: String
@@ -45,6 +45,20 @@ const paymentSchema = new mongoose.Schema({
     type: String,
     enum: ['success', 'failed', 'pending', 'Paid', 'Pending', 'refunded'],
     default: 'pending'
+  },
+  offlineDocId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'OfflinePaymentDoc'
+  },
+  offlineReceiptDoc: {
+    type: String
+  },
+  verifiedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  offlineNotes: {
+    type: String
   },
   refundStatus: {
     type: String,

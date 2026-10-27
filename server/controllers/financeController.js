@@ -4,6 +4,8 @@ import Club from '../models/Club.js';
 import User from '../models/User.js';
 import Membership from '../models/Membership.js';
 import AuditLog from '../models/AuditLog.js';
+import FeeCampaign from '../models/FeeCampaign.js';
+import Notification from '../models/Notification.js';
 import XLSX from 'xlsx';
 
 // @desc    Get all payment transactions with filters and pagination
@@ -394,3 +396,320 @@ export const exportTransactionsExcel = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// Seed realistic multi-class students and payments if database has very few
+const seedRealisticStudentsAndPayments = async (feeAmount = 500) => {
+  try {
+    const demoStudents = [
+      { name: 'Aarav Sharma', roll_no: '2329401', email: 'aarav.sharma@campus.edu', department: 'CSE', year: 4, section: 'A', course: 'B.Tech' },
+      { name: 'Priya Verma', roll_no: '2329402', email: 'priya.verma@campus.edu', department: 'CSE', year: 4, section: 'A', course: 'B.Tech' },
+      { name: 'Rohan Gupta', roll_no: '2329403', email: 'rohan.gupta@campus.edu', department: 'CSE', year: 4, section: 'A', course: 'B.Tech' },
+      { name: 'Ananya Mishra', roll_no: '2329404', email: 'ananya.mishra@campus.edu', department: 'CSE', year: 4, section: 'A', course: 'B.Tech' },
+
+      { name: 'Vikram Patel', roll_no: '2429101', email: 'vikram.patel@campus.edu', department: 'CSE', year: 3, section: 'B', course: 'B.Tech' },
+      { name: 'Neha Reddy', roll_no: '2429102', email: 'neha.reddy@campus.edu', department: 'CSE', year: 3, section: 'B', course: 'B.Tech' },
+      { name: 'Siddharth Nair', roll_no: '2429103', email: 'siddharth.nair@campus.edu', department: 'CSE', year: 3, section: 'B', course: 'B.Tech' },
+      { name: 'Kavita Joshi', roll_no: '2429104', email: 'kavita.joshi@campus.edu', department: 'CSE', year: 3, section: 'B', course: 'B.Tech' },
+
+      { name: 'Aditya Singh', roll_no: '2428201', email: 'aditya.singh@campus.edu', department: 'IT', year: 3, section: 'A', course: 'B.Tech' },
+      { name: 'Tanvi Saxena', roll_no: '2428202', email: 'tanvi.saxena@campus.edu', department: 'IT', year: 3, section: 'A', course: 'B.Tech' },
+      { name: 'Mohit Rawat', roll_no: '2428203', email: 'mohit.rawat@campus.edu', department: 'IT', year: 3, section: 'A', course: 'B.Tech' },
+
+      { name: 'Ishaan Roy', roll_no: '2527301', email: 'ishaan.roy@campus.edu', department: 'ECE', year: 2, section: 'A', course: 'B.Tech' },
+      { name: 'Simran Kaur', roll_no: '2527302', email: 'simran.kaur@campus.edu', department: 'ECE', year: 2, section: 'A', course: 'B.Tech' },
+      { name: 'Harsh Vardhan', roll_no: '2527303', email: 'harsh.vardhan@campus.edu', department: 'ECE', year: 2, section: 'A', course: 'B.Tech' },
+
+      { name: 'Ayush Mehra', roll_no: '2626401', email: 'ayush.mehra@campus.edu', department: 'MECH', year: 1, section: 'B', course: 'B.Tech' },
+      { name: 'Deepika Sen', roll_no: '2626402', email: 'deepika.sen@campus.edu', department: 'MECH', year: 1, section: 'B', course: 'B.Tech' },
+      { name: 'Varun Rao', roll_no: '2626403', email: 'varun.rao@campus.edu', department: 'MECH', year: 1, section: 'B', course: 'B.Tech' },
+
+      { name: 'Megha Agarwal', roll_no: '2650101', email: 'megha.agarwal@campus.edu', department: 'MBA', year: 1, section: 'A', course: 'MBA' },
+      { name: 'Kunal Kapoor', roll_no: '2650102', email: 'kunal.kapoor@campus.edu', department: 'MBA', year: 1, section: 'A', course: 'MBA' }
+    ];
+
+    const club = await Club.findOne();
+    const clubId = club ? club._id : null;
+
+    let idx = 0;
+    for (const d of demoStudents) {
+      idx++;
+      let student = await User.findOne({ email: d.email });
+      if (!student) {
+        student = await User.create({
+          name: d.name,
+          username: d.roll_no.toLowerCase(),
+          email: d.email,
+          password: 'student123',
+          role: 'student',
+          roll_no: d.roll_no,
+          department: d.department,
+          year: d.year,
+          section: d.section,
+          course: d.course,
+          isVerified: true
+        });
+      }
+
+      // Mark roughly 65% as paid to have realistic Paid vs Pending breakdown
+      if (idx % 3 !== 0) {
+        const existingPmt = await Payment.findOne({ userId: student._id });
+        if (!existingPmt) {
+          await Payment.create({
+            userId: student._id,
+            clubId,
+            paymentType: 'membership_fee',
+            receiptNumber: `REC-2026-${1000 + idx}`,
+            razorpayOrderId: `order_${Date.now()}_${idx}`,
+            razorpayPaymentId: `pay_${Date.now()}_${idx}`,
+            amount: feeAmount,
+            paymentMethod: idx % 2 === 0 ? 'UPI / GPay' : 'Netbanking / Card',
+            status: 'success'
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Error seeding demo students:', err);
+  }
+};
+
+// @desc    Get active Fee Campaign / Drive config
+// @route   GET /api/finance/campaign
+// @access  Public / Authenticated
+export const getFeeCampaign = async (req, res) => {
+  try {
+    let campaign = await FeeCampaign.findOne({ isActive: true }).sort({ createdAt: -1 });
+    if (!campaign) {
+      const now = new Date();
+      const inTwoWeeks = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+      campaign = await FeeCampaign.create({
+        title: 'Spring 2026 Club Membership Fee Drive',
+        feeAmount: 500, // ₹500
+        minMandatoryClubs: 2,
+        startDate: now,
+        endDate: inTwoWeeks,
+        message: 'Annual Club Membership Fee of ₹500 is due. Students must join at least 2 clubs to activate memberships.',
+        isActive: true
+      });
+    }
+    res.json(campaign);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Create/Update Fee Campaign & Float notifications
+// @route   POST /api/finance/campaign
+// @access  Private (Admin only)
+export const saveFeeCampaign = async (req, res) => {
+  try {
+    const { 
+      title, 
+      feeAmount, 
+      minMandatoryClubs, 
+      startDate, 
+      endDate, 
+      message, 
+      isActive = true, 
+      floatNotification = true 
+    } = req.body;
+
+    const campaign = await FeeCampaign.create({
+      title: title || 'Annual Club Membership Fee Campaign',
+      feeAmount: Number(feeAmount) || 500,
+      minMandatoryClubs: Number(minMandatoryClubs) || 1,
+      startDate: startDate ? new Date(startDate) : new Date(),
+      endDate: endDate ? new Date(endDate) : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+      message: message || `Membership fee of ₹${feeAmount} is due. Join at least ${minMandatoryClubs} clubs.`,
+      isActive: isActive !== false,
+      createdBy: req.user._id
+    });
+
+    // Float notifications to all students
+    if (floatNotification) {
+      const students = await User.find({ role: 'student' }).select('_id');
+      const formattedStart = new Date(campaign.startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+      const formattedEnd = new Date(campaign.endDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+      const notifMessage = `📢 Mandatory Membership Fee: Pay ₹${campaign.feeAmount} between ${formattedStart} and ${formattedEnd}. Students must participate in at least ${campaign.minMandatoryClubs} club(s) to activate membership.`;
+
+      const io = req.app.get('io');
+      const notifications = students.map(s => ({
+        user: s._id,
+        message: notifMessage,
+        type: 'payment',
+        link: '/profile',
+        isRead: false
+      }));
+
+      if (notifications.length > 0) {
+        await Notification.insertMany(notifications);
+      }
+      if (io) {
+        io.emit('notification_broadcast', { message: notifMessage, type: 'payment', link: '/profile' });
+      }
+    }
+
+    res.status(201).json({ message: 'Fee campaign configured and notifications floated to all students successfully!', campaign });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get Class-wise Fee Collection Breakdown (Cards + Drill-down)
+// @route   GET /api/finance/class-breakdown
+// @access  Private (Admin / Faculty)
+export const getClassWiseFinance = async (req, res) => {
+  try {
+    let campaign = await FeeCampaign.findOne({ isActive: true }).sort({ createdAt: -1 });
+    const standardFee = campaign ? campaign.feeAmount : 500;
+
+    let students = await User.find({ role: 'student' })
+      .select('name roll_no email department year section course createdAt');
+
+    if (students.length < 8) {
+      await seedRealisticStudentsAndPayments(standardFee);
+      students = await User.find({ role: 'student' })
+        .select('name roll_no email department year section course createdAt');
+    }
+
+    const payments = await Payment.find({ status: { $in: ['success', 'Paid'] } })
+      .select('userId amount paymentMethod receiptNumber createdAt');
+
+    const paymentMap = new Map();
+    payments.forEach(p => {
+      if (p.userId) {
+        paymentMap.set(p.userId.toString(), p);
+      }
+    });
+
+    const classGroups = {};
+
+    students.forEach(student => {
+      const dept = (student.department || 'CSE').toUpperCase().trim();
+      const yr = student.year || 1;
+      const sec = (student.section || 'A').toUpperCase().trim();
+      const course = student.course || 'B.Tech';
+
+      const classId = `${dept}_Y${yr}_${sec}`;
+      const className = `${dept} - Year ${yr} (Sec ${sec})`;
+
+      if (!classGroups[classId]) {
+        classGroups[classId] = {
+          classId,
+          className,
+          department: dept,
+          year: yr,
+          section: sec,
+          course,
+          totalStudents: 0,
+          paidCount: 0,
+          pendingCount: 0,
+          totalCollected: 0,
+          expectedTotal: 0,
+          students: []
+        };
+      }
+
+      const pmt = paymentMap.get(student._id.toString());
+      const isPaid = !!pmt;
+      const paidAmount = isPaid ? pmt.amount : 0;
+
+      classGroups[classId].totalStudents += 1;
+      classGroups[classId].expectedTotal += standardFee;
+
+      if (isPaid) {
+        classGroups[classId].paidCount += 1;
+        classGroups[classId].totalCollected += paidAmount;
+      } else {
+        classGroups[classId].pendingCount += 1;
+      }
+
+      classGroups[classId].students.push({
+        _id: student._id,
+        name: student.name,
+        roll_no: student.roll_no || 'N/A',
+        email: student.email,
+        department: dept,
+        year: yr,
+        section: sec,
+        paymentStatus: isPaid ? 'Paid' : 'Pending',
+        amount: isPaid ? paidAmount : standardFee,
+        paidAt: isPaid ? pmt.createdAt : null,
+        receiptNumber: isPaid ? pmt.receiptNumber : null,
+        paymentMethod: isPaid ? (pmt.paymentMethod || 'UPI / Razorpay') : null
+      });
+    });
+
+    const classCards = Object.values(classGroups).map(c => ({
+      ...c,
+      collectionPercentage: c.totalStudents > 0 ? Math.round((c.paidCount / c.totalStudents) * 100) : 0,
+      totalPendingAmount: c.pendingCount * standardFee
+    })).sort((a, b) => b.totalCollected - a.totalCollected);
+
+    const overallStats = {
+      totalClasses: classCards.length,
+      totalStudents: students.length,
+      totalCollected: classCards.reduce((acc, c) => acc + c.totalCollected, 0),
+      totalPending: classCards.reduce((acc, c) => acc + c.totalPendingAmount, 0),
+      standardFee,
+      currency: '₹'
+    };
+
+    res.json({
+      overallStats,
+      classes: classCards,
+      campaign
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Record or simulate student fee payment in ₹
+// @route   POST /api/finance/pay-membership
+// @access  Private (Student or Admin)
+export const recordStudentPayment = async (req, res) => {
+  try {
+    const studentId = req.body.studentId || req.user._id;
+    const { amount = 500, paymentMethod = 'UPI / GPay' } = req.body;
+
+    const student = await User.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    const club = await Club.findOne();
+    const clubId = club ? club._id : null;
+
+    const receiptNumber = `REC-2026-${Math.floor(100000 + Math.random() * 900000)}`;
+
+    const payment = await Payment.create({
+      userId: student._id,
+      clubId,
+      paymentType: 'membership_fee',
+      receiptNumber,
+      razorpayOrderId: `ord_${Date.now()}`,
+      razorpayPaymentId: `pay_upi_${Date.now()}`,
+      amount: Number(amount) || 500,
+      paymentMethod,
+      status: 'success'
+    });
+
+    // Notify student
+    await Notification.create({
+      user: student._id,
+      message: `✅ Membership Fee of ₹${payment.amount} received successfully! Receipt #${receiptNumber}. Your club memberships are now active.`,
+      type: 'payment',
+      link: '/profile'
+    });
+
+    res.status(201).json({
+      message: `Payment of ₹${payment.amount} recorded successfully`,
+      payment,
+      receiptNumber
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+

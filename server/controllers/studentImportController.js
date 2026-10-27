@@ -251,10 +251,16 @@ export const confirmStudentImport = async (req, res) => {
 // @access  Private (Admin / Faculty)
 export const exportStudentDirectory = async (req, res) => {
   try {
-    const { department, year, search } = req.query;
+    const { course, section, department, year, search } = req.query;
 
     const query = { role: 'student' };
 
+    if (course && course !== 'all') {
+      query.course = new RegExp('^' + course + '$', 'i');
+    }
+    if (section && section !== 'all') {
+      query.section = new RegExp('^' + section + '$', 'i');
+    }
     if (department && department !== 'all') {
       query.department = department;
     }
@@ -266,18 +272,22 @@ export const exportStudentDirectory = async (req, res) => {
       query.$or = [
         { name: new RegExp(s, 'i') },
         { roll_no: new RegExp(s, 'i') },
-        { email: new RegExp(s, 'i') }
+        { email: new RegExp(s, 'i') },
+        { course: new RegExp(s, 'i') },
+        { section: new RegExp(s, 'i') }
       ];
     }
 
-    const students = await User.find(query).select('roll_no name email department year isVerified createdAt').sort({ roll_no: 1 });
+    const students = await User.find(query).select('roll_no name email course section department year isVerified createdAt').sort({ course: 1, section: 1, roll_no: 1 });
 
     const exportData = students.map((s, index) => ({
       'S.No': index + 1,
       'Roll Number': s.roll_no || 'N/A',
       'Student Name': s.name,
       'Email Address': s.email,
-      'Course / Branch': s.department || 'GENERAL',
+      'Class / Course': s.course || 'B.Tech',
+      'Section': s.section || 'A',
+      'Branch / Department': s.department || 'GENERAL',
       'Academic Year': s.year ? `Year ${s.year}` : 'Year 1',
       'Verified': s.isVerified ? 'YES' : 'NO',
       'Enrolled Date': s.createdAt ? new Date(s.createdAt).toLocaleDateString() : 'N/A'
@@ -305,6 +315,20 @@ export const getStudentDemographics = async (req, res) => {
   try {
     const totalStudents = await User.countDocuments({ role: 'student' });
     
+    // Aggregation by Course / Class
+    const courseStats = await User.aggregate([
+      { $match: { role: 'student' } },
+      { $group: { _id: { $ifNull: ['$course', 'B.Tech'] }, count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+
+    // Aggregation by Section
+    const sectionStats = await User.aggregate([
+      { $match: { role: 'student' } },
+      { $group: { _id: { $ifNull: ['$section', 'A'] }, count: { $sum: 1 } } },
+      { $sort: { _id: 1 } }
+    ]);
+
     // Aggregation by Department
     const departmentStats = await User.aggregate([
       { $match: { role: 'student' } },
@@ -321,6 +345,8 @@ export const getStudentDemographics = async (req, res) => {
 
     res.json({
       totalStudents,
+      courseStats,
+      sectionStats,
       departmentStats,
       yearStats
     });
@@ -334,9 +360,15 @@ export const getStudentDemographics = async (req, res) => {
 // @access  Private (Admin / Faculty)
 export const getStudentsList = async (req, res) => {
   try {
-    const { department, year, search, page = 1, limit = 50 } = req.query;
+    const { course, section, department, year, search, page = 1, limit = 50 } = req.query;
     const query = { role: 'student' };
 
+    if (course && course !== 'all') {
+      query.course = new RegExp('^' + course + '$', 'i');
+    }
+    if (section && section !== 'all') {
+      query.section = new RegExp('^' + section + '$', 'i');
+    }
     if (department && department !== 'all') {
       query.department = department;
     }
@@ -348,7 +380,9 @@ export const getStudentsList = async (req, res) => {
       query.$or = [
         { name: new RegExp(s, 'i') },
         { roll_no: new RegExp(s, 'i') },
-        { email: new RegExp(s, 'i') }
+        { email: new RegExp(s, 'i') },
+        { course: new RegExp(s, 'i') },
+        { section: new RegExp(s, 'i') }
       ];
     }
 
@@ -358,8 +392,8 @@ export const getStudentsList = async (req, res) => {
 
     const [students, total] = await Promise.all([
       User.find(query)
-        .select('name roll_no email department year isVerified createdAt')
-        .sort({ roll_no: 1, createdAt: -1 })
+        .select('name roll_no email course section department year isVerified createdAt')
+        .sort({ course: 1, section: 1, roll_no: 1, createdAt: -1 })
         .skip(skip)
         .limit(limitNum),
       User.countDocuments(query)

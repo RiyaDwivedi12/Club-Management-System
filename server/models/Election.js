@@ -15,7 +15,12 @@ const electionSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true,
-    default: 'President'
+    default: 'President',
+    enum: ['President', 'Vice President', 'Treasurer', 'Secretary']
+  },
+  banner: {
+    type: String,
+    default: ''
   },
   startDate: {
     type: Date,
@@ -31,6 +36,14 @@ const electionSchema = new mongoose.Schema({
       ref: 'User',
       required: true
     },
+    name: {
+      type: String,
+      default: ''
+    },
+    photo: {
+      type: String,
+      default: ''
+    },
     manifesto: {
       type: String,
       required: true
@@ -43,7 +56,22 @@ const electionSchema = new mongoose.Schema({
   votedUsers: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
-  }]
+  }],
+  winner: {
+    candidateId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    name: String,
+    votes: Number
+  },
+  isConcluded: {
+    type: Boolean,
+    default: false
+  },
+  concludedAt: {
+    type: Date
+  }
 }, {
   timestamps: true
 });

@@ -81,92 +81,101 @@ const Events = () => {
 
   const filteredEvents = filter === 'all' ? events : events.filter(e => e.status === filter);
   
-  const canCreateEvent = user && (user.role === 'president' || user.role === 'faculty' || user.role === 'admin');
+  const canCreateEvent = user && (user.role === 'president' || user.role === 'vice_president' || user.role === 'faculty' || user.role === 'admin');
+
+  const filterTabs = [
+    { key: 'all', label: 'All Events' },
+    { key: 'upcoming', label: 'Upcoming' },
+    { key: 'ongoing', label: 'Live / Ongoing' },
+    { key: 'completed', label: 'Past Events' },
+  ];
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.4 }}
-      className="p-4 md:p-8 relative min-h-screen"
-    >
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
-        <div>
-          <h1 className="text-4xl font-black text-gray-900 mb-2 tracking-tight">Campus Events</h1>
-          <p className="text-gray-500 font-medium text-lg">Discover and participate in exciting activities.</p>
+    <div className="space-y-8 max-w-7xl mx-auto pb-12">
+      {/* Hero Header */}
+      <div className="bg-gradient-to-r from-teal-700 via-teal-600 to-emerald-700 rounded-3xl p-8 md:p-10 text-white shadow-lg relative overflow-hidden">
+        <div className="absolute right-0 top-0 bottom-0 w-1/3 opacity-10 pointer-events-none flex items-center justify-center">
+          <CalendarIcon size={280} />
         </div>
-        
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2 bg-white p-2 rounded-2xl border border-gray-200 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:border-primary-300 transition-colors">
-            <Filter size={18} className="text-primary-500 ml-3" />
-            <select 
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className="bg-transparent border-none focus:ring-0 text-sm font-bold text-gray-700 py-3 pl-2 pr-8 cursor-pointer rounded-2xl"
-            >
-              <option value="all">All Events</option>
-              <option value="upcoming">Upcoming</option>
-              <option value="ongoing">Ongoing</option>
-              <option value="completed">Completed</option>
-            </select>
+
+        <div className="relative z-10 max-w-2xl">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/15 backdrop-blur-md text-teal-100 text-xs font-bold uppercase tracking-wider mb-4 border border-white/20">
+            <CalendarIcon size={14} className="text-teal-200" />
+            <span>Campus Gatherings</span>
           </div>
-          
-          {canCreateEvent && (
-            <button 
-              onClick={() => setShowCreateModal(true)}
-              className="hidden md:flex items-center space-x-2 bg-primary-600 hover:bg-primary-700 text-white px-6 py-4 rounded-2xl font-black shadow-[0_8px_20px_-8px_rgba(79,70,229,0.5)] transition-all hover:-translate-y-1 hover:shadow-[0_12px_24px_-8px_rgba(79,70,229,0.6)]"
-            >
-              <Plus size={20} />
-              <span>Create Event</span>
-            </button>
-          )}
+          <h1 className="text-3xl md:text-5xl font-black tracking-tight mb-3">
+            Campus Events & Meets
+          </h1>
+          <p className="text-teal-100 text-sm md:text-base font-medium leading-relaxed">
+            Register for sports tournaments, guest lectures, cultural fests, workshops, and get your digital QR event pass instantly.
+          </p>
         </div>
       </div>
 
+      {/* Filter Tabs & Actions */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0">
+          {filterTabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setFilter(tab.key)}
+              className={`px-4 py-2 rounded-xl text-xs md:text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
+                filter === tab.key
+                  ? 'bg-teal-600 text-white shadow-sm'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {canCreateEvent && (
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm shadow-sm transition-all cursor-pointer"
+          >
+            <Plus size={18} />
+            <span>Create Event</span>
+          </button>
+        )}
+      </div>
+
       {error && (
-        <div className="bg-red-50 text-red-500 p-4 rounded-xl mb-6 font-medium">
+        <div className="bg-red-50 text-red-600 border border-red-200 p-4 rounded-xl text-sm font-semibold">
           {error}
         </div>
       )}
 
       {isLoading ? (
-        <div className="flex justify-center p-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        <div className="flex flex-col items-center justify-center p-16">
+          <div className="w-10 h-10 border-4 border-teal-600 border-t-transparent rounded-full animate-spin mb-3"></div>
+          <p className="text-sm font-bold text-gray-500">Loading campus events...</p>
         </div>
       ) : (
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6 lg:gap-8"
-        >
-          <AnimatePresence>
-            {filteredEvents.length > 0 ? (
-              filteredEvents.map((event, index) => (
-                <motion.div
-                  key={event._id}
-                  layout
-                  initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                  transition={{ delay: index * 0.05, duration: 0.3 }}
-                  className="h-full"
-                >
-                  <EventCard event={event} onJoin={handleJoin} onViewPass={handleViewPass} />
-                </motion.div>
-              ))
-            ) : (
-              <motion.div 
-                initial={{ opacity: 0 }} 
-                animate={{ opacity: 1 }}
-                className="col-span-full py-16 text-center text-gray-500 font-medium bg-white rounded-[32px] border border-dashed border-gray-200"
+        <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
+          {filteredEvents.length > 0 ? (
+            filteredEvents.map((event, index) => (
+              <motion.div
+                key={event._id}
+                layout
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                transition={{ delay: index * 0.04, duration: 0.25 }}
+                className="h-full"
               >
-                <CalendarIcon size={48} className="mx-auto text-gray-300 mb-4" />
-                <p className="text-lg">No events found for this filter.</p>
+                <EventCard event={event} onJoin={handleJoin} onViewPass={handleViewPass} />
               </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
+            ))
+          ) : (
+            <div className="col-span-full py-16 text-center text-gray-500 font-medium bg-white rounded-2xl border border-dashed border-gray-200">
+              <CalendarIcon size={48} className="mx-auto text-gray-300 mb-4" />
+              <p className="text-lg font-bold text-gray-700">No events found for this filter.</p>
+              <p className="text-sm text-gray-400 mt-1">Check back soon for new club events and workshops.</p>
+            </div>
+          )}
+        </div>
       )}
 
       {/* FAB for Mobile Create Event */}
@@ -386,7 +395,7 @@ const Events = () => {
 
               <button
                 onClick={() => setActivePass(null)}
-                className="w-full mt-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xs shadow-md transition"
+                className="w-full mt-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xs shadow-md transition cursor-pointer"
               >
                 Done
               </button>
@@ -394,7 +403,7 @@ const Events = () => {
           </div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 };
 

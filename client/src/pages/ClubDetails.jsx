@@ -1,19 +1,45 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Users, Mail, Image as ImageIcon, Check, X } from 'lucide-react';
+import { 
+  ArrowLeft, Users, Mail, Image as ImageIcon, Check, X, 
+  CreditCard, ShieldCheck, CheckCircle2, AlertCircle, Loader2, Receipt, Building2, Calendar
+} from 'lucide-react';
 import useClubStore from '../store/clubStore';
 import useAuthStore from '../store/authStore';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import PaymentReceiptModal from '../components/PaymentReceiptModal';
 
 const ClubDetails = () => {
   const { id } = useParams();
-  const { currentClub: club, fetchClubById, requestJoinClub, leaveClub, approveMember, isLoading, error } = useClubStore();
+  const { currentClub: club, fetchClubById, leaveClub, isLoading, error } = useClubStore();
   const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState('about');
   const [galleryUrl, setGalleryUrl] = useState('');
   const [isAddingPhoto, setIsAddingPhoto] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [mockOrderData, setMockOrderData] = useState(null);
+  const [userPayment, setUserPayment] = useState(null);
+  const [selectedReceipt, setSelectedReceipt] = useState(null);
+
+  const fetchPaymentStatus = async () => {
+    if (!user) return;
+    try {
+      const res = await axios.get('/api/payments/my-payments', { withCredentials: true });
+      const payments = res.data || [];
+      const match = payments.find(
+        p => (p.clubId?._id === id || p.clubId === id) && (p.status === 'success' || p.status === 'Paid')
+      );
+      if (match) {
+        setUserPayment(match);
+      } else if (payments.length > 0 && club?.members?.some(m => (m._id || m) === user._id)) {
+        setUserPayment(payments[0]);
+      }
+    } catch (err) {
+      console.error('Failed to load user payments:', err);
+    }
+  };
 
   const handleAddPhoto = async (e) => {
     e.preventDefault();
@@ -32,59 +58,138 @@ const ClubDetails = () => {
   };
 
   const handlePayment = async () => {
+    if (!user) {
+      return toast.error('Please log in to join this club.');
+    }
+
+    setIsProcessingPayment(true);
     try {
-      const { data: order } = await axios.post('/api/payments/order', { clubId: club?._id }, { withCredentials: true });
-      
+      const { data: order } = await axios.post(
+        '/api/payments/order',
+        { clubId: club?._id },
+        { withCredentials: true }
+      );
+
+      // Handle direct free club admission
+      if (order.free) {
+        toast.success(order.message || 'Joined club successfully!');
+        await fetchClubById(id);
+        setIsProcessingPayment(false);
+        return;
+      }
+
+      // If in Mock / Test fallback mode (Razorpay real keys not provided in .env yet)
+      if (order.isMock) {
+        setIsProcessingPayment(false);
+        setMockOrderData(order);
+        return;
+      }
+
+      // Check if Razorpay SDK script is loaded
+      if (typeof window.Razorpay === 'undefined') {
+        toast.error('Razorpay Checkout SDK is still loading. Please refresh the page.');
+        setIsProcessingPayment(false);
+        return;
+      }
+
       const options = {
-        key: 'rzp_test_mock123',
-        amount: order.amount, 
-        currency: order.currency,
-        name: 'Club Management System',
-        description: `Annual fee for ${club?.name}`,
-        order_id: order.id, 
+        key: order.keyId,
+        amount: order.amount,
+        currency: order.currency || 'INR',
+        name: 'ClubSphere — Campus Portal',
+        description: `Membership dues for ${club?.name}`,
+        order_id: order.id,
         handler: async function (response) {
           try {
-            const verifyRes = await axios.post('/api/payments/verify', {
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-              amount: club.joinFee || 500,
-              clubId: club?._id
-            }, { withCredentials: true });
-            
+            const verifyRes = await axios.post(
+              '/api/payments/verify',
+              {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                amount: club.joinFee || 500,
+                clubId: club?._id
+              },
+              { withCredentials: true }
+            );
+
             if (verifyRes.data.success) {
-               toast.success('Payment successful! Request sent.');
-               fetchClubById(id);
+              toast.success('🎉 Payment verified! Welcome to the club.');
+              await fetchClubById(id);
+              await fetchPaymentStatus();
             }
           } catch (err) {
-            toast.error('Payment verification failed.');
+            toast.error(err.response?.data?.message || 'Payment verification failed.');
+          } finally {
+            setIsProcessingPayment(false);
           }
         },
         prefill: {
-          name: user?.name,
-          email: user?.email,
+          name: user?.name || '',
+          email: user?.email || '',
+          contact: user?.phone || user?.roll_no || ''
         },
-        theme: { color: '#7c3aed' },
+        theme: { color: '#0d9488' },
+        modal: {
+          ondismiss: function () {
+            setIsProcessingPayment(false);
+            toast('Payment window closed', { icon: 'ℹ️' });
+          }
+        }
       };
 
       const rzp = new window.Razorpay(options);
-      rzp.on('payment.failed', function (response){
-         toast.error(response.error.description);
+      rzp.on('payment.failed', function (response) {
+        setIsProcessingPayment(false);
+        toast.error(response.error?.description || 'Payment failed or cancelled.');
       });
+
       rzp.open();
     } catch (error) {
-      toast.error('Could not initiate payment.');
+      setIsProcessingPayment(false);
+      toast.error(error.response?.data?.message || 'Could not initiate payment.');
     }
   };
 
+  const handleSimulatePayment = async () => {
+    if (!mockOrderData) return;
+    setIsProcessingPayment(true);
+    try {
+      const verifyRes = await axios.post(
+        '/api/payments/verify',
+        {
+          razorpay_order_id: mockOrderData.id,
+          razorpay_payment_id: `pay_mock_${Date.now()}`,
+          razorpay_signature: 'mock_signature',
+          amount: club.joinFee || 500,
+          clubId: club?._id
+        },
+        { withCredentials: true }
+      );
+
+      if (verifyRes.data.success) {
+        toast.success('🎉 Test payment simulated successfully! You are now a member.');
+        setMockOrderData(null);
+        await fetchClubById(id);
+        await fetchPaymentStatus();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Simulation verification failed');
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
+
+
   useEffect(() => {
     fetchClubById(id);
-  }, [fetchClubById, id]);
+    fetchPaymentStatus();
+  }, [fetchClubById, id, user]);
 
   if (isLoading || !club) {
     return (
       <div className="flex justify-center p-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
       </div>
     );
   }
@@ -93,8 +198,8 @@ const ClubDetails = () => {
     return <div className="p-8 text-center text-red-500 font-bold">{error}</div>;
   }
 
-  const isMember = club.members?.some(m => m._id === user?._id) || false;
-  const isPending = club.pendingRequests?.some(m => m._id === user?._id) || false;
+  const isMember = club.members?.some(m => (m._id || m) === user?._id) || (user?.clubMemberships && user.clubMemberships.includes(club._id)) || false;
+  const isPending = club.pendingRequests?.some(m => (m._id || m) === user?._id) || false;
   const isLeadership = club.presidentId?._id === user?._id || club.facultyId?._id === user?._id || user?.role === 'admin';
 
   return (
@@ -103,7 +208,7 @@ const ClubDetails = () => {
       animate={{ opacity: 1 }}
       className="p-4 md:p-8 max-w-5xl mx-auto"
     >
-      <Link to="/clubs" className="inline-flex items-center text-primary-600 hover:text-primary-800 font-bold mb-6">
+      <Link to="/clubs" className="inline-flex items-center text-teal-600 hover:text-teal-800 font-bold mb-6">
         <ArrowLeft size={16} className="mr-2" /> Back to Clubs
       </Link>
       
@@ -126,13 +231,13 @@ const ClubDetails = () => {
           <div className="border-b border-gray-100 flex gap-6 px-8 pt-4">
             <button 
               onClick={() => setActiveTab('about')}
-              className={`pb-4 font-bold ${activeTab === 'about' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-400 hover:text-gray-600'}`}
+              className={`pb-4 font-bold ${activeTab === 'about' ? 'text-teal-600 border-b-2 border-teal-600' : 'text-gray-400 hover:text-gray-600'}`}
             >
               Overview
             </button>
             <button 
               onClick={() => setActiveTab('members')}
-              className={`pb-4 font-bold flex items-center gap-2 ${activeTab === 'members' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-400 hover:text-gray-600'}`}
+              className={`pb-4 font-bold flex items-center gap-2 ${activeTab === 'members' ? 'text-teal-600 border-b-2 border-teal-600' : 'text-gray-400 hover:text-gray-600'}`}
             >
               Manage Members
               {club.pendingRequests?.length > 0 && (
@@ -154,7 +259,7 @@ const ClubDetails = () => {
                 <div>
                   <div className="flex justify-between items-center mb-4">
                     <h2 className="text-2xl font-black text-gray-900 flex items-center">
-                      <ImageIcon size={24} className="mr-2 text-primary-500" /> Club Gallery ({club.gallery?.length || 0})
+                      <ImageIcon size={24} className="mr-2 text-teal-600" /> Club Gallery ({club.gallery?.length || 0})
                     </h2>
                   </div>
 
@@ -166,12 +271,12 @@ const ClubDetails = () => {
                         placeholder="Paste image URL (e.g. https://...)..."
                         value={galleryUrl}
                         onChange={(e) => setGalleryUrl(e.target.value)}
-                        className="flex-1 px-4 py-2.5 bg-white border border-gray-200 rounded-xl font-medium text-sm text-gray-800 outline-none focus:ring-2 focus:ring-primary-500"
+                        className="flex-1 px-4 py-2.5 bg-white border border-gray-200 rounded-xl font-medium text-sm text-gray-800 outline-none focus:ring-2 focus:ring-teal-500"
                       />
                       <button
                         type="submit"
                         disabled={isAddingPhoto}
-                        className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl text-sm transition-all whitespace-nowrap disabled:opacity-50"
+                        className="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-sm transition-all whitespace-nowrap disabled:opacity-50 cursor-pointer"
                       >
                         {isAddingPhoto ? 'Adding...' : 'Add to Gallery'}
                       </button>
@@ -216,16 +321,91 @@ const ClubDetails = () => {
                   </div>
                 </div>
                 
-                {/* Join/Leave Button Logic */}
+                {/* Join/Leave & Membership Fee Record Logic */}
                 {user && user.role === 'student' && !isLeadership && (
                   <>
-                    {isMember ? (
-                      <button 
-                        onClick={() => leaveClub(club._id)}
-                        className="w-full py-3 bg-red-50 text-red-600 border border-red-200 rounded-xl font-bold hover:bg-red-100 transition-all"
-                      >
-                        Leave Club
-                      </button>
+                    {(isMember || userPayment) ? (
+                      <div className="bg-emerald-50 border border-emerald-200/90 rounded-2xl p-5 shadow-sm space-y-3.5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                              <ShieldCheck size={18} />
+                            </div>
+                            <div>
+                              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 block">
+                                Membership Status
+                              </span>
+                              <h4 className="font-black text-slate-900 text-sm">Official Active Member</h4>
+                            </div>
+                          </div>
+                          <span className="text-xs font-black px-2.5 py-1 bg-emerald-600 text-white rounded-full">
+                            Fee Paid
+                          </span>
+                        </div>
+
+                        {userPayment ? (
+                          <div className="bg-white/95 p-3.5 rounded-xl border border-emerald-200 text-xs space-y-2 shadow-xs">
+                            <div className="flex justify-between items-center">
+                              <span className="text-slate-500 font-medium">Receipt No:</span>
+                              <span className="font-mono font-bold text-slate-900">
+                                {userPayment.receiptNumber || `RCP-${(userPayment._id || '').slice(-6).toUpperCase()}`}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-slate-500 font-medium">Amount Paid:</span>
+                              <span className="font-black text-emerald-700 text-sm">
+                                ₹{Number(userPayment.amount || club.joinFee || 500).toLocaleString('en-IN')}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-slate-500 font-medium">Payment Mode:</span>
+                              <span className="font-semibold text-slate-700">
+                                {userPayment.paymentMethod || 'Razorpay / UPI'}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-slate-500 font-medium">Paid Date:</span>
+                              <span className="text-slate-600">
+                                {new Date(userPayment.createdAt || userPayment.date || Date.now()).toLocaleDateString(undefined, {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric'
+                                })}
+                              </span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="bg-white/90 p-3 rounded-xl border border-emerald-100 text-xs text-slate-600">
+                            <p className="font-semibold text-slate-800">Membership verified & fee settled.</p>
+                            <p className="text-[11px] text-slate-500 mt-0.5">You have full access to club events, matches, and elections.</p>
+                          </div>
+                        )}
+
+                        <div className="pt-1 flex flex-col gap-2">
+                          <button
+                            onClick={() => setSelectedReceipt(userPayment || {
+                              _id: `MEM-${club._id.slice(-6)}`,
+                              receiptNumber: `RCP-${club._id.slice(-6).toUpperCase()}`,
+                              amount: club.joinFee || 500,
+                              paymentMethod: 'Membership Verified',
+                              clubId: club,
+                              userId: user,
+                              createdAt: new Date()
+                            })}
+                            className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs hover:shadow"
+                          >
+                            <Receipt size={14} className="text-teal-400" />
+                            <span>View & Print Official Receipt</span>
+                          </button>
+
+                          <button 
+                            onClick={() => leaveClub(club._id)}
+                            className="w-full py-2 text-slate-500 hover:text-red-600 rounded-xl font-bold text-xs hover:bg-red-50/50 transition-all cursor-pointer text-center"
+                          >
+                            Leave Club
+                          </button>
+                        </div>
+                      </div>
                     ) : isPending ? (
                       <button 
                         disabled
@@ -236,10 +416,25 @@ const ClubDetails = () => {
                     ) : club.isAcceptingMembers ? (
                       <button 
                         onClick={handlePayment}
-                        className="w-full py-3 bg-primary-600 text-white rounded-xl font-bold shadow-soft-purple hover:-translate-y-1 transition-all flex flex-col items-center justify-center"
+                        disabled={isProcessingPayment}
+                        className="w-full py-3.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold shadow-sm hover:-translate-y-0.5 transition-all flex flex-col items-center justify-center cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                       >
-                        <span>Pay ₹{club.joinFee || 500} & Request to Join</span>
-                        <span className="text-xs text-primary-200 mt-0.5 font-medium">Secured by Razorpay</span>
+                        {isProcessingPayment ? (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Loader2 size={18} className="animate-spin" />
+                            <span>Processing Payment...</span>
+                          </div>
+                        ) : (
+                          <>
+                            <span className="text-sm">
+                              {club.joinFee === 0 ? 'Join Club (Free)' : `Pay ₹${club.joinFee || 500} & Join Club`}
+                            </span>
+                            <span className="text-xs text-teal-100 mt-0.5 font-medium flex items-center gap-1">
+                              <ShieldCheck size={12} />
+                              {club.joinFee === 0 ? 'Instant Admission' : 'Secured by Razorpay'}
+                            </span>
+                          </>
+                        )}
                       </button>
                     ) : (
                       <button 
@@ -302,6 +497,93 @@ const ClubDetails = () => {
           )}
         </div>
       </div>
+
+      {/* Razorpay Test Simulation Modal (when keys are mock/unconfigured) */}
+      {mockOrderData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-100 relative"
+          >
+            <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center font-bold">
+                  <CreditCard size={20} />
+                </div>
+                <div>
+                  <h3 className="font-black text-gray-900 text-base">Razorpay Test Simulator</h3>
+                  <p className="text-xs text-gray-500 font-medium">Club Fee Payment Sandbox</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setMockOrderData(null)}
+                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 text-sm font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-4 bg-teal-50/70 rounded-2xl border border-teal-100 mb-4 space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Club:</span>
+                <span className="font-bold text-gray-900">{club.name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Student:</span>
+                <span className="font-bold text-gray-900">{user?.name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Order Ref:</span>
+                <span className="font-mono text-xs text-gray-600">{mockOrderData.id}</span>
+              </div>
+              <div className="flex justify-between pt-2 border-t border-teal-200/50">
+                <span className="font-bold text-gray-700">Total Dues:</span>
+                <span className="font-black text-teal-700 text-base">₹{club.joinFee || 500}</span>
+              </div>
+            </div>
+
+            <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 mb-5 flex items-start gap-2.5 text-xs text-amber-800">
+              <AlertCircle size={16} className="shrink-0 mt-0.5 text-amber-600" />
+              <p>
+                Real Razorpay keys are not yet added to <code className="bg-amber-100 px-1 py-0.5 rounded font-mono font-bold">server/.env</code>. You can simulate this test payment now to verify instant club admission, membership records, and official receipt generation!
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setMockOrderData(null)}
+                className="flex-1 py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-sm transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSimulatePayment}
+                disabled={isProcessingPayment}
+                className="flex-1 py-2.5 px-4 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-sm shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isProcessingPayment ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <CheckCircle2 size={16} />
+                )}
+                <span>Simulate Success</span>
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Official Payment Receipt Modal */}
+      {selectedReceipt && (
+        <PaymentReceiptModal
+          receipt={selectedReceipt}
+          student={user}
+          onClose={() => setSelectedReceipt(null)}
+        />
+      )}
     </motion.div>
   );
 };

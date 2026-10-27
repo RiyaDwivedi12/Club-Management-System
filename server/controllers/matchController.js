@@ -1,14 +1,35 @@
 import Match from '../models/Match.js';
 import User from '../models/User.js';
+import Club from '../models/Club.js';
+import Tournament from '../models/Tournament.js';
+import Notification from '../models/Notification.js';
 import crypto from 'crypto';
 import xlsx from 'xlsx';
+import PDFDocument from 'pdfkit';
+import fs from 'fs';
 
-// @desc    Create a new match
+// @desc    Create a new inter-class match inside a club
 // @route   POST /api/matches
-// @access  Private (Faculty/Admin)
+// @access  Private (Faculty/Admin/President/VicePresident)
 const createMatch = async (req, res) => {
   try {
-    const { tournamentId, teamA, teamB, date, refereeEmail, refereeId } = req.body;
+    const { 
+      tournamentId, 
+      clubId, 
+      sport, 
+      teamA, 
+      teamB, 
+      date, 
+      timeSlot, 
+      duration, 
+      wing, 
+      refereeEmail, 
+      refereeId,
+      coordinatorId,
+      coordinatorName,
+      round,
+      roundName
+    } = req.body;
 
     let referee = null;
     if (refereeId) {
@@ -18,30 +39,108 @@ const createMatch = async (req, res) => {
     }
     
     if (!referee && refereeEmail) {
-      // Create a temporary referee account
-      const tempPassword = crypto.randomBytes(8).toString('hex');
+      // Create a designated referee account
+      const tempPassword = 'referee123';
       referee = await User.create({
-        name: `Referee for ${teamA} vs ${teamB}`,
+        name: `Referee (${refereeEmail.split('@')[0]})`,
+        username: 'ref_' + refereeEmail.split('@')[0] + '_' + Math.floor(100 + Math.random() * 900),
         email: refereeEmail.trim().toLowerCase(),
         password: tempPassword,
         role: 'referee',
+        isReferee: true,
+        roll_no: 'REF' + Math.floor(1000 + Math.random() * 9000),
+        department: 'Sports Board',
+        year: 3,
+        course: 'B.Tech',
+        section: 'A',
         isVerified: true
       });
-      console.log(`Temporary Referee Password for ${refereeEmail}: ${tempPassword}`);
     } else if (!referee) {
-      // Fallback to current authenticated admin/user
       referee = req.user;
     }
 
+    // Lookup coordinator from club if not explicitly provided
+    let finalCoordId = coordinatorId || null;
+    let finalCoordName = coordinatorName || '';
+    let finalSport = sport || 'Sports';
+
+    if (clubId) {
+      const club = await Club.findById(clubId).populate('facultyId', 'name email');
+      if (club) {
+        if (!finalCoordId && club.facultyId) {
+          finalCoordId = club.facultyId._id;
+          finalCoordName = club.facultyId.name;
+        }
+        if (!sport || sport === 'Sports') {
+          finalSport = club.sportType || club.category || 'Sports';
+        }
+      }
+    }
+
     const match = await Match.create({
-      tournamentId,
-      teamA,
-      teamB,
-      refereeId: referee._id,
-      date
+      tournamentId: (tournamentId && tournamentId !== '') ? tournamentId : undefined,
+      clubId: (clubId && clubId !== '') ? clubId : undefined,
+      sport: finalSport,
+      teamA: (teamA || '').trim(),
+      teamB: (teamB || '').trim(),
+      refereeId: referee ? referee._id : null,
+      coordinatorId: finalCoordId,
+      coordinatorName: finalCoordName,
+      date: date ? new Date(date) : new Date(),
+      timeSlot: timeSlot || '10:00 AM - 11:30 AM',
+      duration: duration || 90,
+      wing: wing || 'General',
+      round: round || 1,
+      roundName: roundName || 'Scheduled Match',
+      status: 'scheduled'
     });
 
-    res.status(201).json(match);
+    const populatedMatch = await Match.findById(match._id)
+      .populate('refereeId', 'name email roll_no department')
+      .populate('clubId', 'name category sportType facultyId')
+      .populate('coordinatorId', 'name email');
+
+    // Notify all students and club members about the upcoming clash match
+    try {
+      const students = await User.find({ role: 'student' }).select('_id');
+      const clubName = populatedMatch.clubId?.name || 'Club';
+      const formattedDate = new Date(date || Date.now()).toLocaleDateString();
+      const matchMessage = `⚔️ New Match Scheduled: ${teamA} vs ${teamB} (${finalSport} - ${clubName}) on ${formattedDate} at ${timeSlot || '10:00 AM'}!`;
+      
+      const notifDocs = students.map(st => ({
+        user: st._id,
+        message: matchMessage,
+        type: 'match',
+        link: '/matches'
+      }));
+
+      if (referee && referee._id) {
+        notifDocs.push({
+          user: referee._id,
+          message: `🏆 Match Assignment: You have been designated as Official Referee for ${teamA} vs ${teamB} (${finalSport} - ${clubName})!`,
+          type: 'referee',
+          link: '/referee'
+        });
+      }
+
+      if (notifDocs.length > 0) {
+        await Notification.insertMany(notifDocs);
+      }
+
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('new_match_created', populatedMatch);
+        io.emit('new_notification', {
+          message: matchMessage,
+          type: 'match',
+          link: '/matches'
+        });
+      }
+    } catch (notifErr) {
+      console.error('Match notification error:', notifErr.message);
+    }
+
+    res.status(201).json(populatedMatch);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -52,7 +151,11 @@ const createMatch = async (req, res) => {
 // @access  Public
 const getMatches = async (req, res) => {
   try {
-    const matches = await Match.find({}).populate('refereeId', 'name email');
+    const matches = await Match.find({})
+      .populate('refereeId', 'name email roll_no department')
+      .populate('clubId', 'name category sportType facultyId')
+      .populate('coordinatorId', 'name email')
+      .sort({ date: 1, createdAt: 1 });
     res.json(matches);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -61,19 +164,22 @@ const getMatches = async (req, res) => {
 
 // @desc    Update match score
 // @route   PUT /api/matches/:id/score
-// @access  Private (Referee only)
+// @access  Private (Referee only / Admin)
 const updateScore = async (req, res) => {
   try {
-    const { scoreA, scoreB } = req.body;
+    const { scoreA, scoreB, timer } = req.body;
     const match = await Match.findById(req.params.id);
 
     if (!match) {
       return res.status(404).json({ message: 'Match not found' });
     }
 
-    // Ensure only the assigned referee can update the score
-    if (match.refereeId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Not authorized to update this match' });
+    // Ensure authorized: assigned referee, referee user, or admin
+    const isAssignedRef = match.refereeId && match.refereeId.toString() === req.user._id.toString();
+    const isRefOrAdmin = req.user.role === 'referee' || req.user.isReferee || req.user.role === 'admin';
+
+    if (!isAssignedRef && !isRefOrAdmin) {
+      return res.status(403).json({ message: 'Not authorized to update this match score' });
     }
 
     if (match.status === 'scheduled') {
@@ -81,29 +187,35 @@ const updateScore = async (req, res) => {
     }
 
     if (match.status === 'completed' || match.status === 'cancelled') {
-        return res.status(400).json({ message: 'Cannot update score of completed or cancelled match' });
+      return res.status(400).json({ message: 'Cannot update score of completed or cancelled match' });
     }
 
-    if (scoreA !== undefined) match.scoreA = scoreA;
-    if (scoreB !== undefined) match.scoreB = scoreB;
+    if (scoreA !== undefined) match.scoreA = Math.max(0, scoreA);
+    if (scoreB !== undefined) match.scoreB = Math.max(0, scoreB);
+    if (timer !== undefined) match.timer = timer;
 
     await match.save();
+
+    const populatedMatch = await Match.findById(match._id)
+      .populate('refereeId', 'name email roll_no department')
+      .populate('clubId', 'name category sportType facultyId')
+      .populate('coordinatorId', 'name email');
     
     // Emit a Socket.IO event to update connected clients in real-time
     const io = req.app.get('io');
     if (io) {
-      io.emit('match_score_update', match);
+      io.emit('match_score_update', populatedMatch);
     }
 
-    res.json(match);
+    res.json(populatedMatch);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// @desc    End match
+// @desc    End match & advance tournament (determines 1st, 2nd, 3rd Place)
 // @route   PUT /api/matches/:id/end
-// @access  Private (Referee only)
+// @access  Private (Referee only / Admin)
 const endMatch = async (req, res) => {
   try {
     const { winner, walkover } = req.body;
@@ -113,64 +225,243 @@ const endMatch = async (req, res) => {
       return res.status(404).json({ message: 'Match not found' });
     }
 
-    // Ensure only the assigned referee can end the match
-    if (match.refereeId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Not authorized to end this match' });
+    const isAssignedRef = match.refereeId && match.refereeId.toString() === req.user._id.toString();
+    const isRefOrAdmin = req.user.role === 'referee' || req.user.isReferee || req.user.role === 'admin';
+
+    if (!isAssignedRef && !isRefOrAdmin) {
+      return res.status(403).json({ message: 'Not authorized to conclude this match' });
     }
 
     if (walkover) {
-        match.status = 'walkover';
-        match.winner = winner;
+      match.status = 'walkover';
+      match.winner = winner || match.teamA;
     } else {
-        match.status = 'completed';
-        if (winner) {
-             match.winner = winner;
-        } else if (match.scoreA > match.scoreB) {
-            match.winner = match.teamA;
-        } else if (match.scoreB > match.scoreA) {
-            match.winner = match.teamB;
-        } else {
-            match.winner = 'Draw'; // Auto-advance might break on draw, so referees should force a winner in tournaments
-        }
+      match.status = 'completed';
+      if (winner) {
+        match.winner = winner;
+      } else if (match.scoreA > match.scoreB) {
+        match.winner = match.teamA;
+      } else if (match.scoreB > match.scoreA) {
+        match.winner = match.teamB;
+      } else {
+        match.winner = match.teamA; // Tiebreaker default to Team A in elimination
+      }
     }
+
+    const winnerClass = match.winner;
+    const loserClass = winnerClass === match.teamA ? match.teamB : match.teamA;
+    const winnerId = winnerClass === match.teamA ? match.teamAId : match.teamBId;
+    const loserId = winnerClass === match.teamA ? match.teamBId : match.teamAId;
 
     await match.save();
 
-    // Tournament auto-advance logic
-    if (match.tournamentId && match.winner && match.winner !== 'Draw') {
-      const winnerId = match.winner === match.teamA ? match.teamAId : match.teamBId;
+    // TOURNAMENT KNOCKOUT & PODIUM ADVANCEMENT
+    if (match.tournamentId && match.winner) {
+      const tournament = await Tournament.findById(match.tournamentId);
+
+      // 1. Advance winner to Next Match in bracket tree
       if (match.nextMatchId) {
         const nextMatch = await Match.findById(match.nextMatchId);
         if (nextMatch) {
-          if (nextMatch.teamA === 'TBD') {
-            nextMatch.teamA = match.winner;
+          if (!nextMatch.teamA || nextMatch.teamA === 'TBD') {
+            nextMatch.teamA = winnerClass;
             nextMatch.teamAId = winnerId;
           } else {
-            nextMatch.teamB = match.winner;
+            nextMatch.teamB = winnerClass;
             nextMatch.teamBId = winnerId;
           }
           await nextMatch.save();
         }
-      } else {
-        // This was the final match
-        import('../models/Tournament.js').then(async ({ default: Tournament }) => {
-          const tournament = await Tournament.findById(match.tournamentId);
-          if (tournament) {
-            tournament.status = 'completed';
-            tournament.results.firstPlace = winnerId;
-            tournament.results.secondPlace = match.winner === match.teamA ? match.teamBId : match.teamAId;
-            await tournament.save();
+      }
+
+      // 2. If this was a Semi-Final, send loser to 3rd Place Match!
+      if (match.thirdPlaceMatchId) {
+        const thirdPlaceMatch = await Match.findById(match.thirdPlaceMatchId);
+        if (thirdPlaceMatch) {
+          if (!thirdPlaceMatch.teamA || thirdPlaceMatch.teamA === 'TBD') {
+            thirdPlaceMatch.teamA = loserClass;
+            thirdPlaceMatch.teamAId = loserId;
+          } else {
+            thirdPlaceMatch.teamB = loserClass;
+            thirdPlaceMatch.teamBId = loserId;
           }
+          await thirdPlaceMatch.save();
+        }
+      }
+
+      // 3. If this match is the 3rd Place Match:
+      if (match.isThirdPlaceMatch || match.roundName?.includes('3rd Place')) {
+        if (tournament) {
+          tournament.results.thirdPlace = winnerId;
+          tournament.results.thirdPlaceName = winnerClass;
+          await tournament.save();
+        }
+      }
+
+      // 4. If this match is the Grand Final:
+      const isGrandFinal = (!match.nextMatchId && !match.isThirdPlaceMatch) || match.roundName?.includes('Final') && !match.roundName?.includes('Semi');
+      if (isGrandFinal && tournament) {
+        tournament.results.firstPlace = winnerId;
+        tournament.results.firstPlaceName = winnerClass;
+        tournament.results.secondPlace = loserId;
+        tournament.results.secondPlaceName = loserClass;
+
+        // Check if there's any uncompleted 3rd place match
+        const pendingThird = await Match.findOne({
+          tournamentId: tournament._id,
+          isThirdPlaceMatch: true,
+          status: { $ne: 'completed' }
         });
+        if (!pendingThird) {
+          tournament.status = 'completed';
+        }
+        await tournament.save();
       }
     }
 
+    const populatedMatch = await Match.findById(match._id)
+      .populate('refereeId', 'name email roll_no department')
+      .populate('clubId', 'name category sportType facultyId')
+      .populate('coordinatorId', 'name email');
+
     const io = req.app.get('io');
     if (io) {
-      io.emit('match_status_change', match);
+      io.emit('match_status_change', populatedMatch);
+      if (match.tournamentId) {
+        io.emit('tournament_bracket_updated', { tournamentId: match.tournamentId });
+      }
     }
 
-    res.json(match);
+    res.json(populatedMatch);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Export matches schedule as styled PDF
+// @route   GET /api/matches/export/pdf
+// @access  Public / Private
+const exportMatchesPdf = async (req, res) => {
+  try {
+    const query = {};
+    if (req.query.clubId) query.clubId = req.query.clubId;
+    if (req.query.wing) query.wing = req.query.wing;
+
+    const matches = await Match.find(query)
+      .populate('refereeId', 'name email roll_no')
+      .populate('clubId', 'name sportType')
+      .populate('coordinatorId', 'name email')
+      .sort({ date: 1, timeSlot: 1 });
+
+    const doc = new PDFDocument({ margin: 36, size: 'A4' });
+
+    res.setHeader('Content-Disposition', 'attachment; filename="inter_class_match_fixtures.pdf"');
+    res.setHeader('Content-Type', 'application/pdf');
+    doc.pipe(res);
+
+    // Header styling
+    doc.rect(36, 36, doc.page.width - 72, 70).fill('#0f766e');
+    doc.fillColor('#ffffff').fontSize(18).font('Helvetica-Bold')
+      .text('COLLEGE CAMPUS SPORTS BOARD', 50, 48);
+    doc.fontSize(12).font('Helvetica')
+      .text('Official Inter-Class Tournament & Match Schedule Fixtures', 50, 72);
+    doc.fontSize(9).fillColor('#ccfbf1')
+      .text(`Generated: ${new Date().toLocaleString()} | Total Scheduled Matches: ${matches.length}`, 50, 88);
+
+    doc.moveDown(3);
+    doc.fillColor('#1f2937');
+
+    let y = 125;
+    const drawRow = (cols, isHeader = false) => {
+      const colWidths = [150, 80, 55, 65, 80, 85];
+      let x = 36;
+      doc.fontSize(isHeader ? 9 : 8).font(isHeader ? 'Helvetica-Bold' : 'Helvetica');
+      
+      if (isHeader) {
+        doc.rect(x, y - 4, doc.page.width - 72, 18).fill('#f1f5f9');
+        doc.fillColor('#334155');
+      } else {
+        doc.fillColor('#1e293b');
+        if (Math.floor(y / 20) % 2 === 0) {
+          doc.rect(x, y - 4, doc.page.width - 72, 18).fill('#fafafa');
+          doc.fillColor('#1e293b');
+        }
+      }
+
+      cols.forEach((col, i) => {
+        doc.text(col || '-', x + 4, y, { width: colWidths[i] - 8, lineBreak: false });
+        x += colWidths[i];
+      });
+
+      y += 18;
+      if (y > doc.page.height - 50) {
+        doc.addPage();
+        y = 40;
+      }
+    };
+
+    // Table Header
+    drawRow(['Class Matchup', 'Sport / Club', 'Wing', 'Date', 'Slotted Time', 'Assigned Referee'], true);
+
+    matches.forEach(m => {
+      const matchup = `${m.teamA} vs ${m.teamB}`;
+      const sport = m.sport || m.clubId?.name || 'General';
+      const wing = m.wing || 'General';
+      const matchDate = m.date ? new Date(m.date).toLocaleDateString() : 'TBD';
+      const time = m.timeSlot || '10:00 AM';
+      const ref = m.refereeId ? m.refereeId.name : 'Slotted Official';
+      drawRow([matchup, sport, wing, matchDate, time, ref]);
+    });
+
+    // Footer
+    doc.fontSize(8).fillColor('#64748b').text('Note: All referees must report 15 minutes prior to their allotted time slot at the College Sports Ground.', 36, doc.page.height - 30);
+
+    doc.end();
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Export matches schedule as Excel
+// @route   GET /api/matches/export/excel
+// @access  Public / Private
+const exportMatchesExcel = async (req, res) => {
+  try {
+    const query = {};
+    if (req.query.clubId) query.clubId = req.query.clubId;
+    if (req.query.wing) query.wing = req.query.wing;
+
+    const matches = await Match.find(query)
+      .populate('refereeId', 'name email roll_no')
+      .populate('clubId', 'name sportType')
+      .populate('coordinatorId', 'name email')
+      .sort({ date: 1, timeSlot: 1 });
+
+    const rows = matches.map(m => ({
+      'Match ID': m._id.toString().slice(-6),
+      'Class / Team A': m.teamA,
+      'Class / Team B': m.teamB,
+      'Sport': m.sport || m.clubId?.name || 'Sports',
+      'Wing': m.wing || 'General',
+      'Scheduled Date': m.date ? new Date(m.date).toLocaleDateString() : '',
+      'Slotted Time Window': m.timeSlot || '10:00 AM - 11:30 AM',
+      'Duration (Mins)': m.duration || 90,
+      'Assigned Referee': m.refereeId ? m.refereeId.name : 'Unassigned',
+      'Referee Email': m.refereeId ? m.refereeId.email : '',
+      'Teacher Coordinator': m.coordinatorName || m.coordinatorId?.name || 'Assigned Coordinator',
+      'Status': m.status.toUpperCase(),
+      'Score': `${m.scoreA} - ${m.scoreB}`,
+      'Winner': m.winner || '-'
+    }));
+
+    const wb = xlsx.utils.book_new();
+    const ws = xlsx.utils.json_to_sheet(rows);
+    xlsx.utils.book_append_sheet(wb, ws, 'Match_Schedule');
+
+    const buffer = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    res.setHeader('Content-Disposition', 'attachment; filename="campus_match_fixtures.xlsx"');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buffer);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -252,14 +543,23 @@ const uploadMatches = async (req, res) => {
         let refereeId;
         
         if (row.RefereeEmail) {
-          let referee = await User.findOne({ email: row.RefereeEmail });
+          const cleanEmail = row.RefereeEmail.trim().toLowerCase();
+          let referee = await User.findOne({ email: cleanEmail });
           if (!referee) {
             const tempPassword = crypto.randomBytes(8).toString('hex');
+            const cleanPrefix = cleanEmail.split('@')[0];
             referee = await User.create({
               name: `Referee for ${row.TeamA} vs ${row.TeamB}`,
-              email: row.RefereeEmail,
+              username: 'ref_' + cleanPrefix + '_' + Math.floor(100 + Math.random() * 900),
+              email: cleanEmail,
               password: tempPassword,
               role: 'referee',
+              isReferee: true,
+              roll_no: 'REF' + Math.floor(1000 + Math.random() * 9000),
+              department: 'Sports Board',
+              year: 3,
+              course: 'B.Tech',
+              section: 'A',
               isVerified: true
             });
           }
@@ -270,8 +570,8 @@ const uploadMatches = async (req, res) => {
         }
 
         const match = await Match.create({
-          teamA: row.TeamA,
-          teamB: row.TeamB,
+          teamA: String(row.TeamA).trim(),
+          teamB: String(row.TeamB).trim(),
           date: row.Date ? new Date(row.Date) : new Date(),
           refereeId,
           status: row.Status || 'scheduled',
@@ -281,13 +581,27 @@ const uploadMatches = async (req, res) => {
       }
     }
 
-    // Clean up the uploaded file (optional, but good practice. Assuming fs is available, but let's skip for simplicity or require fs)
+    if (req.file?.path && fs.existsSync(req.file.path)) {
+      try { fs.unlinkSync(req.file.path); } catch (e) { /* ignore cleanup error */ }
+    }
     
     res.status(201).json({ message: `${matches.length} matches uploaded successfully`, matches });
   } catch (error) {
+    if (req.file?.path && fs.existsSync(req.file.path)) {
+      try { fs.unlinkSync(req.file.path); } catch (e) { /* ignore cleanup error */ }
+    }
     res.status(500).json({ message: error.message });
   }
 };
 
-export { createMatch, getMatches, updateScore, endMatch, getLeaderboard, uploadMatches };
+export { 
+  createMatch, 
+  getMatches, 
+  updateScore, 
+  endMatch, 
+  getLeaderboard, 
+  uploadMatches,
+  exportMatchesPdf,
+  exportMatchesExcel
+};
 

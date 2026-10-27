@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import useMatchStore from '../store/matchStore';
 import useAuthStore from '../store/authStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Calendar, Shield, Plus, Filter, Activity, X } from 'lucide-react';
+import { Trophy, Calendar, Shield, Plus, Filter, Activity, X, FileSpreadsheet, FileDown, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -13,6 +13,7 @@ const Matches = () => {
   const [filter, setFilter] = useState('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [tournaments, setTournaments] = useState([]);
+  const [clubs, setClubs] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -20,12 +21,17 @@ const Matches = () => {
     teamB: '',
     refereeEmail: '',
     date: '',
-    tournamentId: ''
+    tournamentId: '',
+    clubId: '',
+    sport: 'Cricket',
+    wing: 'General',
+    timeSlot: '09:00 AM - 10:30 AM'
   });
 
   useEffect(() => {
     fetchMatches();
     axios.get('/api/tournaments').then(res => setTournaments(res.data || [])).catch(console.error);
+    axios.get('/api/clubs').then(res => setClubs(res.data || [])).catch(console.error);
   }, [fetchMatches]);
 
   const handleScheduleSubmit = async (e) => {
@@ -47,12 +53,26 @@ const Matches = () => {
         teamB: formData.teamB.trim(),
         refereeEmail: formData.refereeEmail.trim() || user?.email,
         date: formData.date,
-        tournamentId: formData.tournamentId || undefined
+        tournamentId: formData.tournamentId || undefined,
+        clubId: formData.clubId || undefined,
+        sport: formData.sport,
+        wing: formData.wing,
+        timeSlot: formData.timeSlot
       });
 
       if (success) {
         setShowCreateModal(false);
-        setFormData({ teamA: '', teamB: '', refereeEmail: '', date: '', tournamentId: '' });
+        setFormData({
+          teamA: '',
+          teamB: '',
+          refereeEmail: '',
+          date: '',
+          tournamentId: '',
+          clubId: '',
+          sport: 'Cricket',
+          wing: 'General',
+          timeSlot: '09:00 AM - 10:30 AM'
+        });
         fetchMatches();
       }
     } finally {
@@ -78,13 +98,32 @@ const Matches = () => {
           <p className="text-gray-500 font-medium text-lg">Keep track of ongoing sports events and past results.</p>
         </div>
         
-        <div className="flex items-center space-x-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <a
+            href="/api/matches/export/pdf"
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-2 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 px-4 py-3 rounded-2xl text-xs font-bold shadow-sm transition-all hover:border-gray-300"
+            title="Download PDF Match Fixture"
+          >
+            <FileDown size={16} className="text-rose-500" />
+            <span>PDF Fixture</span>
+          </a>
+          <a
+            href="/api/matches/export/excel"
+            className="flex items-center gap-2 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 px-4 py-3 rounded-2xl text-xs font-bold shadow-sm transition-all hover:border-gray-300"
+            title="Download Excel Schedule"
+          >
+            <FileSpreadsheet size={16} className="text-emerald-600" />
+            <span>Excel Sheet</span>
+          </a>
+
           <div className="flex items-center space-x-2 bg-white p-2 rounded-2xl border border-gray-200 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:border-primary-300 transition-colors">
             <Filter size={18} className="text-primary-500 ml-3" />
             <select 
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className="bg-transparent border-none focus:ring-0 text-sm font-bold text-gray-700 py-3 pl-2 pr-8 cursor-pointer rounded-2xl"
+              className="bg-transparent border-none focus:ring-0 text-sm font-bold text-gray-700 py-2 pl-2 pr-8 cursor-pointer rounded-2xl"
             >
               <option value="all">All Matches</option>
               <option value="scheduled">Scheduled</option>
@@ -96,9 +135,9 @@ const Matches = () => {
           {canCreateMatch && (
             <button 
               onClick={() => setShowCreateModal(true)}
-              className="hidden md:flex items-center space-x-2 bg-primary-600 hover:bg-primary-700 text-white px-6 py-4 rounded-2xl font-black shadow-[0_8px_20px_-8px_rgba(79,70,229,0.5)] transition-all hover:-translate-y-1 hover:shadow-[0_12px_24px_-8px_rgba(79,70,229,0.6)]"
+              className="flex items-center space-x-2 bg-teal-600 hover:bg-teal-700 text-white px-5 py-3.5 rounded-2xl font-black shadow-md shadow-teal-500/20 transition-all hover:-translate-y-0.5 cursor-pointer text-sm"
             >
-              <Plus size={20} />
+              <Plus size={18} />
               <span>Schedule Match</span>
             </button>
           )}
@@ -113,7 +152,7 @@ const Matches = () => {
 
       {isLoading ? (
         <div className="flex justify-center p-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
         </div>
       ) : (
         <motion.div 
@@ -150,10 +189,38 @@ const Matches = () => {
                       </span>
                     )}
                     
-                    <div className="flex items-center text-sm font-bold text-gray-500 bg-gray-50 px-3 py-1.5 rounded-full">
-                      <Calendar size={14} className="mr-2 text-primary-400" />
-                      {format(new Date(match.date), 'MMM d, h:mm a')}
+                    <div className="flex flex-col items-end gap-1">
+                      <div className="flex items-center text-xs font-bold text-gray-500 bg-gray-50 px-3 py-1.5 rounded-full">
+                        <Calendar size={13} className="mr-1.5 text-primary-400" />
+                        {format(new Date(match.date), 'MMM d, yyyy')}
+                      </div>
+                      {match.timeSlot && (
+                        <div className="flex items-center text-[11px] font-bold text-teal-700 bg-teal-50 px-2.5 py-0.5 rounded-full">
+                          <Clock size={11} className="mr-1 text-teal-600" />
+                          {match.timeSlot}
+                        </div>
+                      )}
                     </div>
+                  </div>
+
+                  {/* Sport & Wing Tags */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
+                      {match.sport || 'Sports'}
+                    </span>
+                    {match.wing && (
+                      <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${
+                        match.wing === 'Junior' ? 'bg-sky-100 text-sky-800' :
+                        match.wing === 'Senior' ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-700'
+                      }`}>
+                        {match.wing} Wing
+                      </span>
+                    )}
+                    {match.clubId?.name && (
+                      <span className="text-[10px] font-bold text-gray-400 truncate max-w-[150px]">
+                        {match.clubId.name}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex justify-between items-center my-2 flex-1">
@@ -249,13 +316,55 @@ const Matches = () => {
               </div>
 
               <form onSubmit={handleScheduleSubmit} className="space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-black uppercase text-gray-400 mb-2 tracking-wider">Club</label>
+                    <select
+                      value={formData.clubId}
+                      onChange={(e) => setFormData({ ...formData, clubId: e.target.value })}
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-gray-800 font-bold text-xs focus:outline-none focus:ring-4 focus:ring-primary-500/20"
+                    >
+                      <option value="">Select Club</option>
+                      {clubs.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-black uppercase text-gray-400 mb-2 tracking-wider">Sport</label>
+                    <select
+                      value={formData.sport}
+                      onChange={(e) => setFormData({ ...formData, sport: e.target.value })}
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-gray-800 font-bold text-xs focus:outline-none focus:ring-4 focus:ring-primary-500/20"
+                    >
+                      <option value="Cricket">Cricket</option>
+                      <option value="Football">Football / Soccer</option>
+                      <option value="Volleyball">Volleyball</option>
+                      <option value="Basketball">Basketball</option>
+                      <option value="Badminton">Badminton</option>
+                      <option value="Table Tennis">Table Tennis</option>
+                      <option value="Chess">Chess</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-black uppercase text-gray-400 mb-2 tracking-wider">Wing</label>
+                    <select
+                      value={formData.wing}
+                      onChange={(e) => setFormData({ ...formData, wing: e.target.value })}
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-gray-800 font-bold text-xs focus:outline-none focus:ring-4 focus:ring-primary-500/20"
+                    >
+                      <option value="General">General Wing</option>
+                      <option value="Junior">Junior Wing</option>
+                      <option value="Senior">Senior Wing</option>
+                    </select>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-black uppercase text-gray-400 mb-2 tracking-wider">Team A *</label>
+                    <label className="block text-xs font-black uppercase text-gray-400 mb-2 tracking-wider">Class / Section A *</label>
                     <input
                       type="text"
                       required
-                      placeholder="e.g. CSE-Alpha or Mavericks"
+                      placeholder="e.g. CSE-Alpha, IT-2nd Year"
                       value={formData.teamA}
                       onChange={(e) => setFormData({ ...formData, teamA: e.target.value })}
                       className="w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-gray-800 font-bold focus:outline-none focus:ring-4 focus:ring-primary-500/20 focus:border-primary-500"
@@ -263,11 +372,11 @@ const Matches = () => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-black uppercase text-gray-400 mb-2 tracking-wider">Team B *</label>
+                    <label className="block text-xs font-black uppercase text-gray-400 mb-2 tracking-wider">Class / Section B *</label>
                     <input
                       type="text"
                       required
-                      placeholder="e.g. ECE-Beta or Warriors"
+                      placeholder="e.g. CSE-Beta, MECH-2nd Year"
                       value={formData.teamB}
                       onChange={(e) => setFormData({ ...formData, teamB: e.target.value })}
                       className="w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-gray-800 font-bold focus:outline-none focus:ring-4 focus:ring-primary-500/20 focus:border-primary-500"
@@ -275,15 +384,31 @@ const Matches = () => {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-black uppercase text-gray-400 mb-2 tracking-wider">Date & Time *</label>
-                  <input
-                    type="datetime-local"
-                    required
-                    value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    className="w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-gray-800 font-bold focus:outline-none focus:ring-4 focus:ring-primary-500/20 focus:border-primary-500"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-black uppercase text-gray-400 mb-2 tracking-wider">Match Date *</label>
+                    <input
+                      type="date"
+                      required
+                      value={formData.date}
+                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                      className="w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-gray-800 font-bold focus:outline-none focus:ring-4 focus:ring-primary-500/20 focus:border-primary-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-black uppercase text-gray-400 mb-2 tracking-wider">Slotted Time</label>
+                    <select
+                      value={formData.timeSlot}
+                      onChange={(e) => setFormData({ ...formData, timeSlot: e.target.value })}
+                      className="w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-gray-800 font-bold text-xs focus:outline-none focus:ring-4 focus:ring-primary-500/20"
+                    >
+                      <option value="09:00 AM - 10:30 AM">09:00 AM - 10:30 AM</option>
+                      <option value="10:45 AM - 12:15 PM">10:45 AM - 12:15 PM</option>
+                      <option value="01:30 PM - 03:00 PM">01:30 PM - 03:00 PM</option>
+                      <option value="03:15 PM - 04:45 PM">03:15 PM - 04:45 PM</option>
+                      <option value="05:00 PM - 06:30 PM">05:00 PM - 06:30 PM</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div>
@@ -323,7 +448,7 @@ const Matches = () => {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="px-8 py-3.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-2xl shadow-soft-purple transition-all hover:-translate-y-0.5 disabled:opacity-50"
+                    className="px-8 py-3.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-2xl shadow-sm transition-all hover:-translate-y-0.5 disabled:opacity-50 cursor-pointer"
                   >
                     {isSubmitting ? 'Scheduling...' : 'Schedule Match'}
                   </button>

@@ -68,16 +68,16 @@ const Leaderboard = () => {
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto font-sans">
       {/* Header Banner */}
-      <div className="mb-8 p-8 rounded-[32px] bg-gradient-to-br from-dark-900 via-primary-950 to-dark-900 text-white relative overflow-hidden shadow-2xl border border-slate-800">
+      <div className="mb-8 p-8 md:p-10 rounded-3xl bg-gradient-to-r from-teal-700 via-teal-600 to-emerald-700 text-white relative overflow-hidden shadow-lg">
         <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-500/20 text-primary-400 font-bold text-xs uppercase tracking-wider mb-3">
-              <Trophy size={14} /> Championship League
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-teal-100 font-bold text-xs uppercase tracking-wider mb-3 border border-white/20">
+              <Trophy size={14} className="text-teal-200" /> Championship League
             </div>
             <h1 className="text-3xl md:text-5xl font-black mb-2 tracking-tight">
-              Standings & <span className="text-primary-400">Fixtures</span>
+              Standings & Fixtures
             </h1>
-            <p className="text-slate-400 font-medium text-base md:text-lg max-w-xl">
+            <p className="text-teal-100 font-medium text-sm md:text-base max-w-xl">
               Real-time college tournaments, class vs class match points, and athletic standings.
             </p>
           </div>
@@ -85,7 +85,7 @@ const Leaderboard = () => {
           <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={() => { fetchLeaderboard(); fetchMatches(); toast.success('Data refreshed'); }}
-              className="p-3 bg-white/10 hover:bg-white/20 rounded-2xl text-white transition-all backdrop-blur-md"
+              className="p-3 bg-white/15 hover:bg-white/25 rounded-2xl text-white transition-all backdrop-blur-md cursor-pointer shadow-sm"
               title="Refresh Stats"
             >
               <RefreshCw size={20} className={isLoading ? 'animate-spin' : ''} />
@@ -102,7 +102,7 @@ const Leaderboard = () => {
                 <button 
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isUploading || isLoading}
-                  className="flex items-center gap-2 bg-primary-600 hover:bg-primary-500 text-white px-5 py-3 rounded-2xl font-bold transition-all shadow-lg hover:shadow-primary-500/25 disabled:opacity-50"
+                  className="flex items-center gap-2 bg-white text-teal-700 hover:bg-teal-50 px-5 py-3 rounded-2xl font-bold transition-all shadow-md disabled:opacity-50 cursor-pointer"
                 >
                   <Upload size={18} />
                   {isUploading ? 'Uploading...' : 'Import Schedule (Excel)'}
@@ -111,10 +111,6 @@ const Leaderboard = () => {
             )}
           </div>
         </div>
-
-        {/* Decorative background glows */}
-        <div className="absolute -right-16 -top-16 w-64 h-64 bg-primary-500 opacity-20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute left-1/2 -bottom-24 w-80 h-80 bg-indigo-500 opacity-15 rounded-full blur-3xl pointer-events-none" />
       </div>
 
       {error && (
@@ -128,9 +124,9 @@ const Leaderboard = () => {
         <div className="flex bg-gray-100 p-1.5 rounded-2xl w-full sm:w-auto">
           <button
             onClick={() => setActiveTab('standings')}
-            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
+            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer ${
               activeTab === 'standings'
-                ? 'bg-white text-primary-600 shadow-sm'
+                ? 'bg-teal-600 text-white shadow-sm'
                 : 'text-gray-500 hover:text-gray-900'
             }`}
           >
@@ -138,9 +134,9 @@ const Leaderboard = () => {
           </button>
           <button
             onClick={() => setActiveTab('matches')}
-            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
+            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer ${
               activeTab === 'matches'
-                ? 'bg-white text-primary-600 shadow-sm'
+                ? 'bg-teal-600 text-white shadow-sm'
                 : 'text-gray-500 hover:text-gray-900'
             }`}
           >
@@ -155,7 +151,7 @@ const Leaderboard = () => {
             placeholder="Search team or class..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-11 pr-4 py-2.5 bg-white border border-gray-200 rounded-2xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm transition-all"
+            className="w-full pl-11 pr-4 py-2.5 bg-white border border-gray-200 rounded-2xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 shadow-sm transition-all"
           />
         </div>
       </div>
@@ -163,7 +159,7 @@ const Leaderboard = () => {
       {/* Content Area */}
       {isLoading && !isUploading ? (
         <div className="flex justify-center p-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
         </div>
       ) : activeTab === 'standings' ? (
         /* Standings Table */

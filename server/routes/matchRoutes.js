@@ -1,23 +1,35 @@
 import express from 'express';
-import { createMatch, getMatches, updateScore, endMatch, getLeaderboard, uploadMatches } from '../controllers/matchController.js';
+import { 
+  createMatch, 
+  getMatches, 
+  updateScore, 
+  endMatch, 
+  getLeaderboard, 
+  uploadMatches,
+  exportMatchesPdf,
+  exportMatchesExcel
+} from '../controllers/matchController.js';
 import { protect, authorize } from '../middleware/authMiddleware.js';
+import multer from 'multer';
 
 const router = express.Router();
+const upload = multer({ dest: 'uploads/' });
 
 router.route('/leaderboard')
   .get(getLeaderboard);
 
-import multer from 'multer';
+router.route('/export/pdf')
+  .get(exportMatchesPdf);
 
-// Setup multer for excel upload
-const upload = multer({ dest: 'uploads/' });
+router.route('/export/excel')
+  .get(exportMatchesExcel);
 
 router.route('/')
   .get(getMatches)
-  .post(protect, authorize('admin', 'faculty', 'president'), createMatch);
+  .post(protect, authorize('admin', 'faculty', 'president', 'vice_president'), createMatch);
 
 router.route('/upload')
-  .post(protect, authorize('admin', 'faculty', 'president'), upload.single('file'), uploadMatches);
+  .post(protect, authorize('admin', 'faculty', 'president', 'vice_president'), upload.single('file'), uploadMatches);
 
 router.route('/:id/score')
   .put(protect, authorize('admin', 'referee'), updateScore);

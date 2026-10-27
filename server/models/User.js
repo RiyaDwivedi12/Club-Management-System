@@ -24,29 +24,49 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
     required: [true, 'Please add a password'],
-    minlength: 6,
+    minlength: 4,
     select: false
   },
   role: {
     type: String,
-    enum: ['student', 'president', 'faculty', 'referee', 'admin'],
+    enum: ['student', 'president', 'vice_president', 'faculty', 'referee', 'admin'],
     default: 'student'
   },
   profilePicture: {
     type: String,
     default: 'default.jpg' // In production, this will be a Cloudinary URL
   },
+  isReferee: {
+    type: Boolean,
+    default: false
+  },
   roll_no: {
     type: String,
-    required: function() { return this.role === 'student'; }
+    required: function() { return this.role === 'student' && !this.isReferee; }
+  },
+  course: {
+    type: String, // e.g. B.Tech, BCA, MCA, M.Tech, MBA, B.Sc
+    default: 'B.Tech'
+  },
+  section: {
+    type: String, // e.g. A, B, C, D
+    default: 'A'
   },
   department: {
     type: String,
-    required: function() { return this.role === 'student'; }
+    required: function() { return this.role === 'student' && !this.isReferee; }
   },
   year: {
     type: Number,
-    required: function() { return this.role === 'student'; }
+    required: function() { return this.role === 'student' && !this.isReferee; }
+  },
+  className: {
+    type: String,
+    trim: true
+  },
+  classId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'CollegeClass'
   },
   isVerified: {
     type: Boolean,
@@ -74,7 +94,7 @@ const userSchema = new mongoose.Schema({
 // Encrypt password using bcrypt
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) {
-    next();
+    return next();
   }
 
   const salt = await bcrypt.genSalt(10);

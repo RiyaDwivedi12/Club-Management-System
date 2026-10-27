@@ -1,5 +1,4 @@
-import React, { useRef } from 'react';
-import { Download, Printer, CheckCircle2, ShieldCheck, Trophy, Sparkles, X, Share2 } from 'lucide-react';
+import { Download, Printer, CheckCircle2, ShieldCheck, Trophy, X, Share2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const CertificateTemplate = ({ cert, onClose }) => {

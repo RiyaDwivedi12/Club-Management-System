@@ -8,8 +8,12 @@ const clubSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ['Sports', 'Literary', 'Cultural'],
-    required: true
+    default: 'Sports',
+    trim: true
+  },
+  sportType: {
+    type: String,
+    default: 'General'
   },
   description: {
     type: String,
@@ -21,13 +25,15 @@ const clubSchema = new mongoose.Schema({
   },
   presidentId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+    ref: 'User'
+  },
+  vicePresidentId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
   },
   facultyId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+    ref: 'User'
   },
   gallery: [{
     type: String

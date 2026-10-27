@@ -8,13 +8,23 @@ import {
   createBudgetProposal,
   getAllBudgets,
   reviewBudget,
-  exportTransactionsExcel
+  exportTransactionsExcel,
+  getFeeCampaign,
+  saveFeeCampaign,
+  getClassWiseFinance,
+  recordStudentPayment
 } from '../controllers/financeController.js';
 import { protect, authorize } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 router.use(protect);
+
+// Fee Campaign & Class-wise Breakdown
+router.get('/campaign', getFeeCampaign);
+router.post('/campaign', authorize('admin'), saveFeeCampaign);
+router.get('/class-breakdown', authorize('admin', 'faculty'), getClassWiseFinance);
+router.post('/pay-membership', recordStudentPayment);
 
 // Financial reports & ledger
 router.get('/analytics', authorize('admin', 'faculty'), getFinancialSummary);
@@ -32,3 +42,4 @@ router.get('/budgets', getAllBudgets);
 router.put('/budgets/:id/review', authorize('admin', 'faculty'), reviewBudget);
 
 export default router;
+

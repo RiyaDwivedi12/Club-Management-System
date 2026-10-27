@@ -1,31 +1,88 @@
 import Club from '../models/Club.js';
 import Membership from '../models/Membership.js';
+import User from '../models/User.js';
+import xlsx from 'xlsx';
+import crypto from 'crypto';
+import { createAndSendNotification, notifyClubMembers } from '../utils/notify.js';
 
 // @desc    Create a new club
 // @route   POST /api/clubs
 // @access  Private/Admin
 const createClub = async (req, res) => {
   try {
-    const { name, category, description, logo, presidentId, facultyId, gallery } = req.body;
+    const { name, category, sportType, description, logo, presidentId, vicePresidentId, facultyId, gallery } = req.body;
 
-    const clubExists = await Club.findOne({ name });
+    const clubExists = await Club.findOne({ name: name.trim() });
     if (clubExists) {
       return res.status(400).json({ message: 'Club with this name already exists' });
     }
 
     const club = await Club.create({
-      name,
-      category,
+      name: name.trim(),
+      category: category || 'Sports',
+      sportType: sportType || category || 'General',
       description,
-      logo,
-      presidentId,
-      facultyId,
+      logo: logo || '',
+      presidentId: presidentId || null,
+      vicePresidentId: vicePresidentId || null,
+      facultyId: facultyId || null,
       gallery: gallery || [],
       members: [],
       pendingRequests: []
     });
 
-    res.status(201).json(club);
+    // Update user roles if necessary
+    if (presidentId) {
+      await User.findByIdAndUpdate(presidentId, { role: 'president', isVerified: true });
+    }
+    if (vicePresidentId) {
+      await User.findByIdAndUpdate(vicePresidentId, { role: 'vice_president', isVerified: true });
+    }
+    if (facultyId) {
+      await User.findByIdAndUpdate(facultyId, { role: 'faculty', isVerified: true });
+    }
+
+    const populatedClub = await Club.findById(club._id)
+      .populate('presidentId', 'name email profilePicture')
+      .populate('vicePresidentId', 'name email profilePicture')
+      .populate('facultyId', 'name email profilePicture');
+
+    res.status(201).json(populatedClub);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Update an existing club
+// @route   PUT /api/clubs/:id
+// @access  Private/Admin
+const updateClub = async (req, res) => {
+  try {
+    const { name, category, sportType, description, logo, presidentId, vicePresidentId, facultyId } = req.body;
+    const club = await Club.findById(req.params.id);
+    if (!club) return res.status(404).json({ message: 'Club not found' });
+
+    if (name) club.name = name.trim();
+    if (category) club.category = category;
+    if (sportType) club.sportType = sportType;
+    if (description) club.description = description;
+    if (logo !== undefined) club.logo = logo;
+    if (presidentId !== undefined) club.presidentId = presidentId || null;
+    if (vicePresidentId !== undefined) club.vicePresidentId = vicePresidentId || null;
+    if (facultyId !== undefined) club.facultyId = facultyId || null;
+
+    await club.save();
+
+    if (presidentId) await User.findByIdAndUpdate(presidentId, { role: 'president', isVerified: true });
+    if (vicePresidentId) await User.findByIdAndUpdate(vicePresidentId, { role: 'vice_president', isVerified: true });
+    if (facultyId) await User.findByIdAndUpdate(facultyId, { role: 'faculty', isVerified: true });
+
+    const updated = await Club.findById(club._id)
+      .populate('presidentId', 'name email profilePicture')
+      .populate('vicePresidentId', 'name email profilePicture')
+      .populate('facultyId', 'name email profilePicture');
+
+    res.json(updated);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -37,8 +94,9 @@ const createClub = async (req, res) => {
 const getClubs = async (req, res) => {
   try {
     const clubs = await Club.find({})
-      .populate('presidentId', 'name email')
-      .populate('facultyId', 'name email');
+      .populate('presidentId', 'name email profilePicture')
+      .populate('vicePresidentId', 'name email profilePicture')
+      .populate('facultyId', 'name email profilePicture');
     res.json(clubs);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -91,6 +149,17 @@ const requestJoinClub = async (req, res) => {
       { status: 'Pending' },
       { upsert: true, new: true }
     );
+
+    // Notify club president about the join request
+    const io = req.app.get('io');
+    if (club.presidentId) {
+      createAndSendNotification(io, {
+        userId: club.presidentId,
+        message: `📋 New join request for ${club.name} from ${req.user.name || 'a student'}.`,
+        type: 'club_request',
+        link: `/clubs/${club._id}`
+      }).catch(console.error);
+    }
 
     res.json({ message: 'Join request sent successfully' });
   } catch (error) {
@@ -183,18 +252,46 @@ const approveMember = async (req, res) => {
     }
 
     await club.save();
+
+    // Notify the student about the decision
+    const io = req.app.get('io');
+    if (action === 'approve') {
+      createAndSendNotification(io, {
+        userId,
+        message: `🎉 Great news! Your request to join ${club.name} has been approved. Welcome to the club!`,
+        type: 'club_approval',
+        link: `/clubs/${club._id}`
+      }).catch(console.error);
+    } else {
+      createAndSendNotification(io, {
+        userId,
+        message: `ℹ️ Your membership request for ${club.name} was not accepted at this time.`,
+        type: 'club_update',
+        link: `/clubs`
+      }).catch(console.error);
+    }
+
     res.json({ message: `Request ${action}d successfully` });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// @desc    Get clubs for a president
+// @desc    Get clubs for a president / vice president / admin
 // @route   GET /api/clubs/president
-// @access  Private/President
+// @access  Private/President/VicePresident/Admin
 const getPresidentClubs = async (req, res) => {
   try {
-    const clubs = await Club.find({ presidentId: req.user._id })
+    let query = { presidentId: req.user._id };
+    if (req.user.role === 'admin') {
+      query = {}; // Admin can inspect all clubs
+    } else if (req.user.role === 'vice_president') {
+      query = { $or: [{ vicePresidentId: req.user._id }, { presidentId: req.user._id }] };
+    }
+    const clubs = await Club.find(query)
+      .populate('presidentId', 'name email profilePicture')
+      .populate('vicePresidentId', 'name email profilePicture')
+      .populate('facultyId', 'name email profilePicture')
       .populate('members', 'name email profilePicture roll_no department')
       .populate('pendingRequests', 'name email profilePicture roll_no department');
     res.json(clubs);
@@ -203,13 +300,16 @@ const getPresidentClubs = async (req, res) => {
   }
 };
 
-// @desc    Get clubs for a faculty coordinator
+// @desc    Get clubs for a faculty coordinator / admin
 // @route   GET /api/clubs/coordinator
-// @access  Private/Faculty
+// @access  Private/Faculty/Admin
 const getCoordinatorClubs = async (req, res) => {
   try {
-    const clubs = await Club.find({ facultyId: req.user._id })
-      .populate('presidentId', 'name email')
+    const query = req.user.role === 'admin' ? {} : { facultyId: req.user._id };
+    const clubs = await Club.find(query)
+      .populate('presidentId', 'name email profilePicture')
+      .populate('vicePresidentId', 'name email profilePicture')
+      .populate('facultyId', 'name email profilePicture')
       .populate('members', 'name email profilePicture roll_no department')
       .populate('pendingRequests', 'name email profilePicture roll_no department');
     res.json(clubs);
@@ -271,8 +371,185 @@ const addGalleryPhoto = async (req, res) => {
   }
 };
 
+// @desc    Upload clubs from Excel / CSV
+// @route   POST /api/clubs/upload
+// @access  Private (Admin)
+const uploadClubsExcel = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Please upload an Excel or CSV file' });
+    }
+
+    const workbook = req.file.buffer 
+      ? xlsx.read(req.file.buffer, { type: 'buffer' })
+      : xlsx.readFile(req.file.path);
+
+    const sheetName = workbook.SheetNames[0];
+    const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+    if (!data || data.length === 0) {
+      return res.status(400).json({ message: 'The uploaded spreadsheet is empty' });
+    }
+
+    const helperFindOrCreate = async (name, email, role, defaultPwd) => {
+      if (!email && !name) return null;
+      const cleanEmail = email ? email.trim().toLowerCase() : `${name.trim().toLowerCase().replace(/\s+/g, '')}@campus.edu`;
+      let user = await User.findOne({ email: cleanEmail });
+      if (!user) {
+        user = await User.create({
+          name: name || (role === 'faculty' ? 'Teacher Coordinator' : role === 'president' ? 'Club President' : 'Vice President'),
+          username: cleanEmail.split('@')[0] + '_' + Math.floor(100 + Math.random() * 900),
+          email: cleanEmail,
+          password: defaultPwd || 'admin123',
+          role: role,
+          isVerified: true
+        });
+      } else {
+        user.role = role;
+        user.isVerified = true;
+        await user.save();
+      }
+      return user;
+    };
+
+    const processedClubs = [];
+
+    for (const row of data) {
+      const clubName = row['Club Name'] || row['Club'] || row['Name'];
+      if (!clubName) continue;
+
+      const category = row['Category'] || 'Sports';
+      const sportType = row['Sport'] || row['Sport Type'] || category || 'General';
+      const description = row['Description'] || `Official ${clubName} at campus organizing inter-class competitions and tournaments.`;
+
+      // Coordinator
+      const coordName = row['Teacher Coordinator'] || row['Coordinator Name'] || row['Faculty Advisor'] || row['Teacher'];
+      const coordEmail = row['Teacher Coordinator Email'] || row['Coordinator Email'] || row['Faculty Email'];
+      const coordinator = await helperFindOrCreate(coordName, coordEmail, 'faculty', 'faculty123');
+
+      // President
+      const presName = row['President Name'] || row['President'];
+      const presEmail = row['President Email'];
+      const president = await helperFindOrCreate(presName, presEmail, 'president', 'president123');
+
+      // Vice President
+      const vpName = row['Vice President Name'] || row['Vice President'] || row['VP Name'];
+      const vpEmail = row['Vice President Email'] || row['VP Email'];
+      const vicePresident = await helperFindOrCreate(vpName, vpEmail, 'vice_president', 'vp123');
+
+      let club = await Club.findOne({ name: clubName.trim() });
+      if (!club) {
+        club = await Club.create({
+          name: clubName.trim(),
+          category,
+          sportType,
+          description,
+          presidentId: president ? president._id : req.user._id,
+          vicePresidentId: vicePresident ? vicePresident._id : null,
+          facultyId: coordinator ? coordinator._id : req.user._id,
+          members: [],
+          pendingRequests: []
+        });
+      } else {
+        club.category = category;
+        club.sportType = sportType;
+        club.description = description;
+        if (president) club.presidentId = president._id;
+        if (vicePresident) club.vicePresidentId = vicePresident._id;
+        if (coordinator) club.facultyId = coordinator._id;
+        await club.save();
+      }
+
+      processedClubs.push(club);
+    }
+
+    const allClubs = await Club.find({})
+      .populate('presidentId', 'name email profilePicture')
+      .populate('vicePresidentId', 'name email profilePicture')
+      .populate('facultyId', 'name email profilePicture');
+
+    res.status(200).json({
+      message: `Successfully processed ${processedClubs.length} clubs from spreadsheet`,
+      count: processedClubs.length,
+      clubs: allClubs
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Download clubs template Excel
+// @route   GET /api/clubs/template
+// @access  Public
+const downloadClubTemplate = async (req, res) => {
+  try {
+    const templateData = [
+      {
+        'Club Name': 'Cricket Club',
+        'Category': 'Sports',
+        'Sport': 'Cricket',
+        'Teacher Coordinator': 'Dr. Sharma',
+        'Teacher Coordinator Email': 'sharma.cricket@campus.edu',
+        'President Name': 'Rahul Verma',
+        'President Email': 'rahul.cricket@campus.edu',
+        'Vice President Name': 'Priya Singh',
+        'Vice President Email': 'priya.cricket@campus.edu',
+        'Description': 'Official Cricket Club organizing inter-class T20 & knockout tournaments.'
+      },
+      {
+        'Club Name': 'Soccer Club',
+        'Category': 'Sports',
+        'Sport': 'Soccer',
+        'Teacher Coordinator': 'Prof. Alex Miller',
+        'Teacher Coordinator Email': 'alex.soccer@campus.edu',
+        'President Name': 'Aryan Kumar',
+        'President Email': 'aryan.soccer@campus.edu',
+        'Vice President Name': 'Sneha Patel',
+        'Vice President Email': 'sneha.soccer@campus.edu',
+        'Description': 'Campus Football / Soccer Club managing league fixtures across college wings.'
+      },
+      {
+        'Club Name': 'Basketball Club',
+        'Category': 'Sports',
+        'Sport': 'Basketball',
+        'Teacher Coordinator': 'Dr. Mehta',
+        'Teacher Coordinator Email': 'mehta.bb@campus.edu',
+        'President Name': 'Rohit Das',
+        'President Email': 'rohit.bb@campus.edu',
+        'Vice President Name': 'Ananya Roy',
+        'Vice President Email': 'ananya.bb@campus.edu',
+        'Description': 'Basketball Club hosting full-court and 3x3 inter-class championships.'
+      },
+      {
+        'Club Name': 'Volleyball Club',
+        'Category': 'Sports',
+        'Sport': 'Volleyball',
+        'Teacher Coordinator': 'Dr. Vikram Joshi',
+        'Teacher Coordinator Email': 'vikram.vb@campus.edu',
+        'President Name': 'Aman Gupta',
+        'President Email': 'aman.vb@campus.edu',
+        'Vice President Name': 'Kavya Nair',
+        'Vice President Email': 'kavya.vb@campus.edu',
+        'Description': 'Volleyball Club organizing smash tournaments between department classes.'
+      }
+    ];
+
+    const wb = xlsx.utils.book_new();
+    const ws = xlsx.utils.json_to_sheet(templateData);
+    xlsx.utils.book_append_sheet(wb, ws, 'Clubs_Directory');
+
+    const buffer = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    res.setHeader('Content-Disposition', 'attachment; filename="clubs_import_template.xlsx"');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buffer);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export { 
   createClub, 
+  updateClub,
   getClubs, 
   getClubById, 
   requestJoinClub, 
@@ -281,5 +558,7 @@ export {
   getPresidentClubs, 
   getCoordinatorClubs, 
   updateRecruitmentPhase,
-  addGalleryPhoto 
+  addGalleryPhoto,
+  uploadClubsExcel,
+  downloadClubTemplate
 };

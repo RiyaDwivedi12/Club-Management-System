@@ -13,10 +13,38 @@ const matchSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  clubId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Club'
+  },
+  sport: {
+    type: String,
+    default: 'Sports'
+  },
+  timeSlot: {
+    type: String,
+    default: '10:00 AM - 11:30 AM'
+  },
+  duration: {
+    type: Number,
+    default: 90
+  },
+  wing: {
+    type: String,
+    enum: ['Junior', 'Senior', 'General'],
+    default: 'General'
+  },
   refereeId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+    ref: 'User'
+  },
+  coordinatorId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  coordinatorName: {
+    type: String,
+    default: ''
   },
   date: {
     type: Date,
@@ -47,6 +75,14 @@ const matchSchema = new mongoose.Schema({
     type: Number,
     default: 1
   },
+  roundName: {
+    type: String,
+    default: 'Match'
+  },
+  isThirdPlaceMatch: {
+    type: Boolean,
+    default: false
+  },
   teamAId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Team'
@@ -56,6 +92,10 @@ const matchSchema = new mongoose.Schema({
     ref: 'Team'
   },
   nextMatchId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Match'
+  },
+  thirdPlaceMatchId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Match'
   }

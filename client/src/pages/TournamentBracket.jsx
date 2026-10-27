@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, ArrowLeft, Calendar, Shield, Sparkles, CheckCircle2, AlertCircle, RefreshCw, Award, Bot, ChevronRight } from 'lucide-react';
+import { Trophy, ArrowLeft, Calendar, Shield, CheckCircle2, AlertCircle, RefreshCw, Award, ChevronRight, FileDown, Medal, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import useAuthStore from '../store/authStore';
 
@@ -117,6 +116,16 @@ const TournamentBracket = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            <a
+              href={`/api/tournaments/${id}/export/pdf`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-3 rounded-2xl font-bold transition-all backdrop-blur-md text-xs shadow-sm cursor-pointer"
+              title="Download PDF Fixture Schedule"
+            >
+              <FileDown size={16} className="text-rose-400" />
+              <span>Export PDF Bracket</span>
+            </a>
             <button
               onClick={fetchBracketData}
               className="p-3 bg-white/10 hover:bg-white/20 rounded-2xl text-white transition-all backdrop-blur-md"
@@ -130,8 +139,8 @@ const TournamentBracket = () => {
                 disabled={aiLoading}
                 className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white px-5 py-3 rounded-2xl font-bold transition-all shadow-lg hover:shadow-purple-500/25 disabled:opacity-50"
               >
-                <Bot size={18} />
-                {aiLoading ? 'Analyzing...' : 'AI Bracket Advisor'}
+                <Trophy size={18} />
+                {aiLoading ? 'Analyzing...' : 'Bracket Insights'}
               </button>
             )}
           </div>
@@ -141,29 +150,44 @@ const TournamentBracket = () => {
         <div className="absolute -right-20 -top-20 w-80 h-80 bg-primary-600 opacity-20 rounded-full blur-3xl pointer-events-none" />
       </div>
 
-      {/* Champion Banner (If decided) */}
-      {champion && (
+      {/* Champion & Podium Standings (1st, 2nd, 3rd) */}
+      {(champion || tournament.results?.firstPlaceName) && (
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="mb-8 p-6 rounded-3xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 text-dark-900 shadow-xl flex items-center justify-between font-black"
+          className="mb-8 p-6 rounded-3xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 text-dark-900 shadow-xl font-black"
         >
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-white/30 backdrop-blur-md flex items-center justify-center text-3xl shadow-inner">
-              🏆
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-white/30 backdrop-blur-md flex items-center justify-center text-3xl shadow-inner">
+                🏆
+              </div>
+              <div>
+                <div className="text-xs uppercase tracking-widest text-amber-950 font-black">Tournament Champion (1st Place)</div>
+                <div className="text-3xl tracking-tight text-white drop-shadow-md">{tournament.results?.firstPlaceName || champion}</div>
+              </div>
             </div>
-            <div>
-              <div className="text-xs uppercase tracking-widest text-amber-950 font-black">Tournament Champion</div>
-              <div className="text-3xl tracking-tight text-white drop-shadow-md">{champion}</div>
+            
+            <div className="flex flex-wrap items-center gap-2">
+              {tournament.results?.secondPlaceName && (
+                <div className="px-3.5 py-1.5 bg-white/30 backdrop-blur-md rounded-2xl text-white text-xs font-bold flex items-center gap-1.5">
+                  <span>🥈 2nd:</span> <span>{tournament.results.secondPlaceName}</span>
+                </div>
+              )}
+              {tournament.results?.thirdPlaceName && (
+                <div className="px-3.5 py-1.5 bg-white/30 backdrop-blur-md rounded-2xl text-white text-xs font-bold flex items-center gap-1.5">
+                  <span>🥉 3rd:</span> <span>{tournament.results.thirdPlaceName}</span>
+                </div>
+              )}
+              <div className="px-3.5 py-1.5 bg-amber-950/20 backdrop-blur-md rounded-2xl text-white text-xs font-bold flex items-center gap-1">
+                <Award size={14} /> Official Podium
+              </div>
             </div>
-          </div>
-          <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-white/30 backdrop-blur-md rounded-2xl text-white text-sm font-bold">
-            <Sparkles size={18} /> Undefeated Victor
           </div>
         </motion.div>
       )}
 
-      {/* AI Recommendations Panel */}
+      {/* Recommendations Panel */}
       <AnimatePresence>
         {aiRecommendations && (
           <motion.div
@@ -174,8 +198,8 @@ const TournamentBracket = () => {
           >
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2 font-black text-purple-900 text-lg">
-                <Bot size={22} className="text-purple-600" />
-                AI Intelligent Matchup Advisor
+                <Shield size={22} className="text-purple-600" />
+                Matchup Recommendations
               </div>
               <button 
                 onClick={() => setAiRecommendations(null)}
@@ -242,7 +266,14 @@ const TournamentBracket = () => {
                       >
                         {/* Status bar */}
                         <div className="flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">
-                          <span>Match #{idx + 1}</span>
+                          <div className="flex items-center gap-1.5">
+                            <span>Match #{idx + 1}</span>
+                            {m.isThirdPlaceMatch && (
+                              <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-black text-[9px]">
+                                🥉 3rd Place Playoff
+                              </span>
+                            )}
+                          </div>
                           {isLive && (
                             <span className="flex items-center text-red-600 font-black animate-pulse">
                               <span className="w-1.5 h-1.5 rounded-full bg-red-600 mr-1"></span> LIVE
@@ -288,8 +319,24 @@ const TournamentBracket = () => {
 
                         {/* Bye auto-advance notice */}
                         {isBye && (
-                          <div className="mt-2 text-[10px] text-primary-600 font-bold text-center">
+                          <div className="mt-2 text-[10px] text-teal-600 font-bold text-center">
                             Auto-advanced via BYE
+                          </div>
+                        )}
+
+                        {/* Slotted Time & Referee info */}
+                        {(m.timeSlot || m.refereeId) && (
+                          <div className="mt-2.5 pt-2 border-t border-gray-100 flex items-center justify-between text-[10px] font-bold text-gray-400">
+                            {m.timeSlot && (
+                              <span className="flex items-center text-slate-500">
+                                <Clock size={10} className="mr-1 text-teal-600" /> {m.timeSlot}
+                              </span>
+                            )}
+                            {m.refereeId && (
+                              <span className="truncate max-w-[120px] text-gray-600">
+                                Ref: {m.refereeId.name || 'Assigned'}
+                              </span>
+                            )}
                           </div>
                         )}
                       </motion.div>

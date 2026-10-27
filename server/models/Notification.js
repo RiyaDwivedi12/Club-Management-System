@@ -12,7 +12,6 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['election', 'club_approval', 'club_request', 'match_update', 'general'],
     default: 'general'
   },
   link: {
