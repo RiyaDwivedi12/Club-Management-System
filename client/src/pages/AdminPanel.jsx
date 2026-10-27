@@ -1008,7 +1008,7 @@ const AdminPanel = () => {
 
               {showAdminMenu && (
                 <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowAdminMenu(false)} />
+                  <div className="fixed inset-0 z-40" onClick={() => setShowAdminMenu(false)}></div>
                   <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 z-50 text-xs animate-in fade-in slide-in-from-top-2 duration-150">
                     <div className="p-3 border-b border-slate-100 flex items-center gap-3">
                       {user?.profilePicture ? (
@@ -2041,7 +2041,7 @@ const AdminPanel = () => {
                             Candidate 1 (Profile 1)
                           </span>
                         </div>
-                        <div>
+
                         {/* Student Roll Number & Name Inputs */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <div>
