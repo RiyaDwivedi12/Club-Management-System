@@ -27,12 +27,7 @@ const FEATURES = [
     text: 'Publish events for approval, issue digital event passes and check attendees in with a QR scan.',
     tint: 'bg-indigo-50 text-indigo-600',
   },
-  {
-    icon: Trophy,
-    title: 'Tournaments & Brackets',
-    text: 'Generate knockout brackets from team rosters, track live scores and crown champions automatically.',
-    tint: 'bg-amber-50 text-amber-600',
-  },
+
   {
     icon: Vote,
     title: 'Club Elections',
@@ -67,7 +62,7 @@ const STEPS = [
   {
     icon: Sparkles,
     title: 'Take part',
-    text: 'Attend events, compete in tournaments, vote in elections and collect your certificates.',
+    text: 'Attend events, join clubs, vote in elections and collect your certificates.',
   },
 ];
 
@@ -184,7 +179,7 @@ const Landing = () => {
     { label: 'Active Clubs', value: stats.clubs, icon: Building2 },
     { label: 'Club Memberships', value: stats.members, icon: Users },
     { label: 'Campus Events', value: stats.events, icon: Calendar },
-    { label: 'Tournaments', value: stats.tournaments, icon: Trophy },
+    { label: 'Student Engagement', value: '100%', icon: Award },
   ];
   const statsUnavailable = !statsLoading && statItems.every((s) => s.value === null);
 
@@ -287,7 +282,7 @@ const Landing = () => {
                 <CampusIllustration />
               </div>
               <FloatingCard icon={Vote} title="Elections" text="Secret ballot voting" className="top-0 left-0 sm:-left-2" delay="-1s" />
-              <FloatingCard icon={Trophy} title="Tournaments" text="Live brackets" className="top-1/3 right-0 sm:-right-2" delay="-3s" />
+              <FloatingCard icon={Wallet} title="Finance" text="Budgets & receipts" className="top-1/3 right-0 sm:-right-2" delay="-3s" />
               <FloatingCard icon={QrCode} title="Events" text="QR attendance" className="bottom-0 left-4 sm:left-10" delay="-4.5s" />
               <FloatingCard icon={ShieldCheck} title="Certificates" text="Hash verified" className="hidden sm:flex -bottom-2 right-8" delay="-2s" />
             </div>
