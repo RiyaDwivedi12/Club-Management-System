@@ -1135,7 +1135,7 @@ const ClassFeeManagementView = ({ clubs = [] }) => {
       {/* ── SINGLE STUDENT RECORD OFFLINE PAYMENT MODAL ───────────────────────── */}
       {offlinePaymentStudent && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">
@@ -1293,7 +1293,7 @@ const ClassFeeManagementView = ({ clubs = [] }) => {
       {/* ── BATCH OFFLINE PAYMENT MODAL ─────────────────────────────────────── */}
       {showBatchModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">
@@ -1559,7 +1559,7 @@ const ClassFeeManagementView = ({ clubs = [] }) => {
       {/* ── CREATE DEPARTMENT MODAL ─────────────────────────────────────────── */}
       {showAddDeptModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
               <div>
                 <h3 className="text-lg font-black text-slate-900">Add Academic Department</h3>
@@ -1637,7 +1637,7 @@ const ClassFeeManagementView = ({ clubs = [] }) => {
       {/* ── CREATE CLASS CARD MODAL ─────────────────────────────────────────── */}
       {showAddClassModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
               <div>
                 <h3 className="text-lg font-black text-slate-900">Create New Class Card</h3>
@@ -1704,7 +1704,7 @@ const ClassFeeManagementView = ({ clubs = [] }) => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
                     Year (1-4) *

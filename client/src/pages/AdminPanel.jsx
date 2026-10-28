@@ -8,7 +8,7 @@ import {
   Lightbulb, X, Share2, ExternalLink, Activity, CheckSquare, Gamepad2,
   CheckCircle2, Music, Palette, BookOpen, Laptop, Flame,
   LogOut, Lock, Key, User, UserCheck, ShieldCheck, Save, RefreshCw, AlertTriangle, Eye, EyeOff, Timer,
-  Crown, Trash2, Swords, Check, Camera, Upload
+  Crown, Trash2, Swords, Check, Camera, Upload, Menu
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useAuthStore from '../store/authStore';
@@ -271,6 +271,8 @@ const AdminPanel = () => {
 
   // Header Admin Menu State
   const [showAdminMenu, setShowAdminMenu] = useState(false);
+  // Mobile/tablet sidebar drawer state (sidebar is always visible on lg+)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Faculty Advisor in-between update state
   const [editingClubFaculty, setEditingClubFaculty] = useState(null); // clubId
@@ -353,6 +355,7 @@ const AdminPanel = () => {
   }, [searchParams]);
 
   const switchTab = (tabName, subTab = null) => {
+    setIsSidebarOpen(false);
     if (tabName === 'admin') {
       setActiveTab('settings');
       setSettingsSubTab('roles');
@@ -792,12 +795,17 @@ const AdminPanel = () => {
 
   return (
     <div className="min-h-screen bg-[#F4F6F9] flex text-slate-800 font-sans antialiased">
+      {/* Mobile sidebar backdrop */}
+      {isSidebarOpen && (
+        <div className="fixed inset-0 bg-black/40 z-[35] lg:hidden" onClick={() => setIsSidebarOpen(false)} />
+      )}
+
       {/* 1. DARK NAVY SIDEBAR */}
-      <aside className="w-64 bg-[#0B132B] text-slate-300 min-h-screen flex flex-col justify-between shrink-0 fixed left-0 top-0 bottom-0 z-40 border-r border-slate-800/60 overflow-y-auto">
+      <aside className={`w-64 bg-[#0B132B] text-slate-300 min-h-screen flex flex-col justify-between shrink-0 fixed left-0 top-0 bottom-0 z-40 border-r border-slate-800/60 overflow-y-auto transition-transform duration-200 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
         <div className="p-5">
           {/* Brand Header */}
           <div className="flex items-center gap-3 mb-6 px-2">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
+            <div className="w-10 h-10 rounded-xl bg-teal-600 flex items-center justify-center text-white shadow-lg shadow-teal-500/30">
               <GraduationCap size={22} />
             </div>
             <div>
@@ -875,11 +883,20 @@ const AdminPanel = () => {
       </aside>
 
       {/* 2. MAIN VIEWPORT (LEFT PADDED TO FIT FIXED SIDEBAR) */}
-      <div className="flex-1 ml-64 flex flex-col min-w-0">
+      <div className="flex-1 ml-0 lg:ml-64 flex flex-col min-w-0">
         {/* TOP BAR */}
-        <header className="bg-white border-b border-slate-100 h-16 px-8 flex items-center justify-between sticky top-0 z-30">
+        <header className="bg-white border-b border-slate-100 h-16 px-4 md:px-8 flex items-center justify-between gap-2 sticky top-0 z-30">
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+          {/* Mobile sidebar toggle */}
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="lg:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+            aria-label="Open navigation menu"
+          >
+            <Menu size={20} />
+          </button>
           {/* Global Search Bar */}
-          <div className="flex items-center gap-2.5 bg-[#F8FAFC] border border-slate-200/80 rounded-xl px-3.5 py-2 w-96 text-xs text-slate-400 focus-within:border-blue-500 focus-within:bg-white transition-all">
+          <div className="flex items-center gap-2 sm:gap-2.5 bg-[#F8FAFC] border border-slate-200/80 rounded-xl px-2.5 sm:px-3.5 py-2 flex-1 min-w-0 md:flex-none md:w-72 lg:w-96 text-xs text-slate-400 focus-within:border-blue-500 focus-within:bg-white transition-all">
             <Search size={15} className="text-slate-400 shrink-0" />
             <input
               id="global-search-input"
@@ -887,21 +904,22 @@ const AdminPanel = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search users, clubs, events, etc..."
-              className="bg-transparent text-slate-800 font-medium placeholder-slate-400 focus:outline-none flex-1 text-xs"
+              className="bg-transparent text-slate-800 font-medium placeholder-slate-400 focus:outline-none flex-1 min-w-0 text-xs"
             />
-            <span className="text-[10px] font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-500 shadow-2xs">
+            <span className="hidden sm:inline text-[10px] font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-500 shadow-2xs">
               Ctrl + K
             </span>
           </div>
+          </div>
 
           {/* Right Header Controls */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             <Link 
               to="/clubs"
-              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition shadow-2xs"
+              className="flex items-center gap-1.5 px-2 sm:px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition shadow-2xs"
             >
               <GraduationCap size={15} className="text-teal-600" />
-              <span>Student View</span>
+              <span className="hidden sm:inline">Student View</span>
             </Link>
             {/* Notification Bell */}
             <div className="relative">
@@ -920,7 +938,7 @@ const AdminPanel = () => {
 
               {/* Notification Popover */}
               {showNotifications && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 p-4 z-50 text-xs">
+                <div className="fixed left-4 right-4 top-16 sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:w-80 mt-2 bg-white rounded-2xl shadow-xl border border-slate-100 p-4 z-50 text-xs">
                   <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
                     <span className="font-bold text-slate-900">Notifications</span>
                     {events.filter(e => e.approvalStatus === 'pending').length > 0 ? (
@@ -998,7 +1016,7 @@ const AdminPanel = () => {
                     e.target.src = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80";
                   }}
                 />
-                <div className="text-left">
+                <div className="text-left hidden sm:block">
                   <p className="text-xs font-black text-slate-900 leading-tight">{user?.name || 'Admin User'}</p>
                   <p className="text-[11px] text-slate-400 font-medium leading-none mt-0.5 flex items-center gap-1">
                     Administrator <ChevronDown size={11} className={`transition-transform ${showAdminMenu ? 'rotate-180' : ''}`} />
@@ -1090,7 +1108,7 @@ const AdminPanel = () => {
         </header>
 
         {/* 3. DYNAMIC CONTENT WORKSPACE */}
-        <main className={`p-8 space-y-6 ${darkMode ? 'bg-slate-900 text-slate-100' : ''}`}>
+        <main className={`p-4 md:p-8 space-y-6 ${darkMode ? 'bg-slate-900 text-slate-100' : ''}`}>
           {/* TAB 1: EXACT MATCH TO USER'S DASHBOARD SCREENSHOT */}
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
@@ -1758,7 +1776,7 @@ const AdminPanel = () => {
 
               {showOverrideModal && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                  <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl border border-gray-100">
+                  <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
                     <h3 className="text-xl font-black mb-2 text-gray-900">Administrative Override</h3>
                     <p className="text-xs text-gray-500 mb-4 font-medium">You are exercising administrative override for "{showOverrideModal.title}".</p>
                     <select id="adminOverrideStatus" className="w-full mb-4 px-4 py-2.5 border border-gray-200 rounded-xl outline-none font-bold text-xs" defaultValue={showOverrideModal.approvalStatus === 'approved' ? 'rejected' : 'approved'}>

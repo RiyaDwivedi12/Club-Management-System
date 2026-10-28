@@ -410,7 +410,7 @@ const VenueBookingView = ({ clubs = [] }) => {
       {/* Add Facility Modal */}
       {showVenueModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-100">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
             <h3 className="text-xl font-black text-gray-900 mb-4">Add Campus Facility</h3>
             <form onSubmit={handleCreateVenue} className="space-y-4 text-xs">
               <div>

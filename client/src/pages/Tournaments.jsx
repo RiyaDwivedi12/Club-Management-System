@@ -98,7 +98,7 @@ const Tournaments = () => {
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto font-sans pb-20">
       {/* Header Banner */}
-      <div className="mb-8 p-8 rounded-[32px] bg-gradient-to-br from-dark-900 via-primary-950 to-slate-900 text-white relative overflow-hidden shadow-2xl border border-slate-800">
+      <div className="mb-8 p-5 md:p-8 rounded-[32px] bg-gradient-to-br from-dark-900 via-primary-950 to-slate-900 text-white relative overflow-hidden shadow-2xl border border-slate-800">
         <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-500/20 text-primary-400 font-bold text-xs uppercase tracking-wider mb-3">
@@ -134,7 +134,7 @@ const Tournaments = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100 mb-10"
+            className="bg-white p-5 md:p-8 rounded-[32px] shadow-sm border border-gray-100 mb-10"
           >
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
               <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
