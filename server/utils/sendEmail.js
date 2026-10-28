@@ -17,6 +17,9 @@ const sendEmail = async (options) => {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
+      connectionTimeout: 5000,
+      greetingTimeout: 5000,
+      socketTimeout: 8000,
     });
 
     const mailOptions = {
@@ -28,6 +31,7 @@ const sendEmail = async (options) => {
 
     const info = await transporter.sendMail(mailOptions);
     console.log('Email sent:', info.messageId);
+    return info;
   } catch (error) {
     // Log but do NOT re-throw — email failure should never crash registration/login
     console.error('Email send failed (non-fatal):', error.message);

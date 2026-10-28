@@ -34,7 +34,9 @@ const registerUser = async (req, res) => {
     const cleanUsername = (username || '').trim();
     const cleanRollNo = (roll_no || req.body.rollNo || '').trim().toUpperCase();
 
-    const userExists = await User.findOne({
+    // 1. Check if an ALREADY VERIFIED completed account exists with these details
+    const verifiedUser = await User.findOne({
+      isVerified: true,
       $or: [
         { email: cleanEmail },
         { username: cleanUsername },
@@ -42,77 +44,94 @@ const registerUser = async (req, res) => {
       ]
     });
 
-    if (userExists) {
-      if (userExists.email === cleanEmail) {
-        return res.status(400).json({ message: 'An account with this email already exists' });
+    if (verifiedUser) {
+      if (cleanRollNo && verifiedUser.roll_no === cleanRollNo) {
+        return res.status(400).json({ message: 'An account with this Roll Number is already registered and verified. Please sign in.' });
       }
-      if (userExists.username === cleanUsername) {
-        return res.status(400).json({ message: 'Username is already taken' });
+      if (verifiedUser.email === cleanEmail) {
+        return res.status(400).json({ message: 'An account with this email is already registered and verified. Please sign in.' });
       }
-      if (cleanRollNo && userExists.roll_no === cleanRollNo) {
-        return res.status(400).json({ message: 'An account with this Roll Number already exists' });
+      if (verifiedUser.username === cleanUsername) {
+        return res.status(400).json({ message: 'Username is already taken. Please choose another username.' });
       }
-      return res.status(400).json({ message: 'User already exists' });
+      return res.status(400).json({ message: 'An account with these details is already registered. Please sign in.' });
     }
 
-    // Generate 6-digit OTP
+    // 2. Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const verificationTokenExpire = Date.now() + 15 * 60 * 1000; // 15 minutes
 
-    // Generate a secure dummy password for pending state
-    const dummyPassword = crypto.randomBytes(16).toString('hex');
-
-    const user = await User.create({
-      name: (name || '').trim(),
-      username: cleanUsername,
-      email: cleanEmail,
-      password: dummyPassword,
-      role: role || 'student',
-      roll_no: cleanRollNo,
-      course: course || studentClass || 'B.Tech',
-      section: (section || studentSection || 'A').toUpperCase(),
-      department: department || 'General',
-      year: Number(year) || 1,
-      verificationToken: otp,
-      verificationTokenExpire,
+    // 3. Check if there is an UNVERIFIED pending registration with this email, roll_no, or username
+    // (e.g. user went back to edit details or did not complete OTP/password steps earlier)
+    const existingPendingUser = await User.findOne({
+      isVerified: { $ne: true },
+      $or: [
+        { email: cleanEmail },
+        ...(cleanRollNo ? [{ roll_no: cleanRollNo }] : []),
+        { username: cleanUsername }
+      ]
     });
-    console.log(`[Registration OTP for ${user.email}]: ${otp}`);
 
-    if (user) {
-      // Send email with the OTP
-      const message = `Hello ${name},\n\nYour account for the Club Management System has been created.\n\nPlease verify your email by using the following One-Time Password (OTP):\n\n${otp}\n\nThis OTP will expire in 15 minutes.`;
-      
-      try {
-        await sendEmail({
-          email: user.email,
-          subject: 'Your Club Management System Account Credentials',
-          message,
-        });
-      } catch (err) {
-        console.error('Email failed to send, but user was created:', err.message);
-        // Do NOT re-throw - registration should succeed even if email fails
-      }
-
-      // We do not send a token here because we want them to verify their email first
-      res.status(201).json({
-        message: 'Registration successful. Check your email to verify your account.',
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      });
+    let user;
+    if (existingPendingUser) {
+      existingPendingUser.name = (name || existingPendingUser.name || '').trim();
+      existingPendingUser.username = cleanUsername;
+      existingPendingUser.email = cleanEmail;
+      existingPendingUser.role = role || existingPendingUser.role || 'student';
+      existingPendingUser.roll_no = cleanRollNo;
+      existingPendingUser.course = course || studentClass || existingPendingUser.course || 'B.Tech';
+      existingPendingUser.section = (section || studentSection || existingPendingUser.section || 'A').toUpperCase();
+      existingPendingUser.department = department || existingPendingUser.department || 'General';
+      existingPendingUser.year = Number(year) || existingPendingUser.year || 1;
+      existingPendingUser.verificationToken = otp;
+      existingPendingUser.verificationTokenExpire = verificationTokenExpire;
+      await existingPendingUser.save();
+      user = existingPendingUser;
     } else {
-      res.status(400).json({ message: 'Invalid user data. Please check all required fields.' });
+      const dummyPassword = crypto.randomBytes(16).toString('hex');
+      user = await User.create({
+        name: (name || '').trim(),
+        username: cleanUsername,
+        email: cleanEmail,
+        password: dummyPassword,
+        role: role || 'student',
+        roll_no: cleanRollNo,
+        course: course || studentClass || 'B.Tech',
+        section: (section || studentSection || 'A').toUpperCase(),
+        department: department || 'General',
+        year: Number(year) || 1,
+        isVerified: false,
+        verificationToken: otp,
+        verificationTokenExpire,
+      });
     }
+
+    console.log(`[Registration OTP for ${user.email} (${user.roll_no || 'No roll'})]: ${otp}`);
+
+    // Send email with OTP asynchronously (non-blocking)
+    const message = `Hello ${user.name},\n\nYour account verification code for CampusHub is:\n\n${otp}\n\nThis OTP will expire in 15 minutes.\n\nRoll Number: ${user.roll_no || 'N/A'}`;
+    sendEmail({
+      email: user.email,
+      subject: 'Your CampusHub Account Verification Code',
+      message,
+    }).catch((err) => {
+      console.error('Email send failed (non-fatal):', err.message);
+    });
+
+    res.status(201).json({
+      message: 'OTP sent to your email. Please verify to continue.',
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      devOtp: process.env.NODE_ENV !== 'production' ? otp : undefined
+    });
   } catch (error) {
     console.error('Registration Error:', error.message);
     res.status(500).json({ message: error.message });
   }
 };
 
-// @desc    Auth user & get token
-// @route   POST /api/auth/login
-// @access  Public
 const authUser = async (req, res) => {
   const { email, identifier, roll_no, password, secretCode, role } = req.body;
   const loginInput = (roll_no || identifier || email || '').trim();
@@ -409,18 +428,28 @@ const getUserProfile = async (req, res) => {
 const verifyOTP = async (req, res) => {
   try {
     const { email, otp } = req.body;
-    
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanOtp = (otp || '').trim();
+
+    if (!cleanOtp) {
+      return res.status(400).json({ message: 'Please enter the 6-digit OTP' });
+    }
+
     const user = await User.findOne({
-      $or: [{ email }, { username: email }],
-      verificationToken: otp,
+      $or: [
+        { email: cleanEmail },
+        { username: cleanEmail },
+        { roll_no: (email || '').trim().toUpperCase() }
+      ],
+      verificationToken: cleanOtp,
       verificationTokenExpire: { $gt: Date.now() }
     });
 
     if (!user) {
-      return res.status(400).json({ message: 'Invalid or expired OTP' });
+      return res.status(400).json({ message: 'Invalid or expired OTP. Please check the code or request a new one.' });
     }
 
-    res.json({ valid: true });
+    res.json({ valid: true, message: 'OTP verified successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -432,15 +461,25 @@ const verifyOTP = async (req, res) => {
 const setupPassword = async (req, res) => {
   try {
     const { email, otp, password } = req.body;
-    
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanOtp = (otp || '').trim();
+
+    if (!password || password.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+
     const user = await User.findOne({
-      $or: [{ email }, { username: email }],
-      verificationToken: otp,
+      $or: [
+        { email: cleanEmail },
+        { username: cleanEmail },
+        { roll_no: (email || '').trim().toUpperCase() }
+      ],
+      verificationToken: cleanOtp,
       verificationTokenExpire: { $gt: Date.now() }
     });
 
     if (!user) {
-      return res.status(400).json({ message: 'Invalid or expired OTP' });
+      return res.status(400).json({ message: 'Verification session expired. Please verify your OTP again.' });
     }
 
     user.password = password;
@@ -462,7 +501,8 @@ const setupPassword = async (req, res) => {
       course: user.course || 'B.Tech',
       section: user.section || 'A',
       clubMemberships: user.clubMemberships || [],
-      token
+      token,
+      message: 'Registration and verification completed successfully! Welcome to CampusHub.'
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -475,13 +515,20 @@ const setupPassword = async (req, res) => {
 const resendVerification = async (req, res) => {
   const { email } = req.body;
   try {
-    const user = await User.findOne({ $or: [{ email }, { username: email }] });
-    
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const user = await User.findOne({
+      $or: [
+        { email: cleanEmail },
+        { username: cleanEmail },
+        { roll_no: (email || '').trim().toUpperCase() }
+      ]
+    });
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
     if (user.isVerified) {
-      return res.status(400).json({ message: 'User is already verified' });
+      return res.status(400).json({ message: 'Account is already verified. Please sign in.' });
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -489,15 +536,20 @@ const resendVerification = async (req, res) => {
     user.verificationTokenExpire = Date.now() + 15 * 60 * 1000;
     await user.save();
 
-    const message = `Hello ${user.name},\n\nPlease verify your email by using the following One-Time Password (OTP):\n\n${otp}\n\nThis OTP will expire in 15 minutes.`;
+    console.log(`[Resend OTP for ${user.email}]: ${otp}`);
 
-    await sendEmail({
+    const message = `Hello ${user.name},\n\nYour new verification code for CampusHub is:\n\n${otp}\n\nThis OTP will expire in 15 minutes.`;
+
+    sendEmail({
       email: user.email,
-      subject: 'Verify your Club Management System Account',
+      subject: 'New Verification Code for CampusHub',
       message,
-    });
+    }).catch(err => console.error('Resend email error:', err.message));
 
-    res.json({ message: 'Verification email sent successfully' });
+    res.json({
+      message: 'A new verification code has been sent to your email.',
+      devOtp: process.env.NODE_ENV !== 'production' ? otp : undefined
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -1021,9 +1073,31 @@ const updateUserRole = async (req, res) => {
       return res.status(400).json({ message: `Invalid role. Must be one of: ${validRoles.join(', ')}` });
     }
 
-    const user = await User.findById(userId);
+    let user = null;
+    const trimmedInput = (userId || '').trim();
+    if (trimmedInput.length === 24 && /^[0-9a-fA-F]{24}$/.test(trimmedInput)) {
+      user = await User.findById(trimmedInput);
+    }
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      const emailMatch = trimmedInput.match(/[\w.-]+@[\w.-]+\.[a-zA-Z]{2,}/);
+      if (emailMatch) {
+        user = await User.findOne({ email: emailMatch[0].toLowerCase() });
+      }
+    }
+    if (!user) {
+      const escaped = trimmedInput.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      user = await User.findOne({
+        $or: [
+          { email: trimmedInput.toLowerCase() },
+          { username: trimmedInput },
+          { roll_no: trimmedInput },
+          { name: new RegExp('^' + escaped + '$', 'i') }
+        ]
+      });
+    }
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found. Please enter a valid name, email, roll number, or ID.' });
     }
 
     user.role = role;
@@ -1070,4 +1144,3 @@ export {
   revokeReferee,
   approveElectionWinner
 };
-

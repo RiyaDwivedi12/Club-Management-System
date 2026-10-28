@@ -1,5 +1,16 @@
-import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+
+// ES module fix for __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load env vars reliably regardless of launch directory
+dotenv.config({ path: path.join(__dirname, '.env') });
+dotenv.config();
+
+import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -7,22 +18,16 @@ import cookieParser from 'cookie-parser';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import connectDB from './config/db.js';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-// Load env vars
-dotenv.config();
-
-// ES module fix for __dirname
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 import { seedDefaultRoles } from './seedRoles.js';
 
-// Connect to database
-connectDB().then(() => {
-  seedDefaultRoles();
-});
+// Connect to database safely
+connectDB()
+  .then(() => {
+    seedDefaultRoles();
+  })
+  .catch((err) => {
+    console.error('Initial DB seed connection notice:', err.message);
+  });
 
 const app = express();
 // Enable trust proxy for secure cookies behind reverse proxies (Render, Railway, Heroku, AWS, Nginx)
@@ -112,12 +117,10 @@ app.get('*', (req, res) => {
   });
 });
 
-
 // Socket.io connection handling
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
   
-  // Join a room specific to the user's ID to receive private notifications
   socket.on('setup', (userData) => {
     socket.join(userData._id);
     console.log(`User ${userData._id} joined their notification room`);
@@ -139,6 +142,20 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 5000;
+
+httpServer.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`⚠️ Port ${PORT} is in use. Retrying or waiting for port release...`);
+    setTimeout(() => {
+      try {
+        httpServer.close();
+      } catch (closeErr) {}
+      httpServer.listen(PORT, '0.0.0.0');
+    }, 1500);
+  } else {
+    console.error('Server error:', err);
+  }
+});
 
 httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);

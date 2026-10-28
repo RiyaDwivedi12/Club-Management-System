@@ -883,9 +883,9 @@ const AdminPanel = () => {
       </aside>
 
       {/* 2. MAIN VIEWPORT (LEFT PADDED TO FIT FIXED SIDEBAR) */}
-      <div className="flex-1 ml-0 lg:ml-64 flex flex-col min-w-0">
+      <div className={`flex-1 ml-0 lg:ml-64 flex flex-col min-w-0 ${darkMode ? 'bg-black text-slate-100' : 'bg-[#F8FAFC]'}`}>
         {/* TOP BAR */}
-        <header className="bg-white border-b border-slate-100 h-16 px-4 md:px-8 flex items-center justify-between gap-2 sticky top-0 z-30">
+        <header className={`${darkMode ? 'bg-black border-slate-800' : 'bg-white border-slate-100'} border-b h-16 px-4 md:px-8 flex items-center justify-between gap-2 sticky top-0 z-30`}>
           <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
           {/* Mobile sidebar toggle */}
           <button
@@ -1105,7 +1105,7 @@ const AdminPanel = () => {
         </header>
 
         {/* 3. DYNAMIC CONTENT WORKSPACE */}
-        <main className={`p-4 md:p-8 space-y-6 ${darkMode ? 'bg-slate-900 text-slate-100' : ''}`}>
+        <main className={`p-4 md:p-8 space-y-6 ${darkMode ? 'bg-black text-slate-100' : ''}`}>
           {/* TAB 1: EXACT MATCH TO USER'S DASHBOARD SCREENSHOT */}
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
@@ -2880,20 +2880,26 @@ const AdminPanel = () => {
                     <form onSubmit={handleUpdateUserRole} className="p-4 bg-slate-50/70 border border-slate-200/60 rounded-xl space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Select User / Student</label>
-                          <select
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="block text-xs font-bold text-slate-700 uppercase">User / Student</label>
+                            <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md">Type Name, Email or Roll No</span>
+                          </div>
+                          <input
+                            type="text"
+                            list="roleUserListOptions"
                             required
+                            placeholder="Type student name, email, or roll no (e.g. 23CS012)..."
                             value={roleChangeData.userId}
                             onChange={(e) => setRoleChangeData({ ...roleChangeData, userId: e.target.value })}
-                            className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl outline-none text-xs font-bold text-slate-800"
-                          >
-                            <option value="">-- Choose a user --</option>
+                            className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl outline-none text-xs font-bold text-slate-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 placeholder-slate-400 transition-all"
+                          />
+                          <datalist id="roleUserListOptions">
                             {users.map((u) => (
-                              <option key={u._id} value={u._id}>
-                                {u.name} ({u.roll_no || u.email}) — Current: {u.role}
+                              <option key={u._id} value={u.name}>
+                                {u.email} • {u.roll_no || 'No Roll No'} (Current: {u.role})
                               </option>
                             ))}
-                          </select>
+                          </datalist>
                         </div>
 
                         <div>
