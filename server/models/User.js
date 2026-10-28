@@ -38,10 +38,9 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: 'default.jpg' // In production, this will be a Cloudinary URL
   },
-  isReferee: {
-    type: Boolean,
-    default: false
-  },
+  isReferee: { type: Boolean, default: false },
+  refereeSport: { type: String, default: 'General' },
+  refereeExpiresAt: { type: Date, default: null },
   roll_no: {
     type: String,
     required: function() { return this.role === 'student' && !this.isReferee; }

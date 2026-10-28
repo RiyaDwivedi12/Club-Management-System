@@ -6,8 +6,11 @@ const protect = async (req, res, next) => {
   // Accept token from cookie OR Authorization header (for cross-domain Vercel+Render)
   let token = req.cookies.jwt;
 
-  if (!token && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
-    token = req.headers.authorization.split(' ')[1];
+  if (!token && req.headers.authorization) {
+    const authHeader = req.headers.authorization.trim();
+    if (/^bearer\s+/i.test(authHeader)) {
+      token = authHeader.replace(/^bearer\s+/i, '').trim();
+    }
   }
 
   if (token) {

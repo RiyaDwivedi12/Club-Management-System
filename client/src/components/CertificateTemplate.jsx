@@ -7,7 +7,10 @@ const CertificateTemplate = ({ cert, onClose }) => {
 
   if (!cert) return null;
 
-  const recipientName = cert.userId?.name || cert.userName || 'Student Athlete';
+  const recipientName = cert.recipientName || cert.userId?.name || cert.userName || 'Student Athlete';
+  const rollNo = cert.roll_no || cert.userId?.roll_no || '';
+  const gameName = cert.game || 'Sports Tournament';
+  const matchDetails = cert.matchDetails || cert.achievement || 'Final Match Won';
   const tournamentTitle = cert.title || cert.tournamentId?.name || cert.tournamentName || 'Campus Championship';
   const teamLabel = cert.teamName ? `Representing ${cert.teamName}` : '';
   const signatoryName = cert.issuedByName || 'Kenneth Dorsen';

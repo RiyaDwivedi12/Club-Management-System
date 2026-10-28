@@ -491,13 +491,13 @@ const LandingPage = () => {
 class ErrorBoundary extends Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, error: null };
   }
-  static getDerivedStateFromError() {
-    return { hasError: true };
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
   }
   componentDidCatch(error, errorInfo) {
-    console.error('App ErrorBoundary:', error, errorInfo);
+    console.error('App ErrorBoundary caught:', error, errorInfo);
   }
   render() {
     if (this.state.hasError) {
@@ -507,13 +507,28 @@ class ErrorBoundary extends Component {
             <GraduationCap size={28} />
           </div>
           <h2 className="text-xl font-bold mb-2">Something went wrong</h2>
-          <p className="text-sm text-slate-500 mb-6 max-w-md">The page encountered an unexpected issue. Please click below to reload.</p>
-          <button 
-            onClick={() => { this.setState({ hasError: false }); window.location.href = '/'; }}
-            className="px-6 py-2.5 bg-teal-600 text-white rounded-xl font-bold hover:bg-teal-700 transition cursor-pointer"
-          >
-            Reload CampusHub
-          </button>
+          <p className="text-sm text-slate-500 mb-4 max-w-md">
+            The page encountered an unexpected issue. Please click below to reload or return to the main dashboard.
+          </p>
+          {this.state.error && (
+            <p className="text-xs font-mono text-red-500 bg-red-50 p-3 rounded-xl max-w-lg mb-6 break-words border border-red-100">
+              {this.state.error?.message || String(this.state.error)}
+            </p>
+          )}
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => { this.setState({ hasError: false, error: null }); window.location.reload(); }}
+              className="px-5 py-2.5 bg-teal-600 text-white rounded-xl font-bold hover:bg-teal-700 transition cursor-pointer text-xs shadow-md"
+            >
+              Reload Page
+            </button>
+            <button 
+              onClick={() => { this.setState({ hasError: false, error: null }); window.location.href = '/'; }}
+              className="px-5 py-2.5 bg-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-300 transition cursor-pointer text-xs"
+            >
+              Go to Home
+            </button>
+          </div>
         </div>
       );
     }

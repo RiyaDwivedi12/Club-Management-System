@@ -39,6 +39,8 @@ import VenueBookingView from '../components/admin/VenueBookingView';
 import ApprovalCard from '../components/ApprovalCard';
 import EmptyState from '../components/EmptyState';
 import ClassFeeManagementView from '../components/admin/ClassFeeManagementView';
+import CertificateManagementView from '../components/admin/CertificateManagementView';
+import RoleOnboardingView from '../components/admin/RoleOnboardingView';
 
 ChartJS.register(
   CategoryScale,
@@ -337,7 +339,8 @@ const AdminPanel = () => {
     reader.readAsDataURL(file);
   };
 
-  const { events, fetchEvents, approveEvent, rejectEvent, overrideEvent } = useEventStore();
+  const { events: rawEvents, fetchEvents, approveEvent, rejectEvent, overrideEvent } = useEventStore();
+  const events = Array.isArray(rawEvents) ? rawEvents : [];
   const [approvalNote, setApprovalNote] = useState('');
   const [showOverrideModal, setShowOverrideModal] = useState(null);
   const [approvalFilter, setApprovalFilter] = useState('pending');
@@ -778,6 +781,7 @@ const AdminPanel = () => {
   const mainNavItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'directory', label: 'User Management', icon: Users },
+    { id: 'roles_onboarding', label: 'Role Credentials & Onboarding', icon: ShieldCheck },
     { id: 'club', label: 'Clubs & Memberships', icon: Share2 },
     { id: 'event', label: 'Events & Approvals', icon: Calendar, badge: events.filter(e => e.approvalStatus === 'pending').length },
     { id: 'sports', label: 'Sports & Tournaments', icon: Trophy },
@@ -1461,7 +1465,10 @@ const AdminPanel = () => {
           )}
 
           {/* TAB 2: USER MANAGEMENT (STUDENT DIRECTORY) */}
-          {activeTab === 'directory' && <StudentDirectoryView />}
+            {activeTab === 'directory' && <StudentDirectoryView />}
+
+            {/* TAB 2b: ROLE CREDENTIALS & CSV/EXCEL ONBOARDING */}
+            {activeTab === 'roles_onboarding' && <RoleOnboardingView />}
 
           {/* TAB 3: CLUBS & MEMBERSHIPS */}
           {activeTab === 'club' && (
@@ -2485,21 +2492,7 @@ const AdminPanel = () => {
           )}
 
           {/* TAB 7: CERTIFICATES */}
-          {activeTab === 'certificates' && (
-            <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm text-center">
-              <Award size={48} className="mx-auto text-blue-600 mb-3" />
-              <h3 className="text-xl font-black text-gray-900">Certificate Generation & Public Verification</h3>
-              <p className="text-sm text-gray-500 max-w-lg mx-auto mt-2">
-                Manage tamper-proof digital certificates, customized templates, batch issuance, and public cryptographic verification.
-              </p>
-              <Link
-                to="/certificates"
-                className="mt-6 inline-flex items-center gap-2 px-6 py-3 bg-[#2563EB] hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-md transition"
-              >
-                Open Full Certificate Console <ExternalLink size={16} />
-              </Link>
-            </div>
-          )}
+          {activeTab === 'certificates' && <CertificateManagementView />}
 
           {/* TAB 8: DEPARTMENT & CLASS FEE CARDS */}
           {activeTab === 'classes' && <ClassFeeManagementView clubs={clubs} />}

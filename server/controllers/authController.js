@@ -561,16 +561,22 @@ const resendVerification = async (req, res) => {
 const forgotPassword = async (req, res) => {
   const { email } = req.body;
   try {
-    const normalizedEmail = email.trim().toLowerCase();
+    const input = (email || '').trim();
+    if (!input) {
+      return res.status(400).json({ message: 'Please provide your email or roll number' });
+    }
+
+    const cleanInput = input.toLowerCase();
     const user = await User.findOne({ 
       $or: [
-        { email: new RegExp('^' + normalizedEmail + '$', 'i') }, 
-        { username: new RegExp('^' + normalizedEmail + '$', 'i') }
+        { email: new RegExp('^' + cleanInput + '$', 'i') }, 
+        { username: new RegExp('^' + input + '$', 'i') },
+        { roll_no: new RegExp('^' + input + '$', 'i') }
       ] 
     });
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: 'No registered account found with this email or roll number. Please check your spelling or sign up.' });
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -578,16 +584,22 @@ const forgotPassword = async (req, res) => {
     user.verificationTokenExpire = Date.now() + 15 * 60 * 1000;
     await user.save();
 
-    const message = `Hello ${user.name},\n\nYou have requested to reset your password. Please use the following One-Time Password (OTP) to reset it:\n\n${otp}\n\nThis OTP will expire in 15 minutes.`;
+    console.log(`[Password Reset OTP for ${user.email} (${user.roll_no || 'N/A'})]: ${otp}`);
 
-    await sendEmail({
+    const message = `Hello ${user.name},\n\nYou requested to reset your password for CampusHub.\n\nYour One-Time Password (OTP) is:\n\n${otp}\n\nThis OTP will expire in 15 minutes. If you did not request this, you can safely ignore this email.`;
+
+    sendEmail({
       email: user.email,
-      subject: 'Password Reset OTP - Club Management System',
+      subject: 'Password Reset Verification Code - CampusHub',
       message,
-    });
+    }).catch(err => console.error('Forgot password email error (non-fatal):', err.message));
 
-    res.json({ message: 'Password reset OTP sent to email' });
+    res.json({ 
+      message: `Password reset OTP sent to ${user.email}`,
+      devOtp: process.env.NODE_ENV !== 'production' ? otp : undefined
+    });
   } catch (error) {
+    console.error('forgotPassword error:', error.message);
     res.status(500).json({ message: error.message });
   }
 };
@@ -598,19 +610,29 @@ const forgotPassword = async (req, res) => {
 const resetPassword = async (req, res) => {
   try {
     const { email, otp, password } = req.body;
+    const input = (email || '').trim();
+    const cleanOtp = (otp || '').trim();
+
+    if (!cleanOtp) {
+      return res.status(400).json({ message: 'Please enter the 6-digit OTP' });
+    }
+    if (!password || password.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters long' });
+    }
     
-    const normalizedEmail = email.trim().toLowerCase();
+    const cleanInput = input.toLowerCase();
     const user = await User.findOne({
       $or: [
-        { email: new RegExp('^' + normalizedEmail + '$', 'i') }, 
-        { username: new RegExp('^' + normalizedEmail + '$', 'i') }
+        { email: new RegExp('^' + cleanInput + '$', 'i') }, 
+        { username: new RegExp('^' + input + '$', 'i') },
+        { roll_no: new RegExp('^' + input + '$', 'i') }
       ],
-      verificationToken: otp.trim(),
+      verificationToken: cleanOtp,
       verificationTokenExpire: { $gt: Date.now() }
     });
 
     if (!user) {
-      return res.status(400).json({ message: 'Invalid or expired OTP' });
+      return res.status(400).json({ message: 'Invalid or expired OTP. Please verify the code or request a new one.' });
     }
 
     user.password = password;
@@ -618,8 +640,9 @@ const resetPassword = async (req, res) => {
     user.verificationTokenExpire = undefined;
     await user.save();
 
-    res.json({ message: 'Password has been reset successfully. You can now log in.' });
+    res.json({ message: 'Password has been reset successfully! You can now log in.' });
   } catch (error) {
+    console.error('resetPassword error:', error.message);
     res.status(500).json({ message: error.message });
   }
 };
@@ -1124,7 +1147,304 @@ const updateUserRole = async (req, res) => {
   }
 };
 
+
+// ==========================================
+// BULK ROLE CREDENTIALS ONBOARDING & MANAGEMENT
+// ==========================================
+
+// @desc    Bulk preview or onboard role credentials (Faculty, President, VP, Referee)
+// @route   POST /api/auth/bulk-onboard
+// @access  Private (Admin only)
+const bulkOnboardRole = async (req, res) => {
+  try {
+    const role = (req.body.role || req.query.role || '').toLowerCase().trim();
+    const validRoles = ['faculty', 'president', 'vice_president', 'referee'];
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({ message: `Invalid role '${role}'. Must be one of: faculty, president, vice_president, referee` });
+    }
+
+    let records = [];
+
+    // Parse uploaded Excel / CSV file if present
+    if (req.file) {
+      const xlsx = await import('xlsx');
+      const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+      const sheetName = workbook.SheetNames[0];
+      if (!sheetName) return res.status(400).json({ message: 'Spreadsheet is empty' });
+      records = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
+    } else if (Array.isArray(req.body.records) && req.body.records.length > 0) {
+      records = req.body.records;
+    } else {
+      return res.status(400).json({ message: 'Please upload an Excel / CSV file or provide record rows' });
+    }
+
+    if (records.length === 0) {
+      return res.status(400).json({ message: 'No valid data found in the file' });
+    }
+
+    // Helper: fuzzy column match
+    const findCol = (row, candidates) => {
+      const keys = Object.keys(row);
+      for (const c of candidates) {
+        const found = keys.find(k => k.toLowerCase().replace(/[^a-z0-9]/g, '') === c.toLowerCase().replace(/[^a-z0-9]/g, ''));
+        if (found && row[found] !== undefined && row[found] !== '') return String(row[found]).trim();
+      }
+      return '';
+    };
+
+    const isPreviewOnly = req.body.preview === 'true' || req.query.preview === 'true';
+    const processed = [];
+    const Club = (await import('../models/Club.js')).default;
+    const allClubs = await Club.find({});
+
+    for (let i = 0; i < records.length; i++) {
+      const row = records[i];
+      const name = findCol(row, ['name', 'facultyname', 'presidentname', 'refereename', 'fullname', 'studentname']) || 'Campus Member';
+      const email = findCol(row, ['email', 'gmail', 'mail', 'emailaddress']);
+      const roll_no = findCol(row, ['roll_no', 'rollno', 'rollnumber', 'roll', 'id']);
+      const password = findCol(row, ['password', 'pass', 'code', 'secretcode', 'secret']) || 
+        (role === 'faculty' ? 'faculty123' : role === 'president' ? 'president123' : role === 'vice_president' ? 'vp123' : 'referee123');
+      const department = findCol(row, ['department', 'dept', 'branch', 'facultydept']) || (role === 'faculty' ? 'Academic Staff' : 'General');
+      const clubName = findCol(row, ['club', 'clubname', 'assignedclub']);
+      const sport = findCol(row, ['sport', 'game', 'discipline', 'assignedsport']) || 'General Sports';
+      const validDays = Number(findCol(row, ['validdays', 'duration', 'days', 'validuntil', 'expiry'])) || 30;
+
+      if (!email && !roll_no) continue; // skip empty rows
+
+      // Calculate referee expiration date if referee
+      let refereeExpiresAt = null;
+      if (role === 'referee') {
+        const d = new Date();
+        d.setDate(d.getDate() + (validDays > 0 ? validDays : 30));
+        refereeExpiresAt = d;
+      }
+
+      // Check if user already exists
+      let existingUser = null;
+      if (email) {
+        existingUser = await User.findOne({ email: email.toLowerCase() });
+      }
+      if (!existingUser && roll_no) {
+        existingUser = await User.findOne({ roll_no: roll_no });
+      }
+
+      if (isPreviewOnly) {
+        processed.push({
+          rowIndex: i + 1,
+          name,
+          email: email || (existingUser ? existingUser.email : 'N/A'),
+          roll_no: roll_no || (existingUser ? existingUser.roll_no : ''),
+          password,
+          role,
+          department,
+          clubName,
+          sport,
+          validDays,
+          isExisting: Boolean(existingUser)
+        });
+        continue;
+      }
+
+      // Commit Mode: Create or update user
+      let user = existingUser;
+      if (user) {
+        user.name = name || user.name;
+        user.role = role;
+        user.password = password; // pre-save hook will hash
+        user.isVerified = true;
+        if (department) user.department = department;
+        if (roll_no) user.roll_no = roll_no;
+        if (role === 'referee') {
+          user.isReferee = true;
+          user.refereeSport = sport;
+          user.refereeExpiresAt = refereeExpiresAt;
+        }
+        await user.save();
+      } else {
+        const cleanEmail = email ? email.toLowerCase() : `${(roll_no || name).replace(/[^a-zA-Z0-9]/g, '').toLowerCase()}@campus.edu`;
+        user = await User.create({
+          name,
+          email: cleanEmail,
+          username: cleanEmail.split('@')[0],
+          password,
+          role,
+          roll_no: roll_no || undefined,
+          department,
+          isVerified: true,
+          isReferee: role === 'referee',
+          refereeSport: role === 'referee' ? sport : undefined,
+          refereeExpiresAt: role === 'referee' ? refereeExpiresAt : undefined
+        });
+      }
+
+      // Link to club if clubName provided
+      if (clubName && (role === 'president' || role === 'vice_president')) {
+        const matchedClub = allClubs.find(c => c.name?.toLowerCase() === clubName.toLowerCase() || c.name?.toLowerCase().includes(clubName.toLowerCase()));
+        if (matchedClub) {
+          if (role === 'president') {
+            matchedClub.presidentId = user._id;
+          } else {
+            matchedClub.vicePresidentId = user._id;
+          }
+          await matchedClub.save();
+        }
+      }
+
+      processed.push({
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        roll_no: user.roll_no,
+        refereeExpiresAt: user.refereeExpiresAt
+      });
+    }
+
+    if (isPreviewOnly) {
+      return res.json({
+        preview: true,
+        total: processed.length,
+        role,
+        records: processed
+      });
+    }
+
+    res.status(201).json({
+      message: `Successfully onboarded ${processed.length} ${role.replace('_', ' ').toUpperCase()} accounts! They can now log in directly.`,
+      count: processed.length,
+      users: processed
+    });
+  } catch (error) {
+    console.error('bulkOnboardRole error:', error);
+    res.status(500).json({ message: error.message || 'Failed to onboard role credentials' });
+  }
+};
+
+// @desc    Download CSV Template for specific role
+// @route   GET /api/auth/template/role/:role
+// @access  Public
+const downloadRoleTemplate = (req, res) => {
+  const role = (req.params.role || 'faculty').toLowerCase();
+  let headers = '';
+  let sampleRows = '';
+
+  if (role === 'faculty') {
+    headers = 'Faculty Name,Gmail / Email,Password,Department\n';
+    sampleRows = [
+      'Dr. Arvind Sharma,arvind.sharma@gmail.com,faculty123,Computer Science & Engineering',
+      'Prof. Sunita Rao,sunita.rao@gmail.com,faculty123,Pharmaceutical Sciences',
+      'Dr. Rajesh Verma,rajesh.verma@gmail.com,faculty123,Management Studies'
+    ].join('\n');
+  } else if (role === 'president') {
+    headers = 'President Name,Gmail / Email,Roll Number,Password,Club Name\n';
+    sampleRows = [
+      'Aakash Bhatt,aakash.bhatt@gmail.com,23CS012,president123,Coding Club',
+      'Sneha Kulkarni,sneha.kulkarni@gmail.com,PH24102,president123,Pharmacy Club',
+      'Rohan Deshmukh,rohan.deshmukh@gmail.com,22ME034,president123,Robotics Club'
+    ].join('\n');
+  } else if (role === 'vice_president') {
+    headers = 'Vice President Name,Gmail / Email,Roll Number,Password,Club Name\n';
+    sampleRows = [
+      'Pooja Hegde,pooja.hegde@gmail.com,23CS045,vp123,Coding Club',
+      'Ankita Rao,ankita.rao@gmail.com,MPH2501,vp123,Pharmacy Club'
+    ].join('\n');
+  } else if (role === 'referee') {
+    headers = 'Referee Name,Gmail / Email,Roll Number,Password,Assigned Sport,Valid Days\n';
+    sampleRows = [
+      'Coach Vikram Singh,vikram.sports@gmail.com,REF2026A,referee123,Badminton,14',
+      'Rahul Mehta,rahul.mehta@gmail.com,23CS088,referee123,Cricket,30',
+      'Devendra Joshi,devendra.sports@gmail.com,REF2026B,referee123,Football,7'
+    ].join('\n');
+  } else {
+    headers = 'Name,Email,Password,Role\n';
+    sampleRows = 'John Doe,john@gmail.com,pass123,student';
+  }
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="${role.toUpperCase()}_Credentials_Template.csv"`);
+  res.status(200).send(headers + sampleRows);
+};
+
+// @desc    Get summary of all privileged role holders and elected candidates
+// @route   GET /api/auth/roles-summary
+// @access  Private (Admin only)
+const getRolesSummary = async (req, res) => {
+  try {
+    const Club = (await import('../models/Club.js')).default;
+    const Election = (await import('../models/Election.js')).default;
+
+    const [facultyList, presidentList, vpList, refereeList, allClubs, concludedElections] = await Promise.all([
+      User.find({ role: 'faculty' }).select('name email department createdAt').sort({ createdAt: -1 }),
+      User.find({ role: 'president' }).select('name email roll_no department createdAt').sort({ createdAt: -1 }),
+      User.find({ role: 'vice_president' }).select('name email roll_no department createdAt').sort({ createdAt: -1 }),
+      User.find({ $or: [{ role: 'referee' }, { isReferee: true }] }).select('name email roll_no refereeSport refereeExpiresAt isReferee createdAt').sort({ createdAt: -1 }),
+      Club.find({}).select('name presidentId vicePresidentId facultyId'),
+      Election.find({ isConcluded: true }).populate('clubId', 'name').populate('winner.candidateId', 'name email roll_no role')
+    ]);
+
+    // Map club names to presidents and VPs
+    const enrichedPresidents = presidentList.map(p => {
+      const club = allClubs.find(c => c.presidentId?.toString() === p._id.toString());
+      return { ...p.toObject(), clubName: club ? club.name : 'Unassigned' };
+    });
+
+    const enrichedVPs = vpList.map(v => {
+      const club = allClubs.find(c => c.vicePresidentId?.toString() === v._id.toString());
+      return { ...v.toObject(), clubName: club ? club.name : 'Unassigned' };
+    });
+
+    // Extract election winners that need elevation
+    const pendingElectionElevations = [];
+    for (const elect of concludedElections) {
+      if (elect.winner?.candidateId) {
+        const candidate = elect.winner.candidateId;
+        const targetRole = elect.position === 'Vice President' ? 'vice_president' : 'president';
+        if (candidate.role !== targetRole) {
+          pendingElectionElevations.push({
+            electionId: elect._id,
+            electionTitle: elect.title,
+            clubId: elect.clubId?._id,
+            clubName: elect.clubId?.name || 'Club',
+            position: elect.position,
+            targetRole,
+            candidate: {
+              _id: candidate._id,
+              name: candidate.name,
+              email: candidate.email,
+              roll_no: candidate.roll_no,
+              currentRole: candidate.role
+            },
+            votes: elect.winner.votes || 0
+          });
+        }
+      }
+    }
+
+    res.json({
+      counts: {
+        faculty: facultyList.length,
+        presidents: enrichedPresidents.length,
+        vicePresidents: enrichedVPs.length,
+        referees: refereeList.length,
+        pendingElevations: pendingElectionElevations.length
+      },
+      faculty: facultyList,
+      presidents: enrichedPresidents,
+      vicePresidents: enrichedVPs,
+      referees: refereeList,
+      pendingElevations: pendingElectionElevations
+    });
+  } catch (error) {
+    console.error('getRolesSummary error:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
 export {
+  bulkOnboardRole,
+  downloadRoleTemplate,
+  getRolesSummary,
   registerUser,
   authUser,
   logoutUser,

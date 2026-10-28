@@ -55,9 +55,9 @@ const ForgotPassword = () => {
 
           <form onSubmit={submitHandler}>
             <div className="mb-6">
-              <label className="block text-gray-700 font-medium mb-2">Email Address</label>
+              <label className="block text-gray-700 font-medium mb-2">Email Address or Roll Number</label>
               <input 
-                type="email" 
+                type="text" placeholder="e.g. 23CS012 or student@college.edu" 
                 className="w-full px-4 py-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 transition-shadow"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}

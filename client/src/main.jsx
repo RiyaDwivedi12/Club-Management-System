@@ -11,11 +11,36 @@ if (API_BASE) {
 }
 axios.defaults.withCredentials = true;
 
-// Attach Bearer token from localStorage for cross-domain auth
-const savedAuth = localStorage.getItem('authToken');
-if (savedAuth) {
-  axios.defaults.headers.common['Authorization'] = `Bearer ${savedAuth}`;
+// Ensure authToken is populated from userInfo if previously logged in
+try {
+  const stored = JSON.parse(localStorage.getItem('userInfo') || '{}');
+  if (stored?.token && !localStorage.getItem('authToken')) {
+    localStorage.setItem('authToken', stored.token);
+  }
+} catch (e) {
+  // ignore json parse error
 }
+
+// Dynamic request interceptor: attach Bearer token on EVERY outgoing HTTP call
+axios.interceptors.request.use(
+  (config) => {
+    let token = localStorage.getItem('authToken');
+    if (!token) {
+      try {
+        const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+        token = userInfo?.token;
+      } catch (e) {
+        token = null;
+      }
+    }
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

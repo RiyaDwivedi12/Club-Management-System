@@ -50,6 +50,10 @@ const clubSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  allowAllToChat: {
+    type: Boolean,
+    default: true
+  },
   joinFee: {
     type: Number,
     default: 500
