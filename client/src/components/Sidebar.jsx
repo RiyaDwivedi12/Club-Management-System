@@ -176,14 +176,14 @@ const Sidebar = () => {
       <div className="p-4 border-t border-gray-100">
         <div className="flex items-center justify-between bg-teal-50/70 p-3.5 rounded-2xl border border-teal-100">
           <div className="flex items-center gap-3 min-w-0">
-            {user?.profilePicture ? (
+            {user?.profilePicture && user.profilePicture !== 'default.jpg' ? (
               <img
                 src={user.profilePicture}
                 alt={user.name || 'User'}
                 className="w-10 h-10 rounded-full object-cover border border-teal-200 flex-shrink-0 shadow-2xs"
                 onError={(e) => {
                   e.target.onerror = null;
-                  e.target.src = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80";
+                  e.target.src = "/default_avatar.png";
                 }}
               />
             ) : (

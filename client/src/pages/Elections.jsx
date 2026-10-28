@@ -371,8 +371,8 @@ const Elections = () => {
             const cand1User = cand1?.candidateId || {};
             const cand2User = cand2?.candidateId || {};
 
-            const cand1Photo = cand1?.photo || cand1User?.profilePicture || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80';
-            const cand2Photo = cand2?.photo || cand2User?.profilePicture || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80';
+            const cand1Photo = cand1?.photo || cand1User?.profilePicture || null;
+            const cand2Photo = cand2?.photo || cand2User?.profilePicture || null;
 
             const winnerId = election.winner?.candidateId?._id || election.winner?.candidateId;
             const isCand1Winner = isCompleted && ((winnerId && (winnerId === cand1?.candidateId?._id || winnerId === cand1?.candidateId)) || ((cand1?.votes || 0) > (cand2?.votes || 0)));
@@ -486,7 +486,7 @@ const Elections = () => {
                               src={cand1Photo} 
                               alt={cand1?.name || 'Candidate 1'} 
                               className="w-full h-full object-cover"
-                              onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400'; }}
+                              onError={(e) => { e.target.src = null; }}
                             />
                           </div>
                           <span className="absolute -bottom-2 -right-2 w-7 h-7 rounded-full bg-indigo-600 text-white font-black text-xs flex items-center justify-center shadow-md border-2 border-white">
@@ -563,7 +563,7 @@ const Elections = () => {
                               src={cand2Photo} 
                               alt={cand2?.name || 'Candidate 2'} 
                               className="w-full h-full object-cover"
-                              onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400'; }}
+                              onError={(e) => { e.target.src = null; }}
                             />
                           </div>
                           <span className="absolute -bottom-2 -right-2 w-7 h-7 rounded-full bg-blue-600 text-white font-black text-xs flex items-center justify-center shadow-md border-2 border-white">

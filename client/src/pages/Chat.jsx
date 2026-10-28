@@ -116,7 +116,9 @@ const Chat = () => {
         <div className="bg-[#f0f2f5] h-16 flex items-center justify-between px-4 shrink-0 border-b border-gray-200">
           <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center overflow-hidden">
              {/* User Avatar Placeholder */}
-             <img src={`https://ui-avatars.com/api/?name=${user?.name || 'User'}&background=random`} alt="Profile" className="w-full h-full object-cover"/>
+             {user?.profilePicture && user?.profilePicture !== 'default.jpg'
+               ? <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover"/>
+               : <span className="text-white font-black text-sm">{(user?.name || 'U').charAt(0).toUpperCase()}</span>}
           </div>
           <div className="flex gap-4 text-[#54656f]">
             <MoreVertical size={24} className="cursor-pointer" />

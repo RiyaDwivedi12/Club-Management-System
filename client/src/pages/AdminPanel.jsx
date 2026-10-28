@@ -1005,12 +1005,12 @@ const AdminPanel = () => {
                 title="Administrator Account Menu"
               >
                 <img
-                  src={user?.profilePicture || '/admin_avatar.jpg'}
+                  src={user?.profilePicture && user.profilePicture !== 'default.jpg' ? user.profilePicture : '/admin_avatar.jpg'}
                   alt="Admin User"
                   className="w-9 h-9 rounded-full object-cover border border-slate-200/90 shadow-2xs"
                   onError={(e) => {
                     e.target.onerror = null;
-                    e.target.src = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80";
+                    e.target.src = "/default_avatar.png";
                   }}
                 />
                 <div className="text-left hidden sm:block">
@@ -1033,7 +1033,7 @@ const AdminPanel = () => {
                           className="w-10 h-10 rounded-full object-cover border border-blue-200 shadow-2xs"
                           onError={(e) => {
                             e.target.onerror = null;
-                            e.target.src = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80";
+                            e.target.src = "/default_avatar.png";
                           }}
                         />
                       ) : (
@@ -2399,7 +2399,7 @@ const AdminPanel = () => {
                           }`}>
                             <div className="flex items-center gap-3">
                               <img
-                                src={cand1?.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(cand1?.name || 'Candidate 1')}&background=2563EB&color=fff`}
+                                src={cand1?.photo || `https://ui-avatars.com/api/?name=DISABLED-${encodeURIComponent(cand1?.name || 'Candidate 1')}&background=2563EB&color=fff`}
                                 alt={cand1?.name || 'Candidate 1'}
                                 className="w-12 h-12 rounded-xl object-cover border border-gray-200 shadow-sm"
                               />
@@ -2431,7 +2431,7 @@ const AdminPanel = () => {
                           }`}>
                             <div className="flex items-center gap-3">
                               <img
-                                src={cand2?.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(cand2?.name || 'Candidate 2')}&background=4F46E5&color=fff`}
+                                src={cand2?.photo || `https://ui-avatars.com/api/?name=DISABLED-${encodeURIComponent(cand2?.name || 'Candidate 2')}&background=4F46E5&color=fff`}
                                 alt={cand2?.name || 'Candidate 2'}
                                 className="w-12 h-12 rounded-xl object-cover border border-gray-200 shadow-sm"
                               />
@@ -2641,12 +2641,12 @@ const AdminPanel = () => {
                         title="Click to change profile picture"
                       >
                         <img
-                          src={user?.profilePicture || '/admin_avatar.jpg'}
+                          src={user?.profilePicture && user.profilePicture !== 'default.jpg' ? user.profilePicture : '/admin_avatar.jpg'}
                           alt={user?.name || 'Administrator'}
                           className="w-full h-full object-cover transition duration-200 group-hover:brightness-75"
                           onError={(e) => {
                             e.target.onerror = null;
-                            e.target.src = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80";
+                            e.target.src = "/default_avatar.png";
                           }}
                         />
                         <div className="absolute inset-0 bg-slate-900/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition duration-200 text-white text-[11px] font-bold gap-1">

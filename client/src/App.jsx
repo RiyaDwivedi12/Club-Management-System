@@ -318,14 +318,14 @@ const AppLayout = ({ children }) => {
                 </div>
 
                 <div className="font-bold text-gray-800 text-sm flex items-center gap-2">
-                  {user?.profilePicture ? (
+                  {user?.profilePicture && user.profilePicture !== 'default.jpg' ? (
                     <img
                       src={user.profilePicture}
                       alt={user.name || 'User'}
                       className="w-9 h-9 rounded-full object-cover border border-teal-200 shadow-2xs"
                       onError={(e) => {
                         e.target.onerror = null;
-                        e.target.src = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80";
+                        e.target.src = "/default_avatar.png";
                       }}
                     />
                   ) : (
