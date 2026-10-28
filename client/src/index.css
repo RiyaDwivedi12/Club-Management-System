@@ -197,6 +197,145 @@
   }
 }
 
+/* ── Global Dark Mode Styling (Black Backgrounds & Light Words) ────────── */
+html.dark,
+.dark {
+  color-scheme: dark;
+}
+
+html.dark body,
+.dark body {
+  background-color: #000000 !important;
+  color: #f8fafc !important;
+}
+
+/* All main containers, cards, and viewports become black/deep-dark */
+.dark .bg-white,
+.dark .bg-\[\#F8FAFC\],
+.dark .bg-\[\#F8F9FA\] {
+  background-color: #09090b !important;
+}
+
+.dark .bg-slate-50,
+.dark .bg-gray-50,
+.dark .bg-slate-50\/70,
+.dark .bg-slate-50\/60,
+.dark .bg-slate-100,
+.dark .bg-gray-100 {
+  background-color: #141720 !important;
+}
+
+/* Subtle dark borders */
+.dark .border-slate-100,
+.dark .border-slate-200,
+.dark .border-slate-200\/60,
+.dark .border-slate-200\/80,
+.dark .border-gray-100,
+.dark .border-gray-200,
+.dark .border-gray-300,
+.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #232938 !important;
+}
+
+/* Headings and primary text in crisp light white */
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-gray-900,
+.dark .text-gray-800,
+.dark .text-dark-900,
+.dark .text-black,
+.dark .text-\[\#1A1A1A\] {
+  color: #ffffff !important;
+}
+
+/* Secondary & body text in light color */
+.dark .text-slate-700,
+.dark .text-slate-600,
+.dark .text-gray-700,
+.dark .text-gray-600 {
+  color: #cbd5e1 !important;
+}
+
+/* Muted labels & helper words in light slate */
+.dark .text-slate-500,
+.dark .text-slate-400,
+.dark .text-gray-500,
+.dark .text-gray-400 {
+  color: #94a3b8 !important;
+}
+
+/* Form inputs, textareas, selects */
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: #131722 !important;
+  color: #ffffff !important;
+  border-color: #272f40 !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #64748b !important;
+}
+
+/* Soft cards & popups */
+.dark .soft-card {
+  background-color: #09090b !important;
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.7) !important;
+}
+
+/* Design-system components (index.css @layer components) apply their colours
+   internally, so they need their own dark equivalents of the rules above. */
+.dark .card,
+.dark .modal-panel {
+  background-color: #09090b !important;
+  border-color: #232938 !important;
+}
+.dark .card-header,
+.dark .data-table thead th,
+.dark .data-table tbody td {
+  border-color: #232938 !important;
+}
+.dark .data-table thead th {
+  background-color: #141720 !important;
+}
+.dark .card-title,
+.dark .section-title,
+.dark .page-title,
+.dark .data-table tbody td {
+  color: #f8fafc !important;
+}
+.dark .card-subtitle,
+.dark .page-subtitle,
+.dark .label {
+  color: #94a3b8 !important;
+}
+
+/* Headers and sticky bars */
+.dark header,
+.dark .sticky {
+  background-color: #000000 !important;
+  border-color: #1e2533 !important;
+}
+
+/* Search input transparent */
+.dark #global-search-input {
+  background-color: transparent !important;
+  color: #ffffff !important;
+}
+
+/* ── Hide browser native password reveal eye (Edge/Chrome/IE) ──────── */
+/* We have our own custom eye toggle button — suppress the built-in one */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none !important;
+}
+input[type="password"]::-webkit-credentials-auto-fill-button,
+input[type="password"]::-webkit-textfield-decoration-container {
+  display: none !important;
+}
+
 /* ── Print styles (certificates) ─────────────────────────────────── */
 @media print {
   body * { visibility: hidden; }

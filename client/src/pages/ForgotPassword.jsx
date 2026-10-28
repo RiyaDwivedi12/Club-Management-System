@@ -81,14 +81,14 @@ const ForgotPassword = () => {
 
               <form onSubmit={submitHandler} className="space-y-5">
                 <div>
-                  <label htmlFor="forgot-email" className="label">Email Address</label>
+                  <label htmlFor="forgot-email" className="label">Email Address or Roll Number</label>
                   <input
                     id="forgot-email"
-                    type="email"
+                    type="text"
                     className="input py-3"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="student@college.edu"
+                    placeholder="e.g. 23CS012 or student@college.edu"
                     required
                   />
                 </div>

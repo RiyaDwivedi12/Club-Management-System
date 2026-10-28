@@ -2,16 +2,18 @@ import Certificate from '../models/Certificate.js';
 import Tournament from '../models/Tournament.js';
 import User from '../models/User.js';
 import Team from '../models/Team.js';
+import Notification from '../models/Notification.js';
 import crypto from 'crypto';
 import PDFDocument from 'pdfkit';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import * as xlsx from 'xlsx';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Helper to generate elegant PDF Certificate matching uploaded design
+// Helper to generate elegant PDF Certificate with Game and Match Won details
 const createCertificatePDF = (certData, filePath) => {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({
@@ -53,21 +55,9 @@ const createCertificatePDF = (certData, filePath) => {
     const cx = contentW / 2;
     const cy = H / 2 - 12;
     doc.save();
-    doc.strokeColor('#E2E8F0').lineWidth(3);
+    doc.strokeColor('#F1F5F9').lineWidth(3);
     doc.arc(cx - 145, cy, 135, -Math.PI / 2.3, Math.PI / 2.3).stroke();
     doc.arc(cx + 145, cy, 135, Math.PI - Math.PI / 2.3, Math.PI + Math.PI / 2.3).stroke();
-    doc.fillColor('#E2E8F0');
-    for (let angle = -1.2; angle <= 1.2; angle += 0.35) {
-      const lx = cx - 145 + Math.cos(angle) * 135;
-      const ly = cy + Math.sin(angle) * 135;
-      doc.circle(lx - 9, ly, 6.5).fill();
-      doc.circle(lx + 7, ly - 4, 5.5).fill();
-      
-      const rx = cx + 145 - Math.cos(angle) * 135;
-      const ry = cy + Math.sin(angle) * 135;
-      doc.circle(rx + 9, ry, 6.5).fill();
-      doc.circle(rx - 7, ry - 4, 5.5).fill();
-    }
     doc.restore();
 
     // 4. Top Sports Flame/Ball Emblem
@@ -85,7 +75,7 @@ const createCertificatePDF = (certData, filePath) => {
     doc.font('Helvetica-Bold')
        .fontSize(10)
        .fillColor('#1E293B')
-       .text('CRESTMORE ELITE SPORTS ASSOCIATION', 0, 72, {
+       .text('CAMPUSHUB ELITE SPORTS & ATHLETICS COUNCIL', 0, 72, {
          width: contentW,
          align: 'center',
          characterSpacing: 2
@@ -93,186 +83,142 @@ const createCertificatePDF = (certData, filePath) => {
 
     // 6. CERTIFICATE Main Title
     doc.font('Times-Bold')
-       .fontSize(44)
+       .fontSize(38)
        .fillColor('#1B365D')
-       .text('CERTIFICATE', 0, 102, {
+       .text('CERTIFICATE OF ACHIEVEMENT', 0, 96, {
+         width: contentW,
+         align: 'center',
+         characterSpacing: 2
+       });
+
+    // 7. Subtitle
+    doc.font('Helvetica-Bold')
+       .fontSize(9)
+       .fillColor('#7E1522')
+       .text('OFFICIAL VICTORY & MERIT RECOGNITION', 0, 142, {
          width: contentW,
          align: 'center',
          characterSpacing: 3
        });
 
-    // 7. OF PROFESSIONAL ATHLETIC MERIT
-    doc.font('Times-Roman')
-       .fontSize(15)
-       .fillColor('#334E68')
-       .text('OF PROFESSIONAL ATHLETIC MERIT', 0, 155, {
-         width: contentW,
-         align: 'center',
-         characterSpacing: 3.5
-       });
-
-    // 8. Presentation Tag
-    doc.font('Helvetica')
-       .fontSize(9.5)
+    // 8. This is proudly presented to
+    doc.font('Times-Italic')
+       .fontSize(14)
        .fillColor('#64748B')
-       .text('THIS CERTIFICATE IS AWARDED TO', 0, 198, {
-         width: contentW,
-         align: 'center',
-         characterSpacing: 1.5
-       });
-
-    // 9. Recipient Name
-    doc.font('Times-BoldItalic')
-       .fontSize(34)
-       .fillColor('#0F172A')
-       .text(certData.userName || 'Student Athlete', 0, 218, {
+       .text('This is proudly presented to', 0, 168, {
          width: contentW,
          align: 'center'
        });
 
-    // Sub-details: Roll Number & Course / Department
-    const studentMetaParts = [
-      certData.roll_no ? `ROLL NO: ${certData.roll_no}` : '',
-      certData.department ? `COURSE: ${certData.department}${certData.year ? ` (YR ${certData.year})` : ''}` : '',
-      certData.teamName ? `TEAM: ${certData.teamName}` : ''
-    ].filter(Boolean);
+    // 9. Recipient Name
+    const recipient = (certData.userName || certData.recipientName || 'Student Athlete').toUpperCase();
+    doc.font('Times-Bold')
+       .fontSize(30)
+       .fillColor('#0F172A')
+       .text(recipient, 0, 192, {
+         width: contentW,
+         align: 'center'
+       });
 
-    const studentMeta = studentMetaParts.join('   •   ');
+    // Name Underline
+    doc.strokeColor('#C59B27').lineWidth(2);
+    doc.moveTo(cx - 150, 230).lineTo(cx + 150, 230).stroke();
 
-    if (studentMeta) {
+    // 10. Roll Number & Department Badge
+    const rollText = certData.roll_no ? `ROLL NO: ${certData.roll_no}` : '';
+    const deptText = certData.department ? ` • ${certData.department.toUpperCase()}` : '';
+    if (rollText) {
       doc.font('Helvetica-Bold')
-         .fontSize(9.5)
+         .fontSize(10)
          .fillColor('#475569')
-         .text(studentMeta.toUpperCase(), 0, 258, {
+         .text(`${rollText}${deptText}`, 0, 238, {
            width: contentW,
            align: 'center',
            characterSpacing: 1
          });
     }
 
-    // 10. Citation Text
-    const honorTitle = certData.type === 'winner' ? 'A VALUED CHAMPION' :
-                       certData.type === 'runner-up' ? 'A DISTINGUISHED RUNNER-UP' :
-                       certData.type === 'third-place' ? 'A THIRD PLACE HONOREE' : 'A VALUED PLAYER';
-
-    const tourneyTitle = (certData.tournamentName || 'CAMPUS SPORTS LEAGUE').toUpperCase();
-    const citation = `IN RECOGNITION OF OUTSTANDING DEDICATION, CONSISTENT PERFORMANCE, AND\nPROFESSIONALISM AS ${honorTitle} IN THE ${tourneyTitle}.`;
+    // 11. Body Text with Game & Match Details
+    const game = certData.game || 'Sports Tournament';
+    const match = certData.matchDetails || certData.achievement || 'Match Victory';
+    const tournament = certData.tournamentName || certData.title || 'Inter-Department Annual Championship';
 
     doc.font('Helvetica')
-       .fontSize(9)
+       .fontSize(12)
        .fillColor('#334155')
-       .text(citation, 70, studentMeta ? 282 : 272, {
-         width: contentW - 140,
-         align: 'center',
-         lineGap: 4
-       });
+       .text(
+         `In recognition of outstanding performance, sportsmanship, and triumph in ${game}. `,
+         cx - 240,
+         265,
+         {
+           width: 480,
+           align: 'center',
+           lineGap: 4
+         }
+       );
 
-    // Presentation Date
-    const issueDateObj = new Date(certData.issueDate || Date.now());
-    const day = issueDateObj.getDate();
-    const month = issueDateObj.toLocaleString('en-US', { month: 'long' }).toUpperCase();
-    const year = issueDateObj.getFullYear();
-    const ordinal = day === 1 || day === 21 || day === 31 ? 'ST' :
-                    day === 2 || day === 22 ? 'ND' :
-                    day === 3 || day === 23 ? 'RD' : 'TH';
-
-    doc.font('Helvetica')
-       .fontSize(8.5)
-       .fillColor('#475569')
-       .text(`PRESENTED ON THIS ${day}${ordinal} DAY OF ${month}, ${year}.`, 0, 335, {
+    // Prominent Match Won highlight banner
+    doc.font('Helvetica-Bold')
+       .fontSize(14)
+       .fillColor('#7E1522')
+       .text(`VICTORY: ${match.toUpperCase()}`, 0, 305, {
          width: contentW,
          align: 'center',
          characterSpacing: 1
        });
 
-    // 11. Bottom Left: Golden Embossed Seal / Wax Medallion
-    const sealX = 115;
-    const sealY = 445;
-    doc.save();
-    doc.fillColor('#D4AF37');
-    const points = 24;
-    const outerR = 36;
-    const innerR = 31;
-    doc.moveTo(sealX + outerR, sealY);
-    for (let i = 0; i < points * 2; i++) {
-      const radius = i % 2 === 0 ? outerR : innerR;
-      const angle = (i * Math.PI) / points;
-      doc.lineTo(sealX + Math.cos(angle) * radius, sealY + Math.sin(angle) * radius);
-    }
-    doc.closePath().fill();
-
-    doc.fillColor('#EAB308').circle(sealX, sealY, 26).fill();
-    doc.strokeColor('#B45309').lineWidth(1.4).circle(sealX, sealY, 22).stroke();
-    doc.strokeColor('#CA8A04').lineWidth(0.8).circle(sealX, sealY, 19).stroke();
-    doc.font('Helvetica-Bold').fontSize(6).fillColor('#78350F').text('OFFICIAL', sealX - 15, sealY - 7, { width: 30, align: 'center' });
-    doc.font('Helvetica-Bold').fontSize(5.5).fillColor('#78350F').text('MERIT', sealX - 15, sealY + 1, { width: 30, align: 'center' });
-    doc.restore();
-
-    // 12. Bottom Center: Commissioner / Authority Signatory
-    const signY = 450;
-    const signerName = certData.issuedByName || 'Kenneth Dorsen';
-    const signerRole = certData.issuedByRole || 'League Commissioner';
-    const signerTitle = certData.signatoryTitle || `${signerRole.toUpperCase()}, CRESTMORE ATHLETIC FEDERATION`;
-
-    doc.font('Times-Italic').fontSize(18).fillColor('#1E293B').text(signerName, 0, signY - 14, {
-      width: contentW,
-      align: 'center'
-    });
-    doc.strokeColor('#94A3B8').lineWidth(1).moveTo(cx - 90, signY + 10).lineTo(cx + 90, signY + 10).stroke();
-
-    doc.font('Times-Bold')
+    doc.font('Helvetica-Oblique')
        .fontSize(11)
-       .fillColor('#0F172A')
-       .text(signerName.toUpperCase(), 0, signY + 14, {
-         width: contentW,
-         align: 'center',
-         characterSpacing: 1.5
-       });
-
-    doc.font('Helvetica')
-       .fontSize(7.5)
        .fillColor('#64748B')
-       .text(signerTitle, 0, signY + 28, {
-         width: contentW,
-         align: 'center',
-         characterSpacing: 0.5
-       });
-
-    doc.font('Courier')
-       .fontSize(7)
-       .fillColor('#94A3B8')
-       .text(`AUTHENTICITY CODE: ${certData.verificationHash || 'VERIFIED-CREDENTIAL'}`, 0, signY + 42, {
+       .text(`Event: ${tournament}`, 0, 328, {
          width: contentW,
          align: 'center'
        });
 
-    // 13. Bottom Right: Golden Trophy Cup
-    const trophyX = contentW - 120;
-    const trophyY = 450;
-    doc.save();
-    // Marble/Black pedestal
-    doc.fillColor('#1E293B').rect(trophyX - 18, trophyY + 22, 36, 12).fill();
-    doc.fillColor('#0F172A').rect(trophyX - 14, trophyY + 18, 28, 4).fill();
-    // Gold stem
-    doc.fillColor('#D4AF37').rect(trophyX - 4, trophyY + 8, 8, 10).fill();
-    // Gold cup body
-    doc.fillColor('#F59E0B');
-    doc.moveTo(trophyX - 16, trophyY - 16)
-       .lineTo(trophyX + 16, trophyY - 16)
-       .lineTo(trophyX + 10, trophyY + 8)
-       .lineTo(trophyX - 10, trophyY + 8)
-       .closePath().fill();
-    // Handles
-    doc.strokeColor('#D4AF37').lineWidth(2.5);
-    doc.moveTo(trophyX - 15, trophyY - 12)
-       .bezierCurveTo(trophyX - 25, trophyY - 10, trophyX - 25, trophyY + 2, trophyX - 11, trophyY + 4)
-       .stroke();
-    doc.moveTo(trophyX + 15, trophyY - 12)
-       .bezierCurveTo(trophyX + 25, trophyY - 10, trophyX + 25, trophyY + 2, trophyX + 11, trophyY + 4)
-       .stroke();
-    // Star on cup
-    doc.fillColor('#FFFFFF').fontSize(8).text('★', trophyX - 4, trophyY - 8);
-    doc.restore();
+    // Date
+    const dateObj = new Date(certData.issueDate || Date.now());
+    const formattedDate = dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+    doc.font('Helvetica')
+       .fontSize(10)
+       .fillColor('#64748B')
+       .text(`Date of Issuance: ${formattedDate}`, 0, 355, {
+         width: contentW,
+         align: 'center'
+       });
+
+    // 12. Signatures Section
+    const signY = 410;
+    // Left Signatory (Admin / Sports President)
+    doc.strokeColor('#CBD5E1').lineWidth(1);
+    doc.moveTo(cx - 210, signY).lineTo(cx - 50, signY).stroke();
+    doc.font('Helvetica-Bold')
+       .fontSize(10)
+       .fillColor('#1E293B')
+       .text(certData.issuedByName || 'Kenneth Dorsen', cx - 210, signY + 6, { width: 160, align: 'center' });
+    doc.font('Helvetica')
+       .fontSize(8)
+       .fillColor('#64748B')
+       .text(certData.issuedByRole ? certData.issuedByRole.toUpperCase() : 'SPORTS AUTHORITY', cx - 210, signY + 20, { width: 160, align: 'center' });
+
+    // Right Signatory (Dean / Faculty Coordinator)
+    doc.moveTo(cx + 50, signY).lineTo(cx + 210, signY).stroke();
+    doc.font('Helvetica-Bold')
+       .fontSize(10)
+       .fillColor('#1E293B')
+       .text('Director of Athletics', cx + 50, signY + 6, { width: 160, align: 'center' });
+    doc.font('Helvetica')
+       .fontSize(8)
+       .fillColor('#64748B')
+       .text('CAMPUS SPORTS BOARD', cx + 50, signY + 20, { width: 160, align: 'center' });
+
+    // Authenticity Code
+    doc.font('Courier')
+       .fontSize(8)
+       .fillColor('#94A3B8')
+       .text(`CREDENTIAL ID: ${certData.verificationHash || 'VERIFIED-RECORD'}`, 0, signY + 45, {
+         width: contentW,
+         align: 'center'
+       });
 
     doc.end();
 
@@ -281,35 +227,96 @@ const createCertificatePDF = (certData, filePath) => {
   });
 };
 
-// @desc    Issue / generate certificates for tournament, match, or class event
-// @route   POST /api/certificates/generate
+// @desc    Preview Excel / CSV Certificate Upload
+// @route   POST /api/certificates/bulk-preview
 // @access  Private (Admin/Faculty/President)
-export const generateCertificates = async (req, res) => {
+export const bulkPreviewCertificates = async (req, res) => {
   try {
-    const { 
-      tournamentId, 
-      title, 
-      eventName, 
-      teamName, 
-      type, 
-      certificates, 
-      studentIds, 
-      issuedByRole, 
-      issuedByName 
-    } = req.body;
-
-    let resolvedTitle = title || eventName;
-    let tourneyObj = null;
-
-    if (tournamentId) {
-      tourneyObj = await Tournament.findById(tournamentId).populate('clubId');
-      if (tourneyObj && !resolvedTitle) {
-        resolvedTitle = tourneyObj.name;
-      }
+    if (!req.file) {
+      return res.status(400).json({ message: 'Please select an Excel (.xlsx, .xls) or CSV file to upload' });
     }
 
-    if (!resolvedTitle) {
-      resolvedTitle = teamName ? `${teamName} Sports Championship` : 'Competitive Sports Championship';
+    const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    if (!sheetName) {
+      return res.status(400).json({ message: 'The uploaded spreadsheet is empty' });
+    }
+
+    const rawRows = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
+    if (!rawRows || rawRows.length === 0) {
+      return res.status(400).json({ message: 'No data rows found in the uploaded file' });
+    }
+
+    // Helper: fuzzy match column key
+    const findCol = (row, candidates) => {
+      const keys = Object.keys(row);
+      for (const c of candidates) {
+        const found = keys.find(k => k.toLowerCase().replace(/[^a-z0-9]/g, '') === c.toLowerCase().replace(/[^a-z0-9]/g, ''));
+        if (found && row[found] !== undefined && row[found] !== '') return String(row[found]).trim();
+      }
+      return '';
+    };
+
+    const parsedRows = [];
+    for (let i = 0; i < rawRows.length; i++) {
+      const row = rawRows[i];
+      const roll_no = findCol(row, ['roll_no', 'rollno', 'rollnumber', 'roll', 'studentid', 'id']);
+      const name = findCol(row, ['name', 'studentname', 'student_name', 'playername', 'recipient']);
+      const game = findCol(row, ['game', 'sport', 'gamename', 'event', 'activity', 'sportname']) || 'Sports Championship';
+      const match = findCol(row, ['matchwon', 'match', 'matchdetails', 'achievement', 'won', 'position', 'result']) || 'Winner';
+      const department = findCol(row, ['department', 'dept', 'branch', 'course']) || '';
+      const achievement = findCol(row, ['achievement', 'title', 'medal', 'award']) || 'Winner';
+
+      if (!roll_no && !name) continue; // skip blank rows
+
+      // Try finding user in DB by roll_no
+      let matchedUser = null;
+      if (roll_no) {
+        matchedUser = await User.findOne({ roll_no: new RegExp('^' + roll_no + '$', 'i') }).select('name email roll_no department year');
+      }
+      if (!matchedUser && name) {
+        matchedUser = await User.findOne({ name: new RegExp('^' + name + '$', 'i') }).select('name email roll_no department year');
+      }
+
+      parsedRows.push({
+        rowIndex: i + 1,
+        roll_no: roll_no || (matchedUser ? matchedUser.roll_no : 'N/A'),
+        recipientName: name || (matchedUser ? matchedUser.name : 'Unknown Student'),
+        game,
+        matchDetails: match,
+        achievement,
+        department: department || (matchedUser ? matchedUser.department : ''),
+        isMatched: Boolean(matchedUser),
+        matchedUser: matchedUser || null
+      });
+    }
+
+    if (parsedRows.length === 0) {
+      return res.status(400).json({ message: 'Could not extract valid student records. Please ensure your file has Roll Number, Name, Game, and Match columns.' });
+    }
+
+    const matchedCount = parsedRows.filter(r => r.isMatched).length;
+
+    res.json({
+      totalRows: parsedRows.length,
+      matchedCount,
+      rows: parsedRows
+    });
+  } catch (error) {
+    console.error('bulkPreviewCertificates error:', error);
+    res.status(500).json({ message: error.message || 'Failed to parse spreadsheet file' });
+  }
+};
+
+// @desc    Bulk Issue Certificates from Parsed Excel / CSV data
+// @route   POST /api/certificates/bulk-issue
+// @access  Private (Admin/Faculty/President)
+export const bulkIssueCertificates = async (req, res) => {
+  try {
+    const { certificates, issuedByName, issuedByRole, tournamentName } = req.body;
+
+    if (!Array.isArray(certificates) || certificates.length === 0) {
+      return res.status(400).json({ message: 'Please provide valid certificate records to issue' });
     }
 
     const uploadDir = path.join(__dirname, '../uploads/certificates');
@@ -317,110 +324,124 @@ export const generateCertificates = async (req, res) => {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
 
-    // Build the list of items to issue (supports individual objects or array of ticked student IDs)
-    let itemsToProcess = [];
+    const issuedCertificates = [];
+    const signerName = issuedByName || req.user.name || 'Athletic Director';
+    const signerRole = issuedByRole || req.user.role || 'admin';
 
-    if (Array.isArray(certificates) && certificates.length > 0) {
-      itemsToProcess = certificates;
-    } else if (Array.isArray(studentIds) && studentIds.length > 0) {
-      itemsToProcess = studentIds.map(sId => ({
-        userId: sId,
-        teamName: teamName || '',
-        type: type || 'winner'
-      }));
-    }
+    for (const item of certificates) {
+      const cleanRoll = (item.roll_no || '').trim();
+      const cleanName = (item.recipientName || '').trim();
+      const cleanGame = (item.game || 'Sports Tournament').trim();
+      const cleanMatch = (item.matchDetails || item.achievement || 'Final Match Won').trim();
+      const cleanAchievement = (item.achievement || 'Winner').trim();
 
-    if (itemsToProcess.length === 0) {
-      return res.status(400).json({ message: 'Please select at least one student recipient to generate certificates' });
-    }
-
-    const Notification = (await import('../models/Notification.js')).default;
-    const generated = [];
-
-    const certRole = issuedByRole || req.user.role || 'Admin';
-    const certSigner = issuedByName || req.user.name || 'Authorized Official';
-    const roleDisplay = certRole === 'faculty' ? 'Faculty Coordinator' 
-      : certRole === 'president' ? 'Club President' 
-      : certRole === 'vice-president' ? 'Club Vice-President' 
-      : 'Platform Administrator';
-
-    for (const item of itemsToProcess) {
-      const user = await User.findById(item.userId);
-      if (!user) continue;
-
-      const verificationHash = crypto.randomBytes(8).toString('hex').toUpperCase();
-      const fileName = `cert-${user._id}-${Date.now()}-${Math.floor(Math.random() * 1000)}.pdf`;
-      const filePath = path.join(uploadDir, fileName);
-      const pdfUrl = `/uploads/certificates/${fileName}`;
-
-      const itemType = item.type || type || 'winner';
-      const itemTeam = item.teamName || teamName || '';
-
-      await createCertificatePDF({
-        userName: user.name,
-        tournamentName: resolvedTitle,
-        teamName: itemTeam,
-        roll_no: user.roll_no || '',
-        department: user.department || '',
-        year: user.year || null,
-        type: itemType,
-        issueDate: new Date(),
-        verificationHash,
-        issuedByName: certSigner,
-        issuedByRole: roleDisplay,
-        signatoryTitle: `${roleDisplay.toUpperCase()}, CAMPUS SPORTS BOARD`
-      }, filePath);
-
-      const certDoc = await Certificate.create({
-        userId: user._id,
-        tournamentId: tourneyObj?._id || null,
-        title: resolvedTitle,
-        teamName: itemTeam,
-        roll_no: user.roll_no || '',
-        department: user.department || '',
-        year: user.year || null,
-        type: itemType,
-        pdfUrl,
-        verificationHash,
-        issueDate: new Date(),
-        issuedByRole: certRole,
-        issuedByName: certSigner
-      });
-
-      // Send real-time notification to the student so they know their certificate is on their profile
-      try {
-        await Notification.create({
-          user: user._id,
-          message: `🏆 Congratulations! Your certificate for "${resolvedTitle}" (${itemType.toUpperCase()}) has been sanctioned by ${roleDisplay} ${certSigner} and is now ready on your Profile!`,
-          type: 'general',
-          link: '/profile'
-        });
-      } catch (notifErr) {
-        console.error('Failed to create student notification:', notifErr);
+      // Find user if registered
+      let user = null;
+      if (cleanRoll && cleanRoll !== 'N/A') {
+        user = await User.findOne({ roll_no: new RegExp('^' + cleanRoll + '$', 'i') });
+      }
+      if (!user && cleanName) {
+        user = await User.findOne({ name: new RegExp('^' + cleanName + '$', 'i') });
       }
 
-      generated.push(certDoc);
+      const verificationHash = 'CERT-' + crypto.randomBytes(4).toString('hex').toUpperCase();
+
+      const certDoc = await Certificate.create({
+        userId: user ? user._id : undefined,
+        roll_no: cleanRoll || (user ? user.roll_no : ''),
+        recipientName: cleanName || (user ? user.name : 'Student Athlete'),
+        game: cleanGame,
+        matchDetails: cleanMatch,
+        achievement: cleanAchievement,
+        title: `${cleanGame} - ${cleanMatch}`,
+        tournamentName: tournamentName || item.tournamentName || 'Annual Sports Championship',
+        department: item.department || (user ? user.department : ''),
+        year: user ? user.year : 1,
+        type: cleanAchievement.toLowerCase().includes('runner') ? 'runner-up' : 'winner',
+        verificationHash,
+        status: 'approved',
+        issuedByName: signerName,
+        issuedByRole: signerRole,
+        issueDate: new Date()
+      });
+
+      // Send real-time in-app notification if user account exists
+      if (user) {
+        try {
+          await Notification.create({
+            user: user._id,
+            message: `🏆 Certificate Approved! You won in ${cleanGame} (${cleanMatch}). Your official certificate is now ready on your Profile & Certificates tab.`,
+            type: 'general',
+            link: '/certificates'
+          });
+        } catch (notifErr) {
+          console.error('Notification error (non-fatal):', notifErr.message);
+        }
+      }
+
+      issuedCertificates.push(certDoc);
     }
 
     res.status(201).json({
-      message: `Successfully generated and issued ${generated.length} certificates`,
-      certificates: generated
+      message: `Successfully issued and approved ${issuedCertificates.length} certificates!`,
+      count: issuedCertificates.length,
+      certificates: issuedCertificates
     });
   } catch (error) {
-    console.error('generateCertificates error:', error);
-    res.status(500).json({ message: error.message });
+    console.error('bulkIssueCertificates error:', error);
+    res.status(500).json({ message: error.message || 'Failed to issue bulk certificates' });
   }
 };
 
-// @desc    Get certificates for logged in user
+// @desc    Download sample CSV / Excel template
+// @route   GET /api/certificates/template/download
+// @access  Public
+export const downloadCertificateTemplate = (req, res) => {
+  const sampleHeaders = 'Roll Number,Student Name,Game,Match Won / Achievement,Department\n';
+  const sampleData = [
+    '23CS012,Riya Dwivedi,Badminton,Final Match Won (Gold Medal),Computer Science',
+    'PH24101,Rohan Deshmukh,Cricket,Champions - Inter-Branch Final,Pharmacy',
+    '24IT005,Aarav Sharma,Chess,Tournament Winner (Rapid Chess),Information Technology',
+    '22ME034,Karan Patel,Football,Best Striker - Championship Won,Mechanical'
+  ].join('\n');
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename="Sports_Certificates_Template.csv"');
+  res.status(200).send(sampleHeaders + sampleData);
+};
+
+// @desc    Get certificates for logged in student (matching userId OR roll_no)
 // @route   GET /api/certificates/my-certificates
 // @access  Private
 export const getMyCertificates = async (req, res) => {
   try {
-    const certs = await Certificate.find({ userId: req.user._id })
+    const userRoll = req.user.roll_no ? req.user.roll_no.trim() : null;
+    const query = {
+      $or: [
+        { userId: req.user._id },
+        ...(userRoll ? [{ roll_no: new RegExp('^' + userRoll + '$', 'i') }] : [])
+      ]
+    };
+    const certs = await Certificate.find(query)
       .populate('tournamentId', 'name wing clubId')
       .sort({ createdAt: -1 });
 
+    res.json(certs);
+  } catch (error) {
+    console.error('getMyCertificates error:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get all certificates (Admin/Faculty/President)
+// @route   GET /api/certificates
+// @access  Private (Admin/Faculty/President)
+export const getAllCertificates = async (req, res) => {
+  try {
+    const certs = await Certificate.find({})
+      .populate('userId', 'name email roll_no')
+      .populate('tournamentId', 'name')
+      .sort({ createdAt: -1 });
     res.json(certs);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -433,7 +454,7 @@ export const getMyCertificates = async (req, res) => {
 export const verifyCertificate = async (req, res) => {
   try {
     const cert = await Certificate.findOne({ verificationHash: req.params.hash.toUpperCase() })
-      .populate('userId', 'name email department year')
+      .populate('userId', 'name email department year roll_no')
       .populate('tournamentId', 'name clubId');
 
     if (!cert) {
@@ -449,28 +470,13 @@ export const verifyCertificate = async (req, res) => {
   }
 };
 
-// @desc    Get all certificates (Admin/Faculty)
-// @route   GET /api/certificates
-// @access  Private (Admin/Faculty)
-export const getAllCertificates = async (req, res) => {
-  try {
-    const certs = await Certificate.find({})
-      .populate('userId', 'name email')
-      .populate('tournamentId', 'name')
-      .sort({ createdAt: -1 });
-    res.json(certs);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
 // @desc    Download certificate PDF by ID
 // @route   GET /api/certificates/:id/download
 // @access  Public
 export const downloadCertificate = async (req, res) => {
   try {
     const cert = await Certificate.findById(req.params.id)
-      .populate('userId', 'name email')
+      .populate('userId', 'name email roll_no')
       .populate('tournamentId', 'name');
 
     if (!cert) {
@@ -485,13 +491,15 @@ export const downloadCertificate = async (req, res) => {
     const fileName = `cert-${cert._id}.pdf`;
     const filePath = path.join(uploadDir, fileName);
 
-    // If PDF file does not exist on disk, render it on demand
+    // If PDF does not exist on disk, render on demand
     if (!fs.existsSync(filePath)) {
       await createCertificatePDF({
-        userName: cert.userId?.name || 'Student Athlete',
-        tournamentName: cert.title || cert.tournamentId?.name || 'Competitive Sports League',
-        teamName: cert.teamName || '',
-        type: cert.type || 'participation',
+        userName: cert.recipientName || cert.userId?.name || 'Student Athlete',
+        roll_no: cert.roll_no || cert.userId?.roll_no || '',
+        game: cert.game || 'Sports Tournament',
+        matchDetails: cert.matchDetails || cert.achievement || 'Match Victory',
+        tournamentName: cert.tournamentName || cert.title || cert.tournamentId?.name || 'Campus Sports Championship',
+        department: cert.department || cert.userId?.department || '',
         issueDate: cert.issueDate || cert.createdAt,
         verificationHash: cert.verificationHash,
         issuedByName: cert.issuedByName,
@@ -502,9 +510,10 @@ export const downloadCertificate = async (req, res) => {
       await cert.save();
     }
 
-    const sanitizedName = (cert.userId?.name || 'Student').replace(/[^a-zA-Z0-9]/g, '_');
+    const studentName = (cert.recipientName || cert.userId?.name || 'Student').replace(/[^a-zA-Z0-9]/g, '_');
+    const gameName = (cert.game || 'Victory').replace(/[^a-zA-Z0-9]/g, '_');
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="Certificate-${sanitizedName}.pdf"`);
+    res.setHeader('Content-Disposition', `attachment; filename="Certificate_${gameName}_${studentName}.pdf"`);
 
     const fileStream = fs.createReadStream(filePath);
     fileStream.pipe(res);
@@ -512,4 +521,22 @@ export const downloadCertificate = async (req, res) => {
     console.error('Download certificate error:', error);
     res.status(500).json({ message: error.message });
   }
+};
+
+// @desc    Delete certificate
+// @route   DELETE /api/certificates/:id
+// @access  Private (Admin)
+export const deleteCertificate = async (req, res) => {
+  try {
+    const cert = await Certificate.findByIdAndDelete(req.params.id);
+    if (!cert) return res.status(404).json({ message: 'Certificate not found' });
+    res.json({ message: 'Certificate deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Legacy generator
+export const generateCertificates = async (req, res) => {
+  return res.status(200).json({ message: 'Use bulk-issue endpoint' });
 };

@@ -113,6 +113,7 @@ const StudentLogin = () => {
                       type={showPassword ? 'text' : 'password'}
                       className="input py-3 pr-12"
                       value={password}
+                      autoComplete="new-password"
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Enter your password"
                       required

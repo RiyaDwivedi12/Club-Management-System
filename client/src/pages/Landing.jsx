@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import {
-  GraduationCap, Menu, X, ArrowRight, Users, Calendar, Trophy, Vote, Award,
+  GraduationCap, Menu, X, ArrowRight, Users, Calendar, Vote, Award,
   Wallet, ShieldCheck, UserPlus, Compass, Sparkles, CheckCircle2, Building2
 } from 'lucide-react';
 
@@ -20,12 +20,6 @@ const FEATURES = [
     title: 'Club Management',
     text: 'Discover clubs, request membership and let presidents and faculty coordinators manage members in one place.',
     tint: 'bg-blue-50 text-blue-600',
-  },
-  {
-    icon: Trophy,
-    title: 'Tournaments & Brackets',
-    text: 'Generate knockout brackets from team rosters, track live scores and crown champions automatically.',
-    tint: 'bg-amber-50 text-amber-600',
   },
   {
     icon: Vote,
@@ -61,7 +55,7 @@ const STEPS = [
   {
     icon: Sparkles,
     title: 'Take part',
-    text: 'Attend events, compete in tournaments, vote in elections and collect your certificates.',
+    text: 'Attend events, join clubs, vote in elections and collect your certificates.',
   },
 ];
 
@@ -178,7 +172,7 @@ const Landing = () => {
     { label: 'Active Clubs', value: stats.clubs, icon: Building2 },
     { label: 'Club Memberships', value: stats.members, icon: Users },
     { label: 'Campus Events', value: stats.events, icon: Calendar },
-    { label: 'Tournaments', value: stats.tournaments, icon: Trophy },
+    { label: 'Role-based dashboards', value: 'Every role', icon: Award },
   ];
   const statsUnavailable = !statsLoading && statItems.every((s) => s.value === null);
 
@@ -281,7 +275,7 @@ const Landing = () => {
                 <CampusIllustration />
               </div>
               <FloatingCard icon={Vote} title="Elections" text="Secret ballot voting" className="top-0 left-0 sm:-left-2" delay="-1s" />
-              <FloatingCard icon={Trophy} title="Tournaments" text="Live brackets" className="top-1/3 right-0 sm:-right-2" delay="-3s" />
+              <FloatingCard icon={Wallet} title="Finance" text="Budgets & receipts" className="top-1/3 right-0 sm:-right-2" delay="-3s" />
               <FloatingCard icon={ShieldCheck} title="Certificates" text="Hash verified" className="hidden sm:flex -bottom-2 right-8" delay="-2s" />
             </div>
           </div>

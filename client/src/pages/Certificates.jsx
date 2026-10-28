@@ -54,7 +54,7 @@ const Certificates = () => {
     try {
       if (user) {
         const myRes = await axios.get('/api/certificates/my-certificates', { withCredentials: true });
-        setMyCertificates(myRes.data || []);
+        setMyCertificates(Array.isArray(myRes.data) ? myRes.data : []);
       }
 
       if (canIssue) {
@@ -63,9 +63,9 @@ const Certificates = () => {
           axios.get('/api/tournaments'),
           axios.get('/api/auth/users', { withCredentials: true })
         ]);
-        setAllCertificates(allRes.data || []);
-        setTournaments(tourneyRes.data || []);
-        setUsers(usersRes.data || []);
+        setAllCertificates(Array.isArray(allRes.data) ? allRes.data : []);
+        setTournaments(Array.isArray(tourneyRes.data) ? tourneyRes.data : []);
+        setUsers(Array.isArray(usersRes.data) ? usersRes.data : (Array.isArray(usersRes.data?.users) ? usersRes.data.users : []));
       }
     } catch (err) {
       console.error(err);

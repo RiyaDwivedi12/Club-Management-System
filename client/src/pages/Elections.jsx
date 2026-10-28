@@ -144,7 +144,7 @@ const Elections = () => {
   }, [fetchElections, user?._id]);
 
   useEffect(() => {
-    const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000');
+    const socket = io(import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://club-management-system-1-t4a7.onrender.com' : 'http://localhost:5000'));
     socket.on('voteUpdate', (data) => {
       updateVoteCount(data.electionId, data.candidateId, data.newVotes);
     });

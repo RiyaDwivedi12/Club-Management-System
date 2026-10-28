@@ -31,6 +31,8 @@ const ClassFeeManagementView = ({ clubs = [] }) => {
   const [showUploadPdfModal, setShowUploadPdfModal] = useState(false);
   const [offlinePaymentStudent, setOfflinePaymentStudent] = useState(null);
   const [showBatchModal, setShowBatchModal] = useState(false);
+  const [customDeptMode, setCustomDeptMode] = useState(false);
+  const [customCourseMode, setCustomCourseMode] = useState(false);
 
   // In-App Document / Spreadsheet Viewer modal state
   const [viewingDoc, setViewingDoc] = useState(null);
@@ -166,8 +168,30 @@ const ClassFeeManagementView = ({ clubs = [] }) => {
   const handleCreateClass = async (e) => {
     e.preventDefault();
     try {
+      const deptName = (classForm.department || '').trim();
+      if (!deptName) {
+        toast.error('Please enter or select a department name');
+        return;
+      }
+
+      // If typed department is not in existing departments, auto-create it
+      const deptExists = departments.some(d => d.name?.toLowerCase() === deptName.toLowerCase());
+      if (!deptExists) {
+        try {
+          await axios.post('/api/class-fees/departments', {
+            name: deptName,
+            code: deptName.substring(0, 4).toUpperCase(),
+            description: `${deptName} Department`
+          }, { withCredentials: true });
+        } catch (deptErr) {
+          console.warn('Auto-create dept notice:', deptErr.message);
+        }
+      }
+
       const payload = {
         ...classForm,
+        department: deptName,
+        course: (classForm.course || 'B.Tech').trim(),
         name: classForm.name.trim() || `${classForm.course} - Year ${classForm.year} (Sec ${classForm.section})`
       };
       await axios.post('/api/class-fees/classes', payload, { withCredentials: true });

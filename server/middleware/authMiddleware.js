@@ -3,7 +3,15 @@ import User from '../models/User.js';
 
 // Protect routes - Verify JWT
 const protect = async (req, res, next) => {
+  // Accept token from cookie OR Authorization header (for cross-domain Vercel+Render)
   let token = req.cookies.jwt;
+
+  if (!token && req.headers.authorization) {
+    const authHeader = req.headers.authorization.trim();
+    if (/^bearer\s+/i.test(authHeader)) {
+      token = authHeader.replace(/^bearer\s+/i, '').trim();
+    }
+  }
 
   if (token) {
     try {

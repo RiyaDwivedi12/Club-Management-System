@@ -1,5 +1,11 @@
 import express from 'express';
+import multer from 'multer';
+const memUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+
 import {
+  bulkOnboardRole,
+  downloadRoleTemplate,
+  getRolesSummary,
   registerUser,
   authUser,
   logoutUser,
@@ -47,6 +53,11 @@ router.post('/update-role', protect, authorize('admin'), updateUserRole);
 router.post('/assign-referee', protect, authorize('admin', 'faculty', 'president', 'vice_president'), assignReferee);
 router.get('/referees', getReferees);
 router.post('/revoke-referee', protect, authorize('admin'), revokeReferee);
+
+// Bulk Role Onboarding & Credentials System
+router.post('/bulk-onboard', protect, authorize('admin'), memUpload.single('file'), bulkOnboardRole);
+router.get('/template/role/:role', downloadRoleTemplate);
+router.get('/roles-summary', protect, authorize('admin'), getRolesSummary);
 
 // Post-Election Elevation & Credentials Approval
 router.post('/approve-election-winner', protect, authorize('admin'), approveElectionWinner);

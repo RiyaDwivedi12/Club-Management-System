@@ -13,8 +13,23 @@ const messageSchema = new mongoose.Schema({
   },
   text: {
     type: String,
-    required: true
-  }
+    default: ''
+  },
+  image: {
+    type: String, // Image URL or Base64 data
+    default: ''
+  },
+  replyTo: {
+    messageId: { type: mongoose.Schema.Types.ObjectId, ref: 'Message' },
+    senderName: { type: String, default: '' },
+    text: { type: String, default: '' },
+    image: { type: String, default: '' }
+  },
+  reactions: [{
+    emoji: { type: String, default: '❤️' },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    userName: { type: String, default: '' }
+  }]
 }, {
   timestamps: true
 });

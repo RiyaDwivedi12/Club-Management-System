@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: club-management-system
+    runtime: node
+    plan: free
+    buildCommand: npm run build:all
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_SECRET
+        value: admin123
+      - key: FACULTY_SECRET
+        value: faculty123
+      - key: PRESIDENT_SECRET
+        value: president123
+      - key: VICE_PRESIDENT_SECRET
+        value: vp123
+      - key: REFEREE_SECRET
+        value: referee123
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASS
+        sync: false
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false

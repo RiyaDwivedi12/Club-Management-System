@@ -10,7 +10,9 @@ const SIZES = {
 const UserAvatar = ({ user, size = 'md', className = '' }) => {
   const [failed, setFailed] = useState(false);
   const sizeClass = SIZES[size] || SIZES.md;
-  if (user?.profilePicture && user.profilePicture !== 'default.jpg' && !failed) {
+  // 'default.jpg' and '/default…' paths are placeholders, not uploaded pictures.
+  const hasPicture = user?.profilePicture && user.profilePicture !== 'default.jpg' && !user.profilePicture.startsWith('/default');
+  if (hasPicture && !failed) {
     return (
       <img
         src={user.profilePicture}

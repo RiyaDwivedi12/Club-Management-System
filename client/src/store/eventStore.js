@@ -14,10 +14,12 @@ const useEventStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await axios.get(API_URL);
-      set({ events: response.data, isLoading: false });
+      const list = Array.isArray(response.data)
+        ? response.data
+        : (Array.isArray(response.data?.events) ? response.data.events : []);
+      set({ events: list, isLoading: false });
     } catch (error) {
-      set({ error: error.response?.data?.message || error.message, isLoading: false });
-      toast.error('Failed to fetch events');
+      set({ events: [], error: error.response?.data?.message || error.message, isLoading: false });
     }
   },
 

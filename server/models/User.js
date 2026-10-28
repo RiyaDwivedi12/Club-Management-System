@@ -16,8 +16,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Please add an email'],
     unique: true,
+    trim: true,
+    lowercase: true,
     match: [
-      /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
       'Please add a valid email'
     ]
   },
@@ -36,10 +38,9 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: 'default.jpg' // In production, this will be a Cloudinary URL
   },
-  isReferee: {
-    type: Boolean,
-    default: false
-  },
+  isReferee: { type: Boolean, default: false },
+  refereeSport: { type: String, default: 'General' },
+  refereeExpiresAt: { type: Date, default: null },
   roll_no: {
     type: String,
     required: function() { return this.role === 'student' && !this.isReferee; }

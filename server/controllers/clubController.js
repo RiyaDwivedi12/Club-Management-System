@@ -1,9 +1,60 @@
+import mongoose from 'mongoose';
 import Club from '../models/Club.js';
 import Membership from '../models/Membership.js';
 import User from '../models/User.js';
 import xlsx from 'xlsx';
 import crypto from 'crypto';
 import { createAndSendNotification, notifyClubMembers } from '../utils/notify.js';
+
+// Helper to resolve faculty advisor by ObjectId, email, or name (auto-creating if freeform typed)
+const resolveFacultyUser = async (val) => {
+  if (!val || typeof val !== 'string') return null;
+  const trimmed = val.trim();
+  if (!trimmed) return null;
+
+  // 1. If valid 24-char ObjectId
+  if (mongoose.Types.ObjectId.isValid(trimmed)) {
+    const existing = await User.findById(trimmed);
+    if (existing) return existing;
+  }
+
+  // 2. Search by email or username or exact name (case-insensitive)
+  const escaped = trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  let user = await User.findOne({
+    $or: [
+      { email: trimmed.toLowerCase() },
+      { username: trimmed },
+      { name: new RegExp('^' + escaped + '$', 'i') }
+    ]
+  });
+
+  if (user) {
+    if (user.role !== 'faculty' && user.role !== 'admin') {
+      user.role = 'faculty';
+      user.isVerified = true;
+      await user.save();
+    }
+    return user;
+  }
+
+  // 3. Auto-create faculty account if typed freeform
+  const isEmail = trimmed.includes('@');
+  const facultyName = isEmail ? trimmed.split('@')[0].replace(/[._-]/g, ' ') : trimmed;
+  const facultyEmail = isEmail ? trimmed.toLowerCase() : `faculty_${Date.now()}@campus.edu`;
+  const facultyUsername = `faculty_${Date.now().toString(36)}`;
+
+  user = await User.create({
+    name: facultyName,
+    username: facultyUsername,
+    email: facultyEmail,
+    password: 'admin123',
+    role: 'faculty',
+    isVerified: true,
+    department: 'Faculty Advisor'
+  });
+
+  return user;
+};
 
 // @desc    Create a new club
 // @route   POST /api/clubs
@@ -17,6 +68,12 @@ const createClub = async (req, res) => {
       return res.status(400).json({ message: 'Club with this name already exists' });
     }
 
+    let finalFacultyId = null;
+    if (facultyId) {
+      const resolved = await resolveFacultyUser(facultyId);
+      if (resolved) finalFacultyId = resolved._id;
+    }
+
     const club = await Club.create({
       name: name.trim(),
       category: category || 'Sports',
@@ -25,7 +82,7 @@ const createClub = async (req, res) => {
       logo: logo || '',
       presidentId: presidentId || null,
       vicePresidentId: vicePresidentId || null,
-      facultyId: facultyId || null,
+      facultyId: finalFacultyId,
       gallery: gallery || [],
       members: [],
       pendingRequests: []
@@ -37,9 +94,6 @@ const createClub = async (req, res) => {
     }
     if (vicePresidentId) {
       await User.findByIdAndUpdate(vicePresidentId, { role: 'vice_president', isVerified: true });
-    }
-    if (facultyId) {
-      await User.findByIdAndUpdate(facultyId, { role: 'faculty', isVerified: true });
     }
 
     const populatedClub = await Club.findById(club._id)
@@ -69,13 +123,19 @@ const updateClub = async (req, res) => {
     if (logo !== undefined) club.logo = logo;
     if (presidentId !== undefined) club.presidentId = presidentId || null;
     if (vicePresidentId !== undefined) club.vicePresidentId = vicePresidentId || null;
-    if (facultyId !== undefined) club.facultyId = facultyId || null;
+    if (facultyId !== undefined) {
+      if (facultyId) {
+        const resolved = await resolveFacultyUser(facultyId);
+        club.facultyId = resolved ? resolved._id : null;
+      } else {
+        club.facultyId = null;
+      }
+    }
 
     await club.save();
 
     if (presidentId) await User.findByIdAndUpdate(presidentId, { role: 'president', isVerified: true });
     if (vicePresidentId) await User.findByIdAndUpdate(vicePresidentId, { role: 'vice_president', isVerified: true });
-    if (facultyId) await User.findByIdAndUpdate(facultyId, { role: 'faculty', isVerified: true });
 
     const updated = await Club.findById(club._id)
       .populate('presidentId', 'name email profilePicture')

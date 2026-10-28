@@ -39,6 +39,9 @@ import VenueBookingView from '../components/admin/VenueBookingView';
 import ApprovalCard from '../components/ApprovalCard';
 import EmptyState from '../components/EmptyState';
 import ClassFeeManagementView from '../components/admin/ClassFeeManagementView';
+import CertificateManagementView from '../components/admin/CertificateManagementView';
+import RoleOnboardingView from '../components/admin/RoleOnboardingView';
+import UserAvatar from '../components/ui/UserAvatar';
 
 ChartJS.register(
   CategoryScale,
@@ -51,6 +54,9 @@ ChartJS.register(
   Filler,
   Legend
 );
+
+// Two-letter initials for avatar fallbacks (no external avatar services).
+const getInitials = (name = '') => name.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('') || '?';
 
 // Presentational helpers (landing-style KPI tile + quick action)
 const AdminKpiCard = ({ icon: Icon, tint, label, value, hint }) => (
@@ -366,7 +372,8 @@ const AdminPanel = () => {
     reader.readAsDataURL(file);
   };
 
-  const { events, fetchEvents, approveEvent, rejectEvent, overrideEvent } = useEventStore();
+  const { events: rawEvents, fetchEvents, approveEvent, rejectEvent, overrideEvent } = useEventStore();
+  const events = Array.isArray(rawEvents) ? rawEvents : [];
   const [approvalNote, setApprovalNote] = useState('');
   const [showOverrideModal, setShowOverrideModal] = useState(null);
   const [approvalFilter, setApprovalFilter] = useState('pending');
@@ -807,6 +814,7 @@ const AdminPanel = () => {
   const mainNavItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'directory', label: 'User Management', icon: Users },
+    { id: 'roles_onboarding', label: 'Role Credentials & Onboarding', icon: ShieldCheck },
     { id: 'club', label: 'Clubs & Memberships', icon: Share2 },
     { id: 'event', label: 'Events & Approvals', icon: Calendar, badge: events.filter(e => e.approvalStatus === 'pending').length },
     { id: 'sports', label: 'Sports & Tournaments', icon: Trophy },
@@ -924,9 +932,9 @@ const AdminPanel = () => {
       </aside>
 
       {/* 2. MAIN VIEWPORT (LEFT PADDED TO FIT FIXED SIDEBAR) */}
-      <div className="flex-1 ml-0 lg:ml-64 flex flex-col min-w-0">
+      <div className={`flex-1 ml-0 lg:ml-64 flex flex-col min-w-0 ${darkMode ? 'bg-black text-slate-100' : 'bg-slate-50'}`}>
         {/* TOP BAR */}
-        <header className="bg-white/90 backdrop-blur-md border-b border-slate-100 h-16 px-4 md:px-8 flex items-center justify-between gap-2 sticky top-0 z-30">
+        <header className={`${darkMode ? 'bg-black border-slate-800' : 'bg-white/90 backdrop-blur-md border-slate-100'} border-b h-16 px-4 md:px-8 flex items-center justify-between gap-2 sticky top-0 z-30`}>
           <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
           {/* Mobile sidebar toggle */}
           <button
@@ -947,9 +955,6 @@ const AdminPanel = () => {
               placeholder="Search users, clubs, events, etc..."
               className="bg-transparent text-dark-900 font-medium placeholder-slate-400 focus:outline-none flex-1 min-w-0 text-sm"
             />
-            <span className="hidden sm:inline text-[10px] font-mono font-semibold bg-white px-1.5 py-0.5 rounded-md border border-slate-200 text-slate-500 whitespace-nowrap">
-              Ctrl + K
-            </span>
           </div>
           </div>
 
@@ -1048,15 +1053,7 @@ const AdminPanel = () => {
                 className="flex items-center gap-2.5 pl-2 sm:pl-3 border-l border-slate-200 hover:opacity-80 transition cursor-pointer text-left"
                 title="Administrator Account Menu"
               >
-                <img
-                  src={user?.profilePicture || '/admin_avatar.jpg'}
-                  alt="Admin User"
-                  className="w-9 h-9 rounded-full object-cover ring-2 ring-blue-100"
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80";
-                  }}
-                />
+                <UserAvatar user={user} size="md" />
                 <div className="text-left hidden sm:block">
                   <p className="text-sm font-bold text-dark-900 leading-tight">{user?.name || 'Admin User'}</p>
                   <p className="text-[11px] text-slate-400 font-medium leading-none mt-0.5 flex items-center gap-1">
@@ -1070,21 +1067,7 @@ const AdminPanel = () => {
                   <div className="fixed inset-0 z-40" onClick={() => setShowAdminMenu(false)}></div>
                   <div className="absolute right-0 mt-2 w-64 max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-card-hover border border-slate-200/70 p-2 z-50 text-xs animate-in fade-in slide-in-from-top-2 duration-150">
                     <div className="p-3 border-b border-slate-100 flex items-center gap-3">
-                      {user?.profilePicture ? (
-                        <img
-                          src={user.profilePicture}
-                          alt={user?.name || 'Admin'}
-                          className="w-10 h-10 rounded-full object-cover ring-2 ring-blue-100"
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80";
-                          }}
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold flex items-center justify-center text-sm">
-                          {user?.name ? user.name.charAt(0).toUpperCase() : 'A'}
-                        </div>
-                      )}
+                      <UserAvatar user={user} size="md" className="w-10 h-10" />
                       <div className="min-w-0 flex-1">
                         <p className="font-bold text-dark-900 truncate">{user?.name || 'Administrator'}</p>
                         <p className="text-[10px] text-slate-400 truncate">{user?.email || 'admin@campus.edu'}</p>
@@ -1149,7 +1132,7 @@ const AdminPanel = () => {
         </header>
 
         {/* 3. DYNAMIC CONTENT WORKSPACE */}
-        <main className={`p-4 md:p-8 space-y-6 ${darkMode ? 'bg-slate-900 text-slate-100' : ''}`}>
+        <main className={`p-4 md:p-8 space-y-6 ${darkMode ? 'bg-black text-slate-100' : ''}`}>
           {/* TAB 1: EXACT MATCH TO USER'S DASHBOARD SCREENSHOT */}
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
@@ -1400,6 +1383,9 @@ const AdminPanel = () => {
           {/* TAB 2: USER MANAGEMENT (STUDENT DIRECTORY) */}
           {activeTab === 'directory' && <StudentDirectoryView />}
 
+          {/* TAB 2b: ROLE CREDENTIALS & CSV/EXCEL ONBOARDING */}
+          {activeTab === 'roles_onboarding' && <RoleOnboardingView />}
+
           {/* TAB 3: CLUBS & MEMBERSHIPS */}
           {activeTab === 'club' && (
             <div className="space-y-6">
@@ -1444,23 +1430,31 @@ const AdminPanel = () => {
                     </div>
                   </div>
 
-                  {/* Faculty Advisor Selector */}
+                  {/* Faculty Advisor Typeable Input with Autocomplete */}
                   <div>
-                    <label className="label">Faculty Advisor / Teacher In-Charge</label>
-                    <select required value={clubForm.facultyId} onChange={(e) => setClubForm({...clubForm, facultyId: e.target.value})} className="input">
-                      <option value="">-- Select Faculty Advisor / Teacher --</option>
-                      {users.filter(u => u.role === 'faculty' || u.role === 'admin' || !['student'].includes(u.role)).map(u => (
-                        <option key={u._id} value={u._id}>
-                          {u.name} ({u.department || 'Faculty Coordinator'}) • {u.email}
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                      <label className="label mb-0">Faculty Advisor / Teacher In-Charge</label>
+                      <span className="badge-blue">Type Name or Email</span>
+                    </div>
+                    <input
+                      type="text"
+                      list="facultyListOptions"
+                      required
+                      placeholder="Type teacher's name or email (e.g. Dr. Sharma or faculty@campus.edu)"
+                      value={clubForm.facultyId}
+                      onChange={(e) => setClubForm({...clubForm, facultyId: e.target.value})}
+                      className="input"
+                    />
+                    <datalist id="facultyListOptions">
+                      {users.map(u => (
+                        <option key={u._id} value={u.email}>
+                          {u.name} ({u.role}) • {u.department || 'Faculty'}
                         </option>
                       ))}
-                      <option disabled>────────── All Staff Accounts ──────────</option>
-                      {users.filter(u => !['faculty', 'admin'].includes(u.role)).map(u => (
-                        <option key={u._id} value={u._id}>
-                          {u.name} ({u.role}) • {u.email}
-                        </option>
-                      ))}
-                    </select>
+                    </datalist>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      You can type any teacher's name or email directly, or pick from existing accounts.
+                    </p>
                   </div>
 
                   <button disabled={loading} type="submit" className="btn-primary">
@@ -1523,20 +1517,21 @@ const AdminPanel = () => {
                         <div className="flex items-center gap-3 min-w-0 md:shrink-0">
                           {editingClubFaculty === c._id ? (
                             <div className="flex flex-col sm:flex-row sm:items-center gap-2 bg-blue-50/60 p-2 rounded-xl border border-blue-200 w-full">
-                              <select
+                              <input
+                                type="text"
+                                list="editFacultyListOptions"
+                                placeholder="Type teacher's name or email..."
                                 value={selectedNewFaculty}
                                 onChange={(e) => setSelectedNewFaculty(e.target.value)}
                                 className="input py-2 text-xs sm:w-56"
-                              >
-                                <option value="">-- Choose New Teacher/Faculty --</option>
-                                {users.filter(u => u.role === 'faculty' || u.role === 'admin' || !['student'].includes(u.role)).map(u => (
-                                  <option key={u._id} value={u._id}>{u.name} ({u.department || 'Faculty Coordinator'})</option>
+                              />
+                              <datalist id="editFacultyListOptions">
+                                {users.map(u => (
+                                  <option key={u._id} value={u.email}>
+                                    {u.name} ({u.role}) • {u.email}
+                                  </option>
                                 ))}
-                                <option disabled>────────── All Accounts ──────────</option>
-                                {users.filter(u => !['faculty', 'admin'].includes(u.role)).map(u => (
-                                  <option key={u._id} value={u._id}>{u.name} ({u.role})</option>
-                                ))}
-                              </select>
+                              </datalist>
                               <button
                                 onClick={() => handleUpdateClubFaculty(c._id)}
                                 disabled={updatingFaculty}
@@ -2332,11 +2327,17 @@ const AdminPanel = () => {
                               : 'bg-slate-50/70 border-slate-200'
                           }`}>
                             <div className="flex items-center gap-3">
-                              <img
-                                src={cand1?.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(cand1?.name || 'Candidate 1')}&background=2563EB&color=fff`}
-                                alt={cand1?.name || 'Candidate 1'}
-                                className="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0"
-                              />
+                              {cand1?.photo && !cand1.photo.startsWith('/default') ? (
+                                <img
+                                  src={cand1.photo}
+                                  alt={cand1?.name || 'Candidate 1'}
+                                  className="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0"
+                                />
+                              ) : (
+                                <div className="w-12 h-12 rounded-xl bg-blue-600 text-white font-bold text-sm flex items-center justify-center shrink-0">
+                                  {getInitials(cand1?.name || 'Candidate 1')}
+                                </div>
+                              )}
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-1.5">
                                   <h6 className="font-bold text-dark-900 text-xs truncate">{cand1?.name || 'Profile 1'}</h6>
@@ -2364,11 +2365,17 @@ const AdminPanel = () => {
                               : 'bg-slate-50/70 border-slate-200'
                           }`}>
                             <div className="flex items-center gap-3">
-                              <img
-                                src={cand2?.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(cand2?.name || 'Candidate 2')}&background=4F46E5&color=fff`}
-                                alt={cand2?.name || 'Candidate 2'}
-                                className="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0"
-                              />
+                              {cand2?.photo && !cand2.photo.startsWith('/default') ? (
+                                <img
+                                  src={cand2.photo}
+                                  alt={cand2?.name || 'Candidate 2'}
+                                  className="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0"
+                                />
+                              ) : (
+                                <div className="w-12 h-12 rounded-xl bg-indigo-600 text-white font-bold text-sm flex items-center justify-center shrink-0">
+                                  {getInitials(cand2?.name || 'Candidate 2')}
+                                </div>
+                              )}
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-1.5">
                                   <h6 className="font-bold text-dark-900 text-xs truncate">{cand2?.name || 'Profile 2'}</h6>
@@ -2413,21 +2420,7 @@ const AdminPanel = () => {
           )}
 
           {/* TAB 7: CERTIFICATES */}
-          {activeTab === 'certificates' && (
-            <div className="card p-6 sm:p-10 text-center">
-              <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-4"><Award size={32} /></div>
-              <h3 className="text-xl font-extrabold tracking-tight text-dark-900">Certificate Generation & Public Verification</h3>
-              <p className="text-sm text-slate-500 max-w-lg mx-auto mt-2">
-                Manage tamper-proof digital certificates, customized templates, batch issuance, and public cryptographic verification.
-              </p>
-              <Link
-                to="/certificates"
-                className="btn-primary mt-6"
-              >
-                Open Full Certificate Console <ExternalLink size={16} />
-              </Link>
-            </div>
-          )}
+          {activeTab === 'certificates' && <CertificateManagementView />}
 
           {/* TAB 8: DEPARTMENT & CLASS FEE CARDS */}
           {activeTab === 'classes' && <ClassFeeManagementView clubs={clubs} />}
@@ -2575,12 +2568,12 @@ const AdminPanel = () => {
                         title="Click to change profile picture"
                       >
                         <img
-                          src={user?.profilePicture || '/admin_avatar.jpg'}
+                          src={user?.profilePicture && user.profilePicture !== 'default.jpg' ? user.profilePicture : '/admin_avatar.jpg'}
                           alt={user?.name || 'Administrator'}
                           className="w-full h-full object-cover transition duration-200 group-hover:brightness-75"
                           onError={(e) => {
                             e.target.onerror = null;
-                            e.target.src = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80";
+                            e.target.src = '/admin_avatar.jpg';
                           }}
                         />
                         <div className="absolute inset-0 bg-slate-900/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition duration-200 text-white text-[11px] font-bold gap-1">
@@ -2729,6 +2722,7 @@ const AdminPanel = () => {
                               <input
                                 type={showCurrentPw ? "text" : "password"}
                                 value={profileForm.currentPassword}
+                                autoComplete="new-password"
                                 onChange={(e) => setProfileForm({ ...profileForm, currentPassword: e.target.value })}
                                 placeholder="Enter current password if changing"
                                 className="input pr-10"
@@ -2750,6 +2744,7 @@ const AdminPanel = () => {
                                 <input
                                   type={showNewPw ? "text" : "password"}
                                   value={profileForm.newPassword}
+                                  autoComplete="new-password"
                                   onChange={(e) => setProfileForm({ ...profileForm, newPassword: e.target.value })}
                                   placeholder="Min 4 characters"
                                   className="input pr-10"
@@ -2768,6 +2763,7 @@ const AdminPanel = () => {
                               <input
                                 type="password"
                                 value={profileForm.confirmPassword}
+                                autoComplete="new-password"
                                 onChange={(e) => setProfileForm({ ...profileForm, confirmPassword: e.target.value })}
                                 placeholder="Re-type new password"
                                 className="input"
@@ -2814,20 +2810,26 @@ const AdminPanel = () => {
                     <form onSubmit={handleUpdateUserRole} className="p-4 bg-slate-50/70 border border-slate-200/60 rounded-xl space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="label">Select User / Student</label>
-                          <select
+                          <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                            <label className="label mb-0">User / Student</label>
+                            <span className="badge-blue">Type Name, Email or Roll No</span>
+                          </div>
+                          <input
+                            type="text"
+                            list="roleUserListOptions"
                             required
+                            placeholder="Type student name, email, or roll no (e.g. 23CS012)..."
                             value={roleChangeData.userId}
                             onChange={(e) => setRoleChangeData({ ...roleChangeData, userId: e.target.value })}
                             className="input"
-                          >
-                            <option value="">-- Choose a user --</option>
+                          />
+                          <datalist id="roleUserListOptions">
                             {users.map((u) => (
-                              <option key={u._id} value={u._id}>
-                                {u.name} ({u.roll_no || u.email}) — Current: {u.role}
+                              <option key={u._id} value={u.name}>
+                                {u.email} • {u.roll_no || 'No Roll No'} (Current: {u.role})
                               </option>
                             ))}
-                          </select>
+                          </datalist>
                         </div>
 
                         <div>
@@ -2911,6 +2913,7 @@ const AdminPanel = () => {
                           type="password"
                           placeholder="Enter institutional key (e.g. admin123)"
                           value={adminForm.secretCode}
+                          autoComplete="new-password"
                           onChange={(e) => setAdminForm({...adminForm, secretCode: e.target.value})}
                           className="input"
                         />

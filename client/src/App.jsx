@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, Component } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import useAuthStore from './store/authStore';
@@ -404,9 +404,58 @@ const LandingPage = () => {
   return <Landing />;
 };
 
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error('App ErrorBoundary caught:', error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-50 text-dark-900 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
+            <GraduationCap size={28} />
+          </div>
+          <h2 className="text-xl font-bold mb-2">Something went wrong</h2>
+          <p className="text-sm text-slate-500 mb-4 max-w-md">
+            The page encountered an unexpected issue. Please click below to reload or return to the main dashboard.
+          </p>
+          {this.state.error && (
+            <p className="text-xs font-mono text-red-600 bg-red-50 p-3 rounded-xl max-w-lg mb-6 break-words border border-red-100">
+              {this.state.error?.message || String(this.state.error)}
+            </p>
+          )}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+            <button
+              onClick={() => { this.setState({ hasError: false, error: null }); window.location.reload(); }}
+              className="btn-primary"
+            >
+              Reload Page
+            </button>
+            <button
+              onClick={() => { this.setState({ hasError: false, error: null }); window.location.href = '/'; }}
+              className="btn-secondary"
+            >
+              Go to Home
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function App() {
   return (
-    <Router>
+    <ErrorBoundary>
+      <Router>
       <AppLayout>
         <Routes>
           <Route path="/" element={<LandingPage />} />
@@ -439,7 +488,8 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AppLayout>
-    </Router>
+      </Router>
+    </ErrorBoundary>
   );
 }
 

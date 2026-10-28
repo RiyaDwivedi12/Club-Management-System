@@ -17,7 +17,8 @@ const Clubs = () => {
     fetchClubs();
   }, [fetchClubs]);
 
-  const filteredClubs = clubs.filter((c) => {
+  const safeClubs = Array.isArray(clubs) ? clubs : [];
+  const filteredClubs = safeClubs.filter((c) => {
     const matchesSearch = c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'All' || c.category === selectedCategory;

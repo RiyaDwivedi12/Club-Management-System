@@ -82,7 +82,8 @@ const Events = () => {
     }
   };
 
-  const filteredEvents = filter === 'all' ? events : events.filter(e => e.status === filter);
+  const safeEvents = Array.isArray(events) ? events : [];
+  const filteredEvents = filter === 'all' ? safeEvents : safeEvents.filter(e => e.status === filter);
 
   const canCreateEvent = user && (user.role === 'president' || user.role === 'vice_president' || user.role === 'faculty' || user.role === 'admin');
 
