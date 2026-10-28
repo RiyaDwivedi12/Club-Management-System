@@ -318,7 +318,7 @@ const AppLayout = ({ children }) => {
                 </div>
 
                 <div className="font-bold text-gray-800 text-sm flex items-center gap-2">
-                  {user?.profilePicture && user.profilePicture !== 'default.jpg' ? (
+                  {user?.profilePicture && user.profilePicture !== 'default.jpg' && !user.profilePicture.startsWith('/default') ? (
                     <img
                       src={user.profilePicture}
                       alt={user.name || 'User'}

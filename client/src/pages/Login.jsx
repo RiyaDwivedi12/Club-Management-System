@@ -198,7 +198,8 @@ const Login = () => {
                   id="login-password"
                   type={showPassword ? 'text' : 'password'}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) =
+                  autoComplete="new-password"> setPassword(e.target.value)}
                   placeholder={selectedRole === 'student' ? 'Enter your password' : 'Enter password or secret code'}
                   required
                   className={`${fieldClass} pr-12`}

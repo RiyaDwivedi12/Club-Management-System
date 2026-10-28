@@ -99,7 +99,8 @@ const ResetPassword = () => {
                 type="password" 
                 className="w-full px-4 py-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 transition-shadow"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) =
+                  autoComplete="new-password"> setPassword(e.target.value)}
                 required
               />
             </div>
@@ -109,7 +110,8 @@ const ResetPassword = () => {
                 type="password" 
                 className="w-full px-4 py-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 transition-shadow"
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                onChange={(e) =
+                  autoComplete="new-password"> setConfirmPassword(e.target.value)}
                 required
               />
             </div>

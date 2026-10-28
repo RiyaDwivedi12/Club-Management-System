@@ -1004,15 +1004,21 @@ const AdminPanel = () => {
                 className="flex items-center gap-3 pl-3 border-l border-slate-200 hover:opacity-80 transition cursor-pointer text-left"
                 title="Administrator Account Menu"
               >
-                <img
-                  src={user?.profilePicture && user.profilePicture !== 'default.jpg' ? user.profilePicture : '/admin_avatar.jpg'}
-                  alt="Admin User"
-                  className="w-9 h-9 rounded-full object-cover border border-slate-200/90 shadow-2xs"
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = "/default_avatar.png";
-                  }}
-                />
+                {user?.profilePicture && user.profilePicture !== 'default.jpg' && !user.profilePicture.startsWith('/default') ? (
+                  <img
+                    src={user.profilePicture}
+                    alt="Admin User"
+                    className="w-9 h-9 rounded-full object-cover border border-slate-200/90 shadow-2xs"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-600 font-black flex items-center justify-center text-sm flex-shrink-0">
+                    {user?.name ? user.name.charAt(0).toUpperCase() : 'A'}
+                  </div>
+                )}
                 <div className="text-left hidden sm:block">
                   <p className="text-xs font-black text-slate-900 leading-tight">{user?.name || 'Admin User'}</p>
                   <p className="text-[11px] text-slate-400 font-medium leading-none mt-0.5 flex items-center gap-1">
@@ -1026,14 +1032,14 @@ const AdminPanel = () => {
                   <div className="fixed inset-0 z-40" onClick={() => setShowAdminMenu(false)}></div>
                   <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 z-50 text-xs animate-in fade-in slide-in-from-top-2 duration-150">
                     <div className="p-3 border-b border-slate-100 flex items-center gap-3">
-                      {user?.profilePicture ? (
+                      {user?.profilePicture && user.profilePicture !== 'default.jpg' && !user.profilePicture.startsWith('/default') ? (
                         <img
                           src={user.profilePicture}
                           alt={user?.name || 'Admin'}
                           className="w-10 h-10 rounded-full object-cover border border-blue-200 shadow-2xs"
                           onError={(e) => {
                             e.target.onerror = null;
-                            e.target.src = "/default_avatar.png";
+                            e.target.style.display = 'none';
                           }}
                         />
                       ) : (
@@ -2399,7 +2405,7 @@ const AdminPanel = () => {
                           }`}>
                             <div className="flex items-center gap-3">
                               <img
-                                src={cand1?.photo || `https://ui-avatars.com/api/?name=DISABLED-${encodeURIComponent(cand1?.name || 'Candidate 1')}&background=2563EB&color=fff`}
+                                src={cand1?.photo || `/default_avatar.png || 'Candidate 1')}&background=2563EB&color=fff`}
                                 alt={cand1?.name || 'Candidate 1'}
                                 className="w-12 h-12 rounded-xl object-cover border border-gray-200 shadow-sm"
                               />
@@ -2431,7 +2437,7 @@ const AdminPanel = () => {
                           }`}>
                             <div className="flex items-center gap-3">
                               <img
-                                src={cand2?.photo || `https://ui-avatars.com/api/?name=DISABLED-${encodeURIComponent(cand2?.name || 'Candidate 2')}&background=4F46E5&color=fff`}
+                                src={cand2?.photo || `/default_avatar.png || 'Candidate 2')}&background=4F46E5&color=fff`}
                                 alt={cand2?.name || 'Candidate 2'}
                                 className="w-12 h-12 rounded-xl object-cover border border-gray-200 shadow-sm"
                               />
@@ -2795,7 +2801,8 @@ const AdminPanel = () => {
                               <input
                                 type={showCurrentPw ? "text" : "password"}
                                 value={profileForm.currentPassword}
-                                onChange={(e) => setProfileForm({ ...profileForm, currentPassword: e.target.value })}
+                                onChange={(e) =
+                  autoComplete="new-password"> setProfileForm({ ...profileForm, currentPassword: e.target.value })}
                                 placeholder="Enter current password if changing"
                                 className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-800 text-xs pr-10"
                               />
@@ -2816,7 +2823,8 @@ const AdminPanel = () => {
                                 <input
                                   type={showNewPw ? "text" : "password"}
                                   value={profileForm.newPassword}
-                                  onChange={(e) => setProfileForm({ ...profileForm, newPassword: e.target.value })}
+                                  onChange={(e) =
+                  autoComplete="new-password"> setProfileForm({ ...profileForm, newPassword: e.target.value })}
                                   placeholder="Min 4 characters"
                                   className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-800 text-xs pr-10"
                                 />
@@ -2834,7 +2842,8 @@ const AdminPanel = () => {
                               <input
                                 type="password"
                                 value={profileForm.confirmPassword}
-                                onChange={(e) => setProfileForm({ ...profileForm, confirmPassword: e.target.value })}
+                                onChange={(e) =
+                  autoComplete="new-password"> setProfileForm({ ...profileForm, confirmPassword: e.target.value })}
                                 placeholder="Re-type new password"
                                 className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-800 text-xs"
                               />
@@ -2983,7 +2992,8 @@ const AdminPanel = () => {
                           type="password"
                           placeholder="Enter institutional key (e.g. admin123)"
                           value={adminForm.secretCode}
-                          onChange={(e) => setAdminForm({...adminForm, secretCode: e.target.value})}
+                          onChange={(e) =
+                  autoComplete="new-password"> setAdminForm({...adminForm, secretCode: e.target.value})}
                           className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-slate-800"
                         />
                       </div>

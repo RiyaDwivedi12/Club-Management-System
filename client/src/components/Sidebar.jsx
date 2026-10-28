@@ -176,7 +176,7 @@ const Sidebar = () => {
       <div className="p-4 border-t border-gray-100">
         <div className="flex items-center justify-between bg-teal-50/70 p-3.5 rounded-2xl border border-teal-100">
           <div className="flex items-center gap-3 min-w-0">
-            {user?.profilePicture && user.profilePicture !== 'default.jpg' ? (
+            {user?.profilePicture && user.profilePicture !== 'default.jpg' && !user.profilePicture.startsWith('/default') ? (
               <img
                 src={user.profilePicture}
                 alt={user.name || 'User'}
