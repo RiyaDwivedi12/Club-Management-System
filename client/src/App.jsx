@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, Component } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import useAuthStore from './store/authStore';
@@ -488,9 +488,43 @@ const LandingPage = () => {
   return <Landing />;
 };
 
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error('App ErrorBoundary:', error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-50 text-slate-900 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center mb-4">
+            <GraduationCap size={28} />
+          </div>
+          <h2 className="text-xl font-bold mb-2">Something went wrong</h2>
+          <p className="text-sm text-slate-500 mb-6 max-w-md">The page encountered an unexpected issue. Please click below to reload.</p>
+          <button 
+            onClick={() => { this.setState({ hasError: false }); window.location.href = '/'; }}
+            className="px-6 py-2.5 bg-teal-600 text-white rounded-xl font-bold hover:bg-teal-700 transition cursor-pointer"
+          >
+            Reload CampusHub
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function App() {
   return (
-    <Router>
+    <ErrorBoundary>
+      <Router>
       <AppLayout>
         <Routes>
           <Route path="/" element={<LandingPage />} />
@@ -524,6 +558,7 @@ function App() {
         </Routes>
       </AppLayout>
     </Router>
+    </ErrorBoundary>
   );
 }
 
