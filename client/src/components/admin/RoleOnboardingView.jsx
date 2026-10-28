@@ -19,6 +19,17 @@ const RoleOnboardingView = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Referee Date & Time Expiry State
+  const todayStr = new Date().toISOString().split('T')[0];
+  const nowTimeStr = new Date().toTimeString().slice(0, 5);
+  const [refereeBatchExpiryDate, setRefereeBatchExpiryDate] = useState('2026-11-11');
+  const [refereeBatchExpiryTime, setRefereeBatchExpiryTime] = useState('18:00');
+
+  // Referee renew modal state
+  const [renewRefereeModal, setRenewRefereeModal] = useState(null); // user object
+  const [renewDate, setRenewDate] = useState('2026-11-11');
+  const [renewTime, setRenewTime] = useState('18:00');
 
   // Upload modal / state
   const [uploadRole, setUploadRole] = useState(null); // 'faculty' | 'president' | 'vice_president' | 'referee'
@@ -39,7 +50,9 @@ const RoleOnboardingView = () => {
     department: '',
     clubName: '',
     sport: 'Badminton',
-    validDays: 30
+    validDays: 30,
+    expiryDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    expiryTime: '18:00'
   });
 
   const fetchData = async () => {
@@ -107,7 +120,11 @@ const RoleOnboardingView = () => {
       const payload = {
         role: uploadRole,
         records: previewData.records,
-        preview: 'false'
+        preview: 'false',
+        ...(uploadRole === 'referee' ? {
+          expiryDate: refereeBatchExpiryDate,
+          expiryTime: refereeBatchExpiryTime
+        } : {})
       };
 
       const res = await axios.post('/api/auth/bulk-onboard', payload, { withCredentials: true });
@@ -168,6 +185,23 @@ const RoleOnboardingView = () => {
   // Single manual user submission
   const handleManualSubmit = async (e) => {
     e.preventDefault();
+
+    // Strict Date & Time Validation for Referee
+    if (manualForm.role === 'referee') {
+      if (!manualForm.expiryDate || !manualForm.expiryTime) {
+        toast.error('Please specify both expiration date and time for the referee.');
+        return;
+      }
+      const combined = new Date(`${manualForm.expiryDate}T${manualForm.expiryTime}`);
+      if (isNaN(combined.getTime())) {
+        toast.error('Invalid date or time format. Please select valid values.');
+        return;
+      }
+      if (combined <= new Date()) {
+        toast.error('Referee expiration date & time must be in the future.');
+        return;
+      }
+    }
     try {
       await axios.post('/api/auth/bulk-onboard', {
         role: manualForm.role,
@@ -186,7 +220,9 @@ const RoleOnboardingView = () => {
         department: '',
         clubName: '',
         sport: 'Badminton',
-        validDays: 30
+        validDays: 30,
+    expiryDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    expiryTime: '18:00'
       });
       fetchData();
     } catch (err) {
@@ -325,13 +361,7 @@ const RoleOnboardingView = () => {
             >
               <Upload size={14} /> Upload Faculty CSV/Excel
             </button>
-            <a
-              href="/api/auth/template/role/faculty"
-              download
-              className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
-            >
-              <Download size={13} /> Sample CSV Template
-            </a>
+            
           </div>
         </div>
 
@@ -359,13 +389,7 @@ const RoleOnboardingView = () => {
             >
               <Upload size={14} /> Upload President CSV/Excel
             </button>
-            <a
-              href="/api/auth/template/role/president"
-              download
-              className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
-            >
-              <Download size={13} /> Sample CSV Template
-            </a>
+            
           </div>
         </div>
 
@@ -393,13 +417,7 @@ const RoleOnboardingView = () => {
             >
               <Upload size={14} /> Upload VP CSV/Excel
             </button>
-            <a
-              href="/api/auth/template/role/vice_president"
-              download
-              className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
-            >
-              <Download size={13} /> Sample CSV Template
-            </a>
+            
           </div>
         </div>
 
@@ -427,13 +445,7 @@ const RoleOnboardingView = () => {
             >
               <Upload size={14} /> Upload Referee CSV/Excel
             </button>
-            <a
-              href="/api/auth/template/role/referee"
-              download
-              className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
-            >
-              <Download size={13} /> Sample CSV Template
-            </a>
+            
           </div>
         </div>
       </div>
@@ -468,6 +480,41 @@ const RoleOnboardingView = () => {
             </div>
           </div>
 
+          {previewData.role === 'referee' && (
+            <div className="p-4 bg-emerald-50 border-2 border-emerald-300 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <span className="text-xs font-black text-emerald-900 block flex items-center gap-1.5">
+                  <Timer size={15} /> Referee Privileges Expiration Date & Time *
+                </span>
+                <span className="text-[11px] text-emerald-700 font-medium">
+                  Referees will be able to officiate matches until this exact date and time.
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div>
+                  <label className="block text-[10px] font-bold text-emerald-800 uppercase mb-0.5">Date</label>
+                  <input
+                    required
+                    type="date"
+                    min={todayStr}
+                    value={refereeBatchExpiryDate}
+                    onChange={(e) => setRefereeBatchExpiryDate(e.target.value)}
+                    className="px-3 py-1.5 bg-white border border-emerald-300 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-emerald-800 uppercase mb-0.5">Time</label>
+                  <input
+                    required
+                    type="time"
+                    value={refereeBatchExpiryTime}
+                    onChange={(e) => setRefereeBatchExpiryTime(e.target.value)}
+                    className="px-3 py-1.5 bg-white border border-emerald-300 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
           <div className="overflow-x-auto max-h-64 border border-slate-100 rounded-2xl">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-500 font-bold sticky top-0">
@@ -569,13 +616,23 @@ const RoleOnboardingView = () => {
                   // Referee validity calculation
                   const isReferee = u.roleKey === 'referee';
                   let expiryLabel = 'Indefinite';
+                  let formattedExactDateTime = '';
                   let isExpired = false;
                   if (isReferee && u.refereeExpiresAt) {
-                    const diffDays = Math.ceil((new Date(u.refereeExpiresAt) - new Date()) / (1000 * 60 * 60 * 24));
-                    if (diffDays > 0) {
-                      expiryLabel = `Active: ${diffDays} day(s) left`;
+                    const expDateObj = new Date(u.refereeExpiresAt);
+                    formattedExactDateTime = expDateObj.toLocaleDateString('en-IN', {
+                      day: 'numeric', month: 'short', year: 'numeric'
+                    }) + ' at ' + expDateObj.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+                    const diffMs = expDateObj - new Date();
+                    if (diffMs > 0) {
+                      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                      const diffDays = Math.floor(diffHours / 24);
+                      expiryLabel = diffDays > 0 
+                        ? `🟢 Active (${diffDays}d ${diffHours % 24}h left)` 
+                        : `🟢 Active (${diffHours}h left)`;
                     } else {
-                      expiryLabel = 'Expired';
+                      expiryLabel = '🔴 Expired';
                       isExpired = true;
                     }
                   }
@@ -607,11 +664,18 @@ const RoleOnboardingView = () => {
                       </td>
                       <td className="px-4 py-3">
                         {isReferee ? (
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            isExpired ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700'
-                          }`}>
-                            {expiryLabel}
-                          </span>
+                          <div>
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black inline-block ${
+                              isExpired ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                            }`}>
+                              {expiryLabel}
+                            </span>
+                            {formattedExactDateTime && (
+                              <span className="block text-[10px] text-slate-500 font-mono mt-0.5 font-bold">
+                                {formattedExactDateTime}
+                              </span>
+                            )}
+                          </div>
                         ) : (
                           <span className="text-slate-400 text-[11px]">Standard Access</span>
                         )}
@@ -620,11 +684,11 @@ const RoleOnboardingView = () => {
                         <div className="flex items-center justify-end gap-1.5">
                           {isReferee && (
                             <button
-                              onClick={() => handleExtendReferee(u._id)}
-                              className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-lg transition text-[10px] cursor-pointer"
-                              title="Extend access by 7 days"
+                              onClick={() => setRenewRefereeModal(u)}
+                              className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-black rounded-lg transition text-[10px] cursor-pointer flex items-center gap-1 border border-emerald-200"
+                              title="Set or Renew Valid Date & Time"
                             >
-                              +7 Days
+                              <Timer size={11} /> Renew Date/Time
                             </button>
                           )}
                           <button
@@ -720,26 +784,44 @@ const RoleOnboardingView = () => {
               </div>
 
               {manualForm.role === 'referee' && (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-3 p-3 bg-emerald-50/60 border border-emerald-200 rounded-2xl">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">Assigned Sport</label>
+                    <label className="block text-[11px] font-bold text-emerald-900 uppercase mb-1">Assigned Sport / Game *</label>
                     <input
+                      required
                       type="text"
-                      placeholder="Badminton, Cricket..."
+                      placeholder="e.g. Badminton, Cricket, Football, Chess..."
                       value={manualForm.sport}
                       onChange={(e) => setManualForm({ ...manualForm, sport: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 bg-white border border-emerald-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">Valid Days</label>
-                    <input
-                      type="number"
-                      value={manualForm.validDays}
-                      onChange={(e) => setManualForm({ ...manualForm, validDays: Number(e.target.value) })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-emerald-900 uppercase mb-1">Valid Until Date *</label>
+                      <input
+                        required
+                        type="date"
+                        min={todayStr}
+                        value={manualForm.expiryDate}
+                        onChange={(e) => setManualForm({ ...manualForm, expiryDate: e.target.value })}
+                        className="w-full px-3 py-2 bg-white border border-emerald-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-emerald-900 uppercase mb-1">Valid Until Time *</label>
+                      <input
+                        required
+                        type="time"
+                        value={manualForm.expiryTime}
+                        onChange={(e) => setManualForm({ ...manualForm, expiryTime: e.target.value })}
+                        className="w-full px-3 py-2 bg-white border border-emerald-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+                      />
+                    </div>
                   </div>
+                  <p className="text-[10px] text-emerald-700 font-medium">
+                    ⚠️ The referee will only be permitted to score and officiate matches until this exact date & time.
+                  </p>
                 </div>
               )}
 

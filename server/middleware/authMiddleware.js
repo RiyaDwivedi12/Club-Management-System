@@ -57,6 +57,15 @@ const authorize = (...roles) => {
         message: `User role '${userRole}' is not authorized to access this route` 
       });
     }
+
+    // Check referee time validity
+    if ((userRole === 'referee' || isReferee) && !isAdmin) {
+      if (req.user.refereeExpiresAt && Date.now() > new Date(req.user.refereeExpiresAt).getTime()) {
+        return res.status(403).json({
+          message: 'Referee officiating privileges have expired for your account.'
+        });
+      }
+    }
     next();
   };
 };

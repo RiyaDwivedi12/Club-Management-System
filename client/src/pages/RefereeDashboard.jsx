@@ -18,6 +18,17 @@ const RefereeDashboard = () => {
   }, [user, navigate]);
   
   // Filter matches assigned to this referee or unassigned (or all if admin) that are scheduled/live
+  // Strict Time Expiry Check
+  const isTimeExpired = Boolean(
+    user?.role !== 'admin' &&
+    user?.refereeExpiresAt &&
+    new Date(user.refereeExpiresAt).getTime() < Date.now()
+  );
+
+  const formattedExpiry = user?.refereeExpiresAt 
+    ? new Date(user.refereeExpiresAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
+    : null;
+
   const activeMatches = matches.filter(m => {
     const isAssigned = (m.refereeId?._id?.toString() === user?._id?.toString()) ||
                        (m.refereeId?.toString() === user?._id?.toString()) ||
@@ -74,6 +85,18 @@ const RefereeDashboard = () => {
             <p className="text-slate-400 font-medium text-sm">
               Logged in as: <span className="text-white font-bold">{user?.name}</span> ({user?.role?.toUpperCase()})
             </p>
+            {formattedExpiry && (
+              <div className={`mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black border ${
+                isTimeExpired 
+                  ? 'bg-red-500/20 text-red-300 border-red-500/40' 
+                  : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+              }`}>
+                <Timer size={13} />
+                <span>
+                  {isTimeExpired ? `Officiating Window Expired on ${formattedExpiry}` : `Valid Officiating Window: Until ${formattedExpiry}`}
+                </span>
+              </div>
+            )}
           </div>
 
           <Link to="/matches" className="px-4 py-2 bg-white/10 text-white rounded-xl text-xs font-bold hover:bg-white/20 transition flex items-center gap-1.5">
@@ -82,7 +105,17 @@ const RefereeDashboard = () => {
         </div>
       </div>
 
-      {activeMatches.length === 0 ? (
+      {isTimeExpired ? (
+          <div className="bg-red-50 border-2 border-red-200 p-8 rounded-3xl text-center space-y-3 my-6">
+            <div className="w-14 h-14 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto text-2xl font-black">
+              🔒
+            </div>
+            <h3 className="text-base font-black text-red-900">Match Officiating Window Closed</h3>
+            <p className="text-xs text-red-700 max-w-md mx-auto font-medium leading-relaxed">
+              Your designated referee access expired on <strong>{formattedExpiry}</strong>. You are only authorized to officiate matches during your valid designated window.
+            </p>
+          </div>
+        ) : activeMatches.length === 0 ? (
         <div className="bg-white rounded-3xl p-12 text-center border border-gray-100 shadow-sm">
           <Shield size={48} className="mx-auto text-gray-300 mb-4" />
           <h2 className="text-xl font-bold text-gray-800">No Active Assignments</h2>
