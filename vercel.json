@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://club-management-system-1-t4a7.onrender.com/api/:path*"
+    }
+  ]
+}

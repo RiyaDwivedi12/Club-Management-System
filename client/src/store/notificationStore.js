@@ -4,7 +4,7 @@ import { io } from 'socket.io-client';
 import toast from 'react-hot-toast';
 
 const API_URL = '/api/notifications';
-const SOCKET_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? undefined : 'http://localhost:5000');
+const SOCKET_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://club-management-system-1-t4a7.onrender.com' : 'http://localhost:5000');
 
 const useNotificationStore = create((set, get) => ({
   notifications: [],
