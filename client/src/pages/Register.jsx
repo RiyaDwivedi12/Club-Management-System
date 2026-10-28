@@ -460,8 +460,8 @@ const Register = () => {
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
-                    onChange={(e) =
-                  autoComplete="new-password"> setPassword(e.target.value)}
+                    autoComplete="new-password"
+                  onChange={(e) => setPassword(e.target.value)}
                     placeholder="Min. 6 characters"
                     required
                     minLength={6}
@@ -502,8 +502,8 @@ const Register = () => {
                   <input
                     type={showConfirm ? 'text' : 'password'}
                     value={confirmPassword}
-                    onChange={(e) =
-                  autoComplete="new-password"> setConfirmPassword(e.target.value)}
+                    autoComplete="new-password"
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Re-enter password"
                     required
                     minLength={6}

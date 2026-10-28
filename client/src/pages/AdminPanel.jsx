@@ -2801,8 +2801,8 @@ const AdminPanel = () => {
                               <input
                                 type={showCurrentPw ? "text" : "password"}
                                 value={profileForm.currentPassword}
-                                onChange={(e) =
-                  autoComplete="new-password"> setProfileForm({ ...profileForm, currentPassword: e.target.value })}
+                                autoComplete="new-password"
+                  onChange={(e) => setProfileForm({ ...profileForm, currentPassword: e.target.value })}
                                 placeholder="Enter current password if changing"
                                 className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-800 text-xs pr-10"
                               />
@@ -2823,8 +2823,8 @@ const AdminPanel = () => {
                                 <input
                                   type={showNewPw ? "text" : "password"}
                                   value={profileForm.newPassword}
-                                  onChange={(e) =
-                  autoComplete="new-password"> setProfileForm({ ...profileForm, newPassword: e.target.value })}
+                                  autoComplete="new-password"
+                  onChange={(e) => setProfileForm({ ...profileForm, newPassword: e.target.value })}
                                   placeholder="Min 4 characters"
                                   className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-800 text-xs pr-10"
                                 />
@@ -2842,8 +2842,8 @@ const AdminPanel = () => {
                               <input
                                 type="password"
                                 value={profileForm.confirmPassword}
-                                onChange={(e) =
-                  autoComplete="new-password"> setProfileForm({ ...profileForm, confirmPassword: e.target.value })}
+                                autoComplete="new-password"
+                  onChange={(e) => setProfileForm({ ...profileForm, confirmPassword: e.target.value })}
                                 placeholder="Re-type new password"
                                 className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-800 text-xs"
                               />
@@ -2992,8 +2992,8 @@ const AdminPanel = () => {
                           type="password"
                           placeholder="Enter institutional key (e.g. admin123)"
                           value={adminForm.secretCode}
-                          onChange={(e) =
-                  autoComplete="new-password"> setAdminForm({...adminForm, secretCode: e.target.value})}
+                          autoComplete="new-password"
+                  onChange={(e) => setAdminForm({...adminForm, secretCode: e.target.value})}
                           className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-slate-800"
                         />
                       </div>

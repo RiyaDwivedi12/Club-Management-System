@@ -179,8 +179,8 @@ const StudentLogin = () => {
                   type={showPassword ? 'text' : 'password'}
                   className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-teal-400 focus:ring-4 focus:ring-teal-100 transition-all bg-white text-gray-900 font-medium pr-12"
                   value={password}
-                  onChange={(e) =
-                  autoComplete="new-password"> setPassword(e.target.value)}
+                  autoComplete="new-password"
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
                   required
                 />
