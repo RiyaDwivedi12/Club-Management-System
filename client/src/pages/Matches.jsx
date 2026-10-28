@@ -226,16 +226,16 @@ const Matches = () => {
                   <div className="flex justify-between items-center my-2 flex-1">
                     {/* Team A */}
                     <div className="text-center flex-1 flex flex-col items-center">
-                      <div className="w-20 h-20 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl flex items-center justify-center mb-4 shadow-inner border border-gray-200">
+                      <div className="w-14 h-14 sm:w-20 sm:h-20 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl flex items-center justify-center mb-4 shadow-inner border border-gray-200">
                          <span className="text-3xl font-black text-gray-300">{match.teamA.substring(0,2).toUpperCase()}</span>
                       </div>
-                      <h3 className="font-black text-xl text-gray-900 leading-tight px-2">{match.teamA}</h3>
+                      <h3 className="font-black text-base sm:text-xl text-gray-900 leading-tight px-2">{match.teamA}</h3>
                     </div>
                     
                     {/* Score Box */}
-                    <div className="px-4 text-center shrink-0">
-                      <div className="bg-gray-900 rounded-2xl px-6 py-4 shadow-xl border-t border-gray-700">
-                        <div className="text-5xl font-black tabular-nums tracking-tighter text-white">
+                    <div className="px-2 sm:px-4 text-center shrink-0">
+                      <div className="bg-gray-900 rounded-2xl px-4 sm:px-6 py-4 shadow-xl border-t border-gray-700">
+                        <div className="text-3xl sm:text-5xl font-black tabular-nums tracking-tighter text-white">
                           {match.scoreA} <span className="text-gray-500 font-medium text-3xl mx-1">-</span> {match.scoreB}
                         </div>
                       </div>
@@ -253,10 +253,10 @@ const Matches = () => {
 
                     {/* Team B */}
                     <div className="text-center flex-1 flex flex-col items-center">
-                      <div className="w-20 h-20 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl flex items-center justify-center mb-4 shadow-inner border border-gray-200">
+                      <div className="w-14 h-14 sm:w-20 sm:h-20 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl flex items-center justify-center mb-4 shadow-inner border border-gray-200">
                          <span className="text-3xl font-black text-gray-300">{match.teamB.substring(0,2).toUpperCase()}</span>
                       </div>
-                      <h3 className="font-black text-xl text-gray-900 leading-tight px-2">{match.teamB}</h3>
+                      <h3 className="font-black text-base sm:text-xl text-gray-900 leading-tight px-2">{match.teamB}</h3>
                     </div>
                   </div>
                   

@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { Trophy, ArrowLeft, Calendar, Shield, CheckCircle2, AlertCircle, RefreshCw, Award, ChevronRight, FileDown, Medal, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
 import useAuthStore from '../store/authStore';
 
 const TournamentBracket = () => {

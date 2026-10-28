@@ -6,30 +6,33 @@ const StatusBadge = ({ status, note }) => {
 
   const normalizedStatus = status?.toLowerCase() || 'pending';
 
-  let bgClass, textClass, label;
+  let bgClass, textClass, ringClass, label;
 
   switch (normalizedStatus) {
     case 'approved':
-      bgClass = 'bg-green-100';
-      textClass = 'text-green-800';
+      bgClass = 'bg-emerald-100';
+      textClass = 'text-emerald-800';
+      ringClass = 'ring-emerald-600/20';
       label = 'Approved';
       break;
     case 'rejected':
       bgClass = 'bg-red-100';
       textClass = 'text-red-800';
+      ringClass = 'ring-red-600/20';
       label = 'Rejected';
       break;
     case 'pending':
     default:
       bgClass = 'bg-amber-100';
       textClass = 'text-amber-800';
+      ringClass = 'ring-amber-600/20';
       label = 'Pending Review';
       break;
   }
 
   return (
     <div className="relative inline-flex items-center gap-1.5 ml-2">
-      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider ${bgClass} ${textClass}`}>
+      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider ring-1 ring-inset ${ringClass} ${bgClass} ${textClass}`}>
         {label}
         {normalizedStatus === 'rejected' && note && (
           <button 

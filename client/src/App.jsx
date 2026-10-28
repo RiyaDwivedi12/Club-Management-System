@@ -25,10 +25,11 @@ import VicePresidentDashboard from './pages/VicePresidentDashboard';
 import CoordinatorDashboard from './pages/CoordinatorDashboard';
 import RefereeDashboard from './pages/RefereeDashboard';
 import Dashboard from './pages/Dashboard';
+import Landing from './pages/Landing';
 import Sidebar from './components/Sidebar';
 import BottomNav from './components/BottomNav';
 import { 
-  LogOut, Bell, Menu, X, ArrowRight, Star, Trophy, BookOpen, 
+  LogOut, Bell, Menu, X,
   GraduationCap, MessageSquare, Calendar, CheckCircle2, Check, 
   Users, Shield, Crown, Award, Building2, Timer, ChevronRight 
 } from 'lucide-react';
@@ -120,6 +121,16 @@ const AppLayout = ({ children }) => {
         }} />
         {children}
       </div>
+    );
+  }
+
+  // Public landing page renders its own navbar and full-width layout
+  if (location.pathname === '/' && !user) {
+    return (
+      <>
+        <Toaster position="top-center" />
+        {children}
+      </>
     );
   }
 
@@ -452,7 +463,7 @@ const AppLayout = ({ children }) => {
       {/* Main Content */}
       <div className="flex flex-1 relative w-full">
         {user && <Sidebar />}
-        <main className={`flex-1 w-full pb-24 md:pb-8 ${user ? 'md:ml-72 md:pl-8' : ''} pt-6 transition-all duration-300 px-4 md:px-12`}>
+        <main className={`flex-1 w-full pb-24 lg:pb-8 ${user ? 'lg:ml-72 lg:pl-8' : ''} pt-6 transition-all duration-300 px-4 md:px-12`}>
           {children}
         </main>
       </div>
@@ -474,65 +485,7 @@ const LandingPage = () => {
     return <Navigate to="/clubs" replace />;
   }
 
-  return (
-    <div className="w-full flex items-center min-h-[calc(100vh-140px)] py-10 overflow-hidden">
-      <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-        {/* Left Side */}
-        <div className="flex flex-col items-start z-10 md:pr-10 text-left order-2 md:order-1">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-teal-50 text-teal-600 font-bold text-xs uppercase tracking-wider mb-6 border border-teal-100">
-            <Star size={14} className="fill-teal-500 text-teal-500" />
-            <span>Campus Sports & Club Management</span>
-          </div>
-          <h1 className="text-5xl md:text-6xl font-black mb-6 tracking-tight text-gray-900 leading-[1.1]">
-            Your Campus.<br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-500 to-cyan-600">Your Clubs.</span>
-          </h1>
-          <p className="text-lg text-gray-600 mb-10 leading-relaxed font-medium">
-            Join elite clubs, participate in live tournaments, and track your athletic progress — all in the student portal.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center gap-5 w-full sm:w-auto">
-            <Link to="/register" className="bg-teal-600 text-white px-8 py-4 rounded-2xl font-black hover:bg-teal-700 shadow-lg shadow-teal-500/25 transition-all w-full sm:w-auto text-center hover:-translate-y-1">
-              Join the Club
-            </Link>
-            <Link to="/clubs" className="text-gray-800 font-black hover:text-teal-600 transition-colors flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-white border border-gray-200/80 hover:border-teal-300 w-full sm:w-auto">
-              <span>Explore Clubs</span>
-              <ArrowRight size={20} className="text-teal-600" />
-            </Link>
-          </div>
-        </div>
-
-        {/* Right Side — Decorative */}
-        <div className="relative flex justify-center items-center w-full h-[500px] order-1 md:order-2">
-          <div className="absolute w-[480px] h-[480px] rounded-full bg-teal-100/40 animate-pulse" style={{ animationDuration: '6s' }}></div>
-          <div className="absolute w-[380px] h-[380px] rounded-full bg-teal-200/50"></div>
-          <div className="absolute w-[300px] h-[300px] rounded-full bg-gradient-to-tr from-teal-600 to-cyan-500 opacity-90 shadow-2xl shadow-teal-500/30"></div>
-          
-          <img 
-            src="/student_hero.jpg" 
-            alt="Student Athlete" 
-            className="absolute bottom-0 h-[450px] object-cover object-top z-10 rounded-b-full shadow-2xl"
-            style={{ clipPath: 'circle(50% at 50% 50%)' }}
-          />
-
-          {/* Floating Badges */}
-          {[
-            { icon: <Trophy size={22} className="text-teal-600"/>, top: '10%', left: '8%', delay: '3s' },
-            { icon: <Star size={22} className="text-teal-600 fill-teal-400"/>, top: '16%', right: '12%', delay: '4s' },
-            { icon: <BookOpen size={22} className="text-teal-600"/>, bottom: '28%', left: '4%', delay: '2.5s' },
-            { icon: <GraduationCap size={22} className="text-teal-600"/>, bottom: '36%', right: '6%', delay: '3.5s' },
-          ].map((badge, i) => (
-            <div
-              key={i}
-              className="absolute bg-white p-3.5 rounded-2xl shadow-lg z-20 border border-teal-50 animate-bounce"
-              style={{ animationDuration: badge.delay, top: badge.top, left: badge.left, right: badge.right, bottom: badge.bottom }}
-            >
-              {badge.icon}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+  return <Landing />;
 };
 
 function App() {

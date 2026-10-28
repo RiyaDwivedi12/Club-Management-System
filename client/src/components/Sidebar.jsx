@@ -84,7 +84,7 @@ const Sidebar = () => {
       initial={{ x: -260 }}
       animate={{ x: 0 }}
       transition={{ type: 'spring', stiffness: 260, damping: 30 }}
-      className="w-72 bg-white h-[calc(100vh-70px)] fixed left-0 top-[70px] border-r border-gray-100 hidden md:flex flex-col z-10 shadow-[4px_0_24px_rgba(0,0,0,0.02)]"
+      className="w-72 bg-white h-[calc(100vh-70px)] fixed left-0 top-[70px] border-r border-gray-100 hidden lg:flex flex-col z-10 shadow-[4px_0_24px_rgba(0,0,0,0.02)]"
     >
       {/* Branding strip */}
       <div className="px-5 pt-5 pb-3">

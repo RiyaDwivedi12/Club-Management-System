@@ -13,7 +13,7 @@ import PaymentReceiptModal from '../components/PaymentReceiptModal';
 
 const ClubDetails = () => {
   const { id } = useParams();
-  const { currentClub: club, fetchClubById, leaveClub, isLoading, error } = useClubStore();
+  const { currentClub: club, fetchClubById, leaveClub, approveMember, isLoading, error } = useClubStore();
   const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState('about');
   const [galleryUrl, setGalleryUrl] = useState('');
@@ -216,9 +216,9 @@ const ClubDetails = () => {
         <div className="h-64 md:h-80 w-full relative">
           <img src={club.logo || 'https://via.placeholder.com/1000x400?text=Club+Logo'} alt={club.name} className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/40 to-transparent"></div>
-          <div className="absolute bottom-0 left-0 p-8 w-full flex justify-between items-end">
+          <div className="absolute bottom-0 left-0 p-5 md:p-8 w-full flex justify-between items-end">
             <div>
-              <h1 className="text-4xl md:text-5xl font-black text-white mb-2">{club.name}</h1>
+              <h1 className="text-3xl md:text-5xl font-black text-white mb-2">{club.name}</h1>
               <div className="flex flex-wrap gap-4 text-white/80 font-medium">
                 <span className="flex items-center"><Users size={18} className="mr-2" /> {club.members?.length || 0} Members</span>
               </div>
@@ -247,7 +247,7 @@ const ClubDetails = () => {
           </div>
         )}
 
-        <div className="p-8 grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="p-5 md:p-8 grid grid-cols-1 md:grid-cols-3 gap-8">
           {activeTab === 'about' ? (
             <>
               <div className="md:col-span-2 space-y-6">

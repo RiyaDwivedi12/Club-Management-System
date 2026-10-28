@@ -3,16 +3,24 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
   body {
     @apply bg-[#F8F9FA] text-[#1A1A1A] font-sans antialiased;
   }
   input, textarea, select {
     @apply text-black;
   }
-  /* Text selection — teal-green tint */
+  /* Text selection — brand teal tint */
   ::selection {
-    background-color: #bbf7d0; /* primary-200 green */
-    color: #14532d;            /* primary-900 green */
+    background-color: #99f6e4; /* primary-200 teal */
+    color: #134e4a;            /* primary-900 teal */
+  }
+  /* Keyboard focus indicator (not shown for mouse clicks) */
+  :focus-visible {
+    outline: 2px solid #0d9488;
+    outline-offset: 2px;
   }
 }
 
@@ -22,9 +30,9 @@
     box-shadow: 0 10px 40px -10px rgba(0,0,0,0.08);
   }
 
-  /* Gradient text — green → teal */
+  /* Gradient text — teal → navy */
   .text-gradient {
-    background-image: linear-gradient(to right, #16a34a, #0d9488);
+    background-image: linear-gradient(to right, #0d9488, #0b132b);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
