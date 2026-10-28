@@ -569,7 +569,7 @@ const uploadProfilePicture = async (req, res) => {
     }
 
     // Set the profile picture URL to the relative path of the uploaded file
-    const profilePicPath = `/uploads/${req.file.filename}`;
+    const profilePicPath = req.file.path && (req.file.path.startsWith('http://') || req.file.path.startsWith('https://')) ? req.file.path : `/uploads/${req.file.filename}`;
     if (user) {
       user.profilePicture = profilePicPath;
       await user.save();
