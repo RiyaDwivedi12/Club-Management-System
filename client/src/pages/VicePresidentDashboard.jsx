@@ -143,7 +143,7 @@ const VicePresidentDashboard = () => {
   };
 
   const tabClass = (tabName) => 
-    `flex items-center gap-2 px-6 py-4 font-bold text-sm transition-all border-b-2 cursor-pointer ${
+    `flex items-center gap-2 px-6 py-4 font-bold text-sm transition-all border-b-2 cursor-pointer shrink-0 whitespace-nowrap ${
       activeTab === tabName 
         ? 'border-teal-600 text-teal-700 bg-teal-50/50' 
         : 'border-transparent text-gray-500 hover:text-gray-900 hover:bg-gray-50'

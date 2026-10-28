@@ -463,7 +463,7 @@ const FinanceView = ({ clubs = [] }) => {
       {/* Receipt Modal */}
       {selectedReceipt && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-100">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
             <div className="border-b border-gray-100 pb-4 text-center">
               <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-2">
                 <Receipt size={24} />
@@ -520,7 +520,7 @@ const FinanceView = ({ clubs = [] }) => {
       {/* Budget Review Modal */}
       {budgetReviewModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-gray-100">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-black text-gray-900 mb-1">Review Club Budget Request</h3>
             <p className="text-xs text-gray-500 mb-4">{budgetReviewModal.title} - {budgetReviewModal.clubId?.name}</p>
 

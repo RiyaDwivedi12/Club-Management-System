@@ -985,7 +985,7 @@ const Elections = () => {
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }} 
             animate={{ opacity: 1, scale: 1 }} 
-            className="bg-white rounded-[32px] p-6 md:p-8 max-w-md w-full shadow-2xl border border-slate-100 text-xs"
+            className="bg-white rounded-[32px] p-6 md:p-8 max-w-md w-full shadow-2xl border border-slate-100 text-xs max-h-[90vh] overflow-y-auto"
           >
             <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
               <div>

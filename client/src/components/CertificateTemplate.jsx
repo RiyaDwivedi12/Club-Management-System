@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { Download, Printer, CheckCircle2, ShieldCheck, Trophy, X, Share2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -59,7 +60,7 @@ const CertificateTemplate = ({ cert, onClose }) => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2.5">
             <button
               onClick={handleCopyHash}
               className="px-3.5 py-2 text-xs font-bold text-gray-600 bg-white hover:bg-gray-100 border border-gray-200 rounded-xl transition-colors flex items-center gap-1.5"
@@ -98,11 +99,11 @@ const CertificateTemplate = ({ cert, onClose }) => {
         </div>
 
         {/* Certificate Canvas Area */}
-        <div className="p-4 sm:p-8 bg-slate-100/70 flex justify-center items-center overflow-x-auto">
+        <div className="p-4 sm:p-8 bg-slate-100/70 flex items-center overflow-x-auto">
           <div
             ref={printRef}
             id="printable-certificate"
-            className="relative bg-white w-[960px] min-w-[960px] h-[678px] shadow-2xl flex border border-gray-200 overflow-hidden select-none"
+            className="relative mx-auto bg-white w-[960px] min-w-[960px] h-[678px] shadow-2xl flex border border-gray-200 overflow-hidden select-none"
             style={{ fontFamily: "'Poppins', sans-serif" }}
           >
             {/* LEFT MAIN AREA */}

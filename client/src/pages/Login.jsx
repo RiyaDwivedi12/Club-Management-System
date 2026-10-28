@@ -238,9 +238,7 @@ const Login = () => {
     }
   };
 
-  const fieldClass = 'w-full px-4 py-3 text-sm rounded-xl border-2 bg-white text-gray-900 font-medium placeholder-gray-400 outline-none transition-all';
-  const fieldFocus = (e) => { e.target.style.borderColor = '#0d9488'; e.target.style.boxShadow = '0 0 0 3px rgba(13,148,136,0.1)'; };
-  const fieldBlur  = (e) => { e.target.style.borderColor = '#e2e8f0'; e.target.style.boxShadow = 'none'; };
+  const fieldClass = 'w-full px-4 py-3 text-sm rounded-xl border-2 border-slate-200 bg-white text-gray-900 font-medium placeholder-gray-400 outline-none transition-all focus:border-teal-600 focus:ring-[3px] focus:ring-teal-600/10';
 
   return (
     <div className="min-h-[calc(100vh-70px)] w-full flex items-center justify-center bg-gray-50 px-4 py-8 md:py-12">
@@ -270,7 +268,7 @@ const Login = () => {
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 md:p-10">
+        <div className="bg-white rounded-2xl shadow-soft border border-gray-100 p-6 sm:p-8 md:p-10">
 
           {/* Header */}
           <div className="mb-6 text-center">
@@ -299,8 +297,7 @@ const Login = () => {
 
           {/* Error */}
           {errorMsg && (
-            <div className="p-3.5 rounded-xl mb-5 text-sm font-semibold"
-              style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}>
+            <div className="p-3.5 rounded-xl mb-5 text-sm font-semibold bg-red-50 text-red-700 border border-red-200">
               <div className="flex items-center gap-2.5">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="flex-shrink-0">
                   <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
@@ -338,8 +335,6 @@ const Login = () => {
                 placeholder={selectedRole === 'student' ? 'e.g. 23CS012 or student@college.edu' : `${selectedRole}@campus.edu`}
                 required
                 className={fieldClass}
-                style={{ borderColor: '#e2e8f0' }}
-                onFocus={fieldFocus} onBlur={fieldBlur}
               />
             </div>
 
@@ -357,8 +352,6 @@ const Login = () => {
                     placeholder="e.g. 3rd Year"
                     required
                     className={fieldClass}
-                    style={{ borderColor: '#e2e8f0' }}
-                    onFocus={fieldFocus} onBlur={fieldBlur}
                   />
                 </div>
                 <div>
@@ -372,8 +365,6 @@ const Login = () => {
                     placeholder="e.g. A, B, C"
                     required
                     className={`${fieldClass} uppercase`}
-                    style={{ borderColor: '#e2e8f0' }}
-                    onFocus={fieldFocus} onBlur={fieldBlur}
                   />
                 </div>
               </div>
@@ -405,8 +396,6 @@ const Login = () => {
                   }
                   required
                   className={`${fieldClass} pr-12`}
-                  style={{ borderColor: '#e2e8f0' }}
-                  onFocus={fieldFocus} onBlur={fieldBlur}
                 />
                 <button type="button" onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-teal-600 transition-colors">
@@ -447,13 +436,7 @@ const Login = () => {
               id="login-submit-btn"
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 rounded-xl font-black text-white text-sm tracking-wide transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
-              style={{
-                background: loading ? '#94a3b8' : '#0d9488',
-                boxShadow: loading ? 'none' : '0 4px 14px rgba(13,148,136,0.35)',
-              }}
-              onMouseEnter={(e) => { if (!loading) e.currentTarget.style.background = '#0f766e'; }}
-              onMouseLeave={(e) => { if (!loading) e.currentTarget.style.background = '#0d9488'; }}
+              className="w-full py-3.5 rounded-xl font-black text-white text-sm tracking-wide transition-all bg-teal-600 hover:bg-teal-700 shadow-[0_4px_14px_rgba(13,148,136,0.35)] disabled:bg-slate-400 disabled:shadow-none disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
             >
               {loading ? (
                 <>

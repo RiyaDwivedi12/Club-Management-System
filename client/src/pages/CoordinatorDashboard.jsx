@@ -115,7 +115,7 @@ const CoordinatorDashboard = () => {
   };
 
   const tabClass = (tabName) => 
-    `flex items-center gap-2 px-6 py-4 font-bold text-sm transition-all border-b-2 cursor-pointer ${
+    `flex items-center gap-2 px-6 py-4 font-bold text-sm transition-all border-b-2 cursor-pointer shrink-0 whitespace-nowrap ${
       activeTab === tabName 
         ? 'border-teal-600 text-teal-700 bg-teal-50/50' 
         : 'border-transparent text-gray-500 hover:text-gray-900 hover:bg-gray-50'
@@ -311,7 +311,7 @@ const CoordinatorDashboard = () => {
               
               {showOverrideModal && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                  <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl border border-gray-100">
+                  <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
                     <h3 className="text-xl font-black mb-2 text-gray-900">Override Status</h3>
                     <p className="text-xs text-gray-500 mb-4 font-medium">You are changing the faculty approval for "{showOverrideModal.title}".</p>
                     <select id="overrideStatus" className="w-full mb-4 px-4 py-2.5 border border-gray-200 rounded-xl outline-none font-bold text-xs" defaultValue={showOverrideModal.approvalStatus === 'approved' ? 'rejected' : 'approved'}>

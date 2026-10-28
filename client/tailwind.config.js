@@ -11,17 +11,25 @@ export default {
         sans: ['"Plus Jakarta Sans"', 'Inter', 'Poppins', 'sans-serif'],
       },
       colors: {
+        // Brand primary — aligned with the teal used across the layout
         primary: {
-          50:  '#f0fdf4',  // lightest teal-green tint
-          100: '#dcfce7',
-          200: '#bbf7d0',
-          300: '#86efac',
-          400: '#4ade80',
-          500: '#22c55e',  // green-500
-          600: '#16a34a',  // green-600  ← main action color
-          700: '#15803d',
-          800: '#166534',
-          900: '#14532d',  // darkest
+          50:  '#f0fdfa',
+          100: '#ccfbf1',
+          200: '#99f6e4',
+          300: '#5eead4',
+          400: '#2dd4bf',
+          500: '#14b8a6',
+          600: '#0d9488',  // ← main action color (same as teal-600)
+          700: '#0f766e',
+          800: '#115e59',
+          900: '#134e4a',
+          950: '#042f2e',
+        },
+        // Campus navy — matches the admin sidebar (#0B132B)
+        dark: {
+          800: '#1c2541',
+          900: '#0b132b',
+          950: '#060b1a',
         },
         // Keep a teal alias for the darker teal panels used in Login/Register
         teal: {
@@ -39,10 +47,19 @@ export default {
       },
       boxShadow: {
         'soft':       '0 10px 40px -10px rgba(0,0,0,0.08)',
-        'soft-green': '0 10px 40px -10px rgba(22,163,74,0.30)',
+        'soft-green': '0 10px 40px -10px rgba(13,148,136,0.30)',
         'soft-teal':  '0 10px 40px -10px rgba(13,148,136,0.30)',
         // keep old name so any remaining references don't break
-        'soft-purple': '0 10px 40px -10px rgba(22,163,74,0.25)',
+        'soft-purple': '0 10px 40px -10px rgba(13,148,136,0.25)',
+      },
+      keyframes: {
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%':      { transform: 'translateY(-8px)' },
+        },
+      },
+      animation: {
+        float: 'float 6s ease-in-out infinite',
       },
     },
   },
