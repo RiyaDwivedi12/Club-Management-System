@@ -906,9 +906,6 @@ const AdminPanel = () => {
               placeholder="Search users, clubs, events, etc..."
               className="bg-transparent text-slate-800 font-medium placeholder-slate-400 focus:outline-none flex-1 min-w-0 text-xs"
             />
-            <span className="hidden sm:inline text-[10px] font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-500 shadow-2xs">
-              Ctrl + K
-            </span>
           </div>
           </div>
 
@@ -1504,23 +1501,31 @@ const AdminPanel = () => {
                     </div>
                   </div>
 
-                  {/* Faculty Advisor Selector */}
+                  {/* Faculty Advisor Typeable Input with Autocomplete */}
                   <div>
-                    <label className="block font-bold text-gray-700 uppercase mb-1">Faculty Advisor / Teacher In-Charge</label>
-                    <select required value={clubForm.facultyId} onChange={(e) => setClubForm({...clubForm, facultyId: e.target.value})} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-bold outline-none text-xs">
-                      <option value="">-- Select Faculty Advisor / Teacher --</option>
-                      {users.filter(u => u.role === 'faculty' || u.role === 'admin' || !['student'].includes(u.role)).map(u => (
-                        <option key={u._id} value={u._id}>
-                          {u.name} ({u.department || 'Faculty Coordinator'}) • {u.email}
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block font-bold text-gray-700 uppercase">Faculty Advisor / Teacher In-Charge</label>
+                      <span className="text-[10px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md">Type Name or Email</span>
+                    </div>
+                    <input
+                      type="text"
+                      list="facultyListOptions"
+                      required
+                      placeholder="Type teacher's name or email (e.g. Dr. Sharma or faculty@campus.edu)"
+                      value={clubForm.facultyId}
+                      onChange={(e) => setClubForm({...clubForm, facultyId: e.target.value})}
+                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-bold outline-none text-xs focus:bg-white focus:border-teal-600 focus:ring-2 focus:ring-teal-600/10 transition-all text-gray-800 placeholder-gray-400"
+                    />
+                    <datalist id="facultyListOptions">
+                      {users.map(u => (
+                        <option key={u._id} value={u.email}>
+                          {u.name} ({u.role}) • {u.department || 'Faculty'}
                         </option>
                       ))}
-                      <option disabled>────────── All Staff Accounts ──────────</option>
-                      {users.filter(u => !['faculty', 'admin'].includes(u.role)).map(u => (
-                        <option key={u._id} value={u._id}>
-                          {u.name} ({u.role}) • {u.email}
-                        </option>
-                      ))}
-                    </select>
+                    </datalist>
+                    <p className="text-[11px] text-gray-400 mt-1">
+                      You can type any teacher's name or email directly, or pick from existing accounts.
+                    </p>
                   </div>
 
                   <button disabled={loading} type="submit" className="px-6 py-2.5 bg-[#2563EB] hover:bg-blue-700 text-white rounded-xl font-bold shadow-md transition cursor-pointer">
@@ -1583,20 +1588,21 @@ const AdminPanel = () => {
                         <div className="flex items-center gap-3 shrink-0">
                           {editingClubFaculty === c._id ? (
                             <div className="flex items-center gap-2 bg-blue-50/60 p-2 rounded-xl border border-blue-200">
-                              <select
+                              <input
+                                type="text"
+                                list="editFacultyListOptions"
+                                placeholder="Type teacher's name or email..."
                                 value={selectedNewFaculty}
                                 onChange={(e) => setSelectedNewFaculty(e.target.value)}
-                                className="px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-800 outline-none"
-                              >
-                                <option value="">-- Choose New Teacher/Faculty --</option>
-                                {users.filter(u => u.role === 'faculty' || u.role === 'admin' || !['student'].includes(u.role)).map(u => (
-                                  <option key={u._id} value={u._id}>{u.name} ({u.department || 'Faculty Coordinator'})</option>
+                                className="px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-800 outline-none w-56 placeholder-gray-400"
+                              />
+                              <datalist id="editFacultyListOptions">
+                                {users.map(u => (
+                                  <option key={u._id} value={u.email}>
+                                    {u.name} ({u.role}) • {u.email}
+                                  </option>
                                 ))}
-                                <option disabled>────────── All Accounts ──────────</option>
-                                {users.filter(u => !['faculty', 'admin'].includes(u.role)).map(u => (
-                                  <option key={u._id} value={u._id}>{u.name} ({u.role})</option>
-                                ))}
-                              </select>
+                              </datalist>
                               <button
                                 onClick={() => handleUpdateClubFaculty(c._id)}
                                 disabled={updatingFaculty}
