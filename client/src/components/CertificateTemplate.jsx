@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { Download, Printer, CheckCircle2, ShieldCheck, Trophy, X, Share2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 

@@ -477,7 +477,7 @@ const AdminPanel = () => {
     }
     setLoading(true);
     try {
-      await axios.put('/api/clubs/recruitment-phase', recruitmentForm, { withCredentials: true });
+      await axios.put('/api/clubs/recruitment', recruitmentForm, { withCredentials: true });
       toast.success('Recruitment phase updated!');
       const clubsRes = await axios.get('/api/clubs');
       setClubs(clubsRes.data);

@@ -13,7 +13,7 @@ import PaymentReceiptModal from '../components/PaymentReceiptModal';
 
 const ClubDetails = () => {
   const { id } = useParams();
-  const { currentClub: club, fetchClubById, leaveClub, isLoading, error } = useClubStore();
+  const { currentClub: club, fetchClubById, leaveClub, approveMember, isLoading, error } = useClubStore();
   const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState('about');
   const [galleryUrl, setGalleryUrl] = useState('');
