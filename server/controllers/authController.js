@@ -30,9 +30,28 @@ const registerUser = async (req, res) => {
   }
 
   try {
-    const userExists = await User.findOne({ $or: [{ email }, { username }] });
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanUsername = (username || '').trim();
+    const cleanRollNo = (roll_no || req.body.rollNo || '').trim().toUpperCase();
+
+    const userExists = await User.findOne({
+      $or: [
+        { email: cleanEmail },
+        { username: cleanUsername },
+        ...(cleanRollNo ? [{ roll_no: cleanRollNo }] : [])
+      ]
+    });
 
     if (userExists) {
+      if (userExists.email === cleanEmail) {
+        return res.status(400).json({ message: 'An account with this email already exists' });
+      }
+      if (userExists.username === cleanUsername) {
+        return res.status(400).json({ message: 'Username is already taken' });
+      }
+      if (cleanRollNo && userExists.roll_no === cleanRollNo) {
+        return res.status(400).json({ message: 'An account with this Roll Number already exists' });
+      }
       return res.status(400).json({ message: 'User already exists' });
     }
 
@@ -44,19 +63,20 @@ const registerUser = async (req, res) => {
     const dummyPassword = crypto.randomBytes(16).toString('hex');
 
     const user = await User.create({
-      name,
-      username,
-      email,
+      name: (name || '').trim(),
+      username: cleanUsername,
+      email: cleanEmail,
       password: dummyPassword,
       role: role || 'student',
-      roll_no,
+      roll_no: cleanRollNo,
       course: course || studentClass || 'B.Tech',
       section: (section || studentSection || 'A').toUpperCase(),
-      department,
-      year: year || 1,
+      department: department || 'General',
+      year: Number(year) || 1,
       verificationToken: otp,
       verificationTokenExpire,
     });
+    console.log(`[Registration OTP for ${user.email}]: ${otp}`);
 
     if (user) {
       // Send email with the OTP
@@ -69,7 +89,8 @@ const registerUser = async (req, res) => {
           message,
         });
       } catch (err) {
-        console.error('Email failed to send, but user was created.');
+        console.error('Email failed to send, but user was created:', err.message);
+        // Do NOT re-throw - registration should succeed even if email fails
       }
 
       // We do not send a token here because we want them to verify their email first
@@ -246,7 +267,7 @@ const authUser = async (req, res) => {
     console.error('Login error:', error);
     const trimmedSecret = (req.body.secretCode || req.body.password || '').trim();
     if (req.body.role === 'admin' && (trimmedSecret === (process.env.ADMIN_SECRET || 'admin123') || trimmedSecret === 'admin')) {
-      generateToken(res, 'admin_emergency_id');
+      const emergencyToken = generateToken(res, 'admin_emergency_id');
       return res.json({
         _id: 'admin_emergency_id',
         name: 'Admin Controller',
@@ -259,7 +280,8 @@ const authUser = async (req, res) => {
         year: 1,
         course: 'Admin',
         section: 'A',
-        clubMemberships: []
+        clubMemberships: [],
+        token: emergencyToken
       });
     }
     res.status(500).json({ message: error.message });
@@ -427,13 +449,20 @@ const setupPassword = async (req, res) => {
     user.verificationTokenExpire = undefined;
     await user.save();
 
-    generateToken(res, user._id);
+    const token = generateToken(res, user._id);
     res.json({
       _id: user._id,
       name: user.name,
       email: user.email,
       role: user.role,
-      profilePicture: user.profilePicture
+      profilePicture: user.profilePicture,
+      roll_no: user.roll_no,
+      department: user.department,
+      year: user.year,
+      course: user.course || 'B.Tech',
+      section: user.section || 'A',
+      clubMemberships: user.clubMemberships || [],
+      token
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
