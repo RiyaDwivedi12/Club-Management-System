@@ -220,7 +220,7 @@ const authUser = async (req, res) => {
         return res.status(401).json({ message: 'Please verify your email before logging in' });
       }
 
-      generateToken(res, user._id);
+      const token = generateToken(res, user._id);
       
       const effectiveRole = (role === 'referee' && (user.isReferee || user.role === 'referee')) ? 'referee' : user.role;
 
@@ -236,7 +236,8 @@ const authUser = async (req, res) => {
         year: user.year,
         course: user.course || 'B.Tech',
         section: user.section || 'A',
-        clubMemberships: user.clubMemberships || []
+        clubMemberships: user.clubMemberships || [],
+        token
       });
     } else {
       res.status(401).json({ message: 'Invalid email or password' });
