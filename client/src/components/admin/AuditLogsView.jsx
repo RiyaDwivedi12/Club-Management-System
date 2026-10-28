@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { Shield, Clock, User, Filter, Search, CheckCircle, AlertTriangle, RefreshCw, FileText } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Shield, Search, RefreshCw, ChevronLeft, ChevronRight, Activity } from 'lucide-react';
+import PageHeader from '../ui/PageHeader';
+import StatTile from '../ui/StatTile';
 
 const AuditLogsView = () => {
   const [logs, setLogs] = useState([]);
@@ -53,21 +54,24 @@ const AuditLogsView = () => {
 
   return (
     <div className="space-y-6">
-      {/* Audit Stats Banner */}
+      <PageHeader
+        icon={Shield}
+        eyebrow="Security"
+        title="Audit Logs"
+        description="Immutable trail of administrative and security operations."
+      />
+
+      {/* Audit Stats */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-slate-900 text-white p-5 rounded-2xl border border-slate-800 shadow-sm">
-            <p className="text-xs uppercase font-bold text-slate-400">Total Audited Events</p>
-            <h3 className="text-3xl font-black mt-1 text-white">{stats.totalLogs}</h3>
-            <p className="text-xs text-slate-400 mt-2 font-medium">Immutable security trail</p>
-          </div>
+          <StatTile icon={Shield} label="Total audited events" value={stats.totalLogs} hint="Immutable security trail" tint="blue" />
 
-          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm md:col-span-3">
-            <p className="text-xs uppercase font-bold text-gray-500 mb-2">Most Frequent Admin Operations</p>
+          <div className="card p-4 sm:p-5 md:col-span-3 min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2.5">Most frequent admin operations</p>
             <div className="flex flex-wrap gap-2">
               {stats.actionsBreakdown?.slice(0, 6).map((a) => (
-                <span key={a._id} className="px-3 py-1 bg-gray-50 border border-gray-200 text-gray-800 rounded-lg text-xs font-bold">
-                  {a._id}: <span className="text-primary-600 font-black">{a.count}</span>
+                <span key={a._id} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 border border-slate-200 text-slate-700 rounded-lg text-xs font-semibold break-all">
+                  {a._id}: <span className="text-blue-600 font-bold">{a.count}</span>
                 </span>
               ))}
             </div>
@@ -76,28 +80,28 @@ const AuditLogsView = () => {
       )}
 
       {/* Filter and Search Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
-        <form onSubmit={handleSearch} className="flex items-center gap-2 w-full md:w-96">
-          <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+      <div className="card p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <form onSubmit={handleSearch} className="flex items-center gap-2 w-full md:max-w-md">
+          <div className="relative flex-1 min-w-0">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input
               type="text"
               placeholder="Search by admin name or action..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-primary-500 outline-none"
+              className="input input-icon"
             />
           </div>
-          <button type="submit" className="px-3 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold">
+          <button type="submit" className="btn-primary shrink-0">
             Search
           </button>
         </form>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
+        <div className="flex items-center gap-2 w-full md:w-auto">
           <select
             value={selectedAction}
             onChange={(e) => { setSelectedAction(e.target.value); setPage(1); }}
-            className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 outline-none"
+            className="input md:w-56"
           >
             <option value="all">All Action Types</option>
             <option value="STUDENT_BULK_IMPORT">Student Bulk Import</option>
@@ -112,66 +116,74 @@ const AuditLogsView = () => {
 
           <button
             onClick={() => { setSearch(''); setSelectedAction('all'); setPage(1); fetchAuditData(); }}
-            className="p-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-gray-600"
+            className="btn-icon-outline shrink-0"
             title="Refresh"
           >
-            <RefreshCw size={14} />
+            <RefreshCw size={15} />
           </button>
         </div>
       </div>
 
       {/* Logs Table */}
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="font-bold text-gray-900 text-sm">Security & Administrative Audit Stream ({totalCount})</h3>
-          <span className="text-xs text-gray-400 font-medium">Page {page} of {totalPages}</span>
+      <div className="card overflow-hidden">
+        <div className="card-header">
+          <h3 className="card-title flex items-center gap-2">
+            <Activity size={16} className="text-blue-600" />
+            Audit stream <span className="text-slate-400 font-semibold">({totalCount})</span>
+          </h3>
+          <span className="text-xs text-slate-400 font-medium">Page {page} of {totalPages}</span>
         </div>
 
         {loading ? (
-          <div className="p-8 text-center text-gray-400 text-xs font-medium">Loading audit trail...</div>
+          <div className="p-10 flex flex-col items-center gap-3 text-slate-400 text-sm">
+            <div className="spinner" />
+            Loading audit trail...
+          </div>
         ) : logs.length === 0 ? (
-          <div className="p-12 text-center text-gray-400">
-            <Shield size={32} className="mx-auto mb-2 text-gray-300" />
-            <p className="font-bold text-gray-700 text-sm">No audit logs matching criteria</p>
+          <div className="p-12 text-center">
+            <div className="icon-tile bg-slate-100 text-slate-400 mx-auto mb-3">
+              <Shield size={20} />
+            </div>
+            <p className="font-bold text-dark-900 text-sm">No audit logs matching criteria</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
+          <div className="table-wrap">
+            <table className="data-table text-xs">
               <thead>
-                <tr className="bg-gray-50/75 border-b border-gray-100 text-gray-500 uppercase tracking-wider font-black">
-                  <th className="py-3 px-6">Timestamp</th>
-                  <th className="py-3 px-6">Action</th>
-                  <th className="py-3 px-6">Operator</th>
-                  <th className="py-3 px-6">Role</th>
-                  <th className="py-3 px-6">Target Model</th>
-                  <th className="py-3 px-6">Status</th>
-                  <th className="py-3 px-6">Operational Details</th>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Action</th>
+                  <th>Operator</th>
+                  <th>Role</th>
+                  <th>Target Model</th>
+                  <th>Status</th>
+                  <th>Operational Details</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 font-medium">
+              <tbody>
                 {logs.map((log) => (
-                  <tr key={log._id} className="hover:bg-gray-50">
-                    <td className="py-3 px-6 text-gray-500 whitespace-nowrap">
+                  <tr key={log._id}>
+                    <td className="text-slate-500 whitespace-nowrap">
                       {new Date(log.createdAt).toLocaleString()}
                     </td>
-                    <td className="py-3 px-6 font-mono font-bold text-primary-700">
+                    <td className="font-mono font-semibold text-blue-700 whitespace-nowrap">
                       {log.action}
                     </td>
-                    <td className="py-3 px-6 font-bold text-gray-900">
+                    <td className="font-semibold text-dark-900 whitespace-nowrap">
                       {log.performedByName || 'System'}
                     </td>
-                    <td className="py-3 px-6 capitalize">
-                      <span className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded-md font-semibold text-[10px]">
+                    <td className="capitalize">
+                      <span className="badge-slate">
                         {log.performedByRole || 'admin'}
                       </span>
                     </td>
-                    <td className="py-3 px-6 text-gray-600 font-semibold">{log.targetType || 'System'}</td>
-                    <td className="py-3 px-6">
-                      <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-bold text-[10px]">
+                    <td className="text-slate-600 font-medium">{log.targetType || 'System'}</td>
+                    <td>
+                      <span className="badge-green">
                         {log.status}
                       </span>
                     </td>
-                    <td className="py-3 px-6 text-gray-600 font-mono text-[11px] max-w-xs truncate">
+                    <td className="text-slate-500 font-mono text-[11px] max-w-xs truncate">
                       {log.details ? JSON.stringify(log.details) : '-'}
                     </td>
                   </tr>
@@ -182,23 +194,23 @@ const AuditLogsView = () => {
         )}
 
         {totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
+          <div className="px-5 py-4 border-t border-slate-100 flex items-center justify-between gap-3">
             <button
               disabled={page <= 1}
               onClick={() => setPage(p => Math.max(1, p - 1))}
-              className="px-3 py-1.5 text-xs font-bold bg-gray-100 text-gray-700 rounded-lg disabled:opacity-40"
+              className="btn-secondary btn-sm disabled:opacity-40"
             >
-              Previous
+              <ChevronLeft size={14} /> Previous
             </button>
-            <span className="text-xs font-semibold text-gray-500">
+            <span className="text-xs font-semibold text-slate-500">
               Page {page} of {totalPages}
             </span>
             <button
               disabled={page >= totalPages}
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              className="px-3 py-1.5 text-xs font-bold bg-gray-100 text-gray-700 rounded-lg disabled:opacity-40"
+              className="btn-secondary btn-sm disabled:opacity-40"
             >
-              Next
+              Next <ChevronRight size={14} />
             </button>
           </div>
         )}

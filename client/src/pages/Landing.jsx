@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import {
   GraduationCap, Menu, X, ArrowRight, Users, Calendar, Trophy, Vote, Award,
-  Wallet, QrCode, ShieldCheck, UserPlus, Compass, Sparkles, CheckCircle2, Building2
+  Wallet, ShieldCheck, UserPlus, Compass, Sparkles, CheckCircle2, Building2
 } from 'lucide-react';
 
 // In-page sections use anchors; Clubs/Login/Get Started use existing routes.
@@ -20,12 +20,6 @@ const FEATURES = [
     title: 'Club Management',
     text: 'Discover clubs, request membership and let presidents and faculty coordinators manage members in one place.',
     tint: 'bg-blue-50 text-blue-600',
-  },
-  {
-    icon: QrCode,
-    title: 'Events & QR Attendance',
-    text: 'Publish events for approval, issue digital event passes and check attendees in with a QR scan.',
-    tint: 'bg-indigo-50 text-indigo-600',
   },
   {
     icon: Trophy,
@@ -288,7 +282,6 @@ const Landing = () => {
               </div>
               <FloatingCard icon={Vote} title="Elections" text="Secret ballot voting" className="top-0 left-0 sm:-left-2" delay="-1s" />
               <FloatingCard icon={Trophy} title="Tournaments" text="Live brackets" className="top-1/3 right-0 sm:-right-2" delay="-3s" />
-              <FloatingCard icon={QrCode} title="Events" text="QR attendance" className="bottom-0 left-4 sm:left-10" delay="-4.5s" />
               <FloatingCard icon={ShieldCheck} title="Certificates" text="Hash verified" className="hidden sm:flex -bottom-2 right-8" delay="-2s" />
             </div>
           </div>

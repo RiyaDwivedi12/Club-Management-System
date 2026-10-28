@@ -1,24 +1,19 @@
 import { Link } from 'react-router-dom';
 import { Users, ChevronRight, CheckCircle2 } from 'lucide-react';
-import { motion } from 'framer-motion';
 
 const ClubCard = ({ club }) => {
   const categoryColors = {
-    Sports: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
-    Cultural: { bg: 'bg-teal-50', text: 'text-teal-700', border: 'border-teal-200' },
-    Literary: { bg: 'bg-cyan-50', text: 'text-cyan-700', border: 'border-cyan-200' },
+    Sports: 'text-amber-700',
+    Cultural: 'text-indigo-700',
+    Literary: 'text-sky-700',
   };
 
-  const catStyle = categoryColors[club.category] || {
-    bg: 'bg-teal-50',
-    text: 'text-teal-700',
-    border: 'border-teal-200',
-  };
+  const catText = categoryColors[club.category] || 'text-blue-700';
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-gray-100 hover:border-teal-200 overflow-hidden flex flex-col h-full group">
+    <div className="card card-hover overflow-hidden flex flex-col h-full group">
       {/* Top Banner */}
-      <div className="h-44 relative overflow-hidden bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-800 flex items-center justify-center">
+      <div className="h-40 relative overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center">
         {club.logo ? (
           <img
             src={club.logo}
@@ -26,22 +21,25 @@ const ClubCard = ({ club }) => {
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
-          <div className="flex flex-col items-center justify-center p-6 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-white/15 backdrop-blur-md border border-white/25 flex items-center justify-center mb-2 shadow-inner group-hover:scale-110 transition-transform duration-300">
-              <span className="text-2xl font-black text-white tracking-wider">
-                {club.name ? club.name.substring(0, 2).toUpperCase() : 'CL'}
+          <>
+            <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-white/10 blur-2xl pointer-events-none" />
+            <div className="relative flex flex-col items-center justify-center p-6 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-white/15 backdrop-blur-md border border-white/25 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform duration-300">
+                <span className="text-2xl font-extrabold text-white tracking-tight">
+                  {club.name ? club.name.substring(0, 2).toUpperCase() : 'CL'}
+                </span>
+              </div>
+              <span className="text-xs font-semibold text-blue-100/90">
+                Campus Club
               </span>
             </div>
-            <span className="text-xs font-bold text-teal-100 tracking-wide uppercase opacity-90">
-              Campus Club
-            </span>
-          </div>
+          </>
         )}
 
         {/* Category Badge Overlaid */}
         {club.category && (
           <span
-            className={`absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-white/90 backdrop-blur-md shadow-sm ${catStyle.text}`}
+            className={`absolute top-3 left-3 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-white/95 backdrop-blur-md shadow-sm ${catText}`}
           >
             {club.category}
           </span>
@@ -49,31 +47,29 @@ const ClubCard = ({ club }) => {
 
         {/* Accepting Members Indicator */}
         {club.isAcceptingMembers && (
-          <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500 text-white flex items-center gap-1 shadow-sm">
+          <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500 text-white flex items-center gap-1 shadow-sm">
             <CheckCircle2 size={12} /> Recruiting
           </span>
         )}
       </div>
 
       {/* Content */}
-      <div className="p-6 flex flex-col flex-1">
-        <div className="mb-3">
-          <h3 className="text-xl font-black text-gray-900 group-hover:text-teal-700 transition-colors line-clamp-1">
-            {club.name}
-          </h3>
-          <p className="text-xs text-gray-500 font-medium line-clamp-2 mt-1 min-h-[32px]">
-            {club.description || 'Join this student organization to connect, learn, and lead campus events.'}
-          </p>
-        </div>
+      <div className="p-5 flex flex-col flex-1 min-w-0">
+        <h3 className="text-lg font-bold text-dark-900 group-hover:text-blue-700 transition-colors line-clamp-1 break-words">
+          {club.name}
+        </h3>
+        <p className="text-sm text-slate-600 leading-relaxed line-clamp-2 mt-1 min-h-[40px]">
+          {club.description || 'Join this student organization to connect, learn, and lead campus events.'}
+        </p>
 
         {/* Member & Fee details */}
-        <div className="flex items-center justify-between text-xs font-bold text-gray-600 py-3 border-y border-gray-100 my-3">
-          <div className="flex items-center gap-1.5 text-gray-700">
-            <Users size={15} className="text-teal-600" />
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold py-3 border-t border-slate-100 mt-4 mb-4">
+          <div className="flex items-center gap-1.5 text-slate-600">
+            <Users size={15} className="text-blue-600" />
             <span>{club.members?.length || 0} Members</span>
           </div>
           {club.joinFee !== undefined && (
-            <span className="text-emerald-700 font-extrabold bg-emerald-50 px-2 py-0.5 rounded-md">
+            <span className={club.joinFee === 0 ? 'badge-green' : 'badge-blue'}>
               {club.joinFee === 0 ? 'Free to Join' : `₹${club.joinFee} Fee`}
             </span>
           )}
@@ -82,7 +78,7 @@ const ClubCard = ({ club }) => {
         {/* Action Button */}
         <Link
           to={`/clubs/${club._id}`}
-          className="mt-auto flex items-center justify-center gap-2 w-full py-3 bg-teal-50 text-teal-700 hover:bg-teal-600 hover:text-white rounded-xl font-bold text-sm transition-all duration-200 group/btn shadow-sm"
+          className="btn-soft w-full mt-auto group/btn"
         >
           <span>View Details & Join</span>
           <ChevronRight size={16} className="transition-transform group-hover/btn:translate-x-1" />

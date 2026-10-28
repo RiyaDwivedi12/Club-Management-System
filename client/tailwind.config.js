@@ -11,46 +11,37 @@ export default {
         sans: ['"Plus Jakarta Sans"', 'Inter', 'Poppins', 'sans-serif'],
       },
       colors: {
-        // Brand primary — aligned with the teal used across the layout
+        // Brand primary — the blue used by the landing page (blue-600 is the main action color)
         primary: {
-          50:  '#f0fdfa',
-          100: '#ccfbf1',
-          200: '#99f6e4',
-          300: '#5eead4',
-          400: '#2dd4bf',
-          500: '#14b8a6',
-          600: '#0d9488',  // ← main action color (same as teal-600)
-          700: '#0f766e',
-          800: '#115e59',
-          900: '#134e4a',
-          950: '#042f2e',
+          50:  '#eff6ff',
+          100: '#dbeafe',
+          200: '#bfdbfe',
+          300: '#93c5fd',
+          400: '#60a5fa',
+          500: '#3b82f6',
+          600: '#2563eb',
+          700: '#1d4ed8',
+          800: '#1e40af',
+          900: '#1e3a8a',
+          950: '#172554',
         },
-        // Campus navy — matches the admin sidebar (#0B132B)
+        // Campus navy — headings, dark panels and the stats band
         dark: {
+          700: '#24304f',
           800: '#1c2541',
           900: '#0b132b',
           950: '#060b1a',
         },
-        // Keep a teal alias for the darker teal panels used in Login/Register
-        teal: {
-          50:  '#f0fdfa',
-          100: '#ccfbf1',
-          200: '#99f6e4',
-          300: '#5eead4',
-          400: '#2dd4bf',
-          500: '#14b8a6',
-          600: '#0d9488',  // ← teal-600, dark left panel accent
-          700: '#0f766e',
-          800: '#115e59',
-          900: '#134e4a',
-        },
       },
       boxShadow: {
-        'soft':       '0 10px 40px -10px rgba(0,0,0,0.08)',
-        'soft-green': '0 10px 40px -10px rgba(13,148,136,0.30)',
-        'soft-teal':  '0 10px 40px -10px rgba(13,148,136,0.30)',
-        // keep old name so any remaining references don't break
-        'soft-purple': '0 10px 40px -10px rgba(13,148,136,0.25)',
+        'soft':       '0 10px 40px -10px rgba(15,23,42,0.08)',
+        'card':       '0 1px 2px 0 rgba(15,23,42,0.04), 0 1px 3px 0 rgba(15,23,42,0.03)',
+        'card-hover': '0 20px 40px -20px rgba(30,58,138,0.25)',
+        'brand':      '0 10px 24px -8px rgba(37,99,235,0.35)',
+        // legacy names kept so existing references keep working
+        'soft-green':  '0 10px 40px -10px rgba(37,99,235,0.30)',
+        'soft-teal':   '0 10px 40px -10px rgba(37,99,235,0.30)',
+        'soft-purple': '0 10px 40px -10px rgba(37,99,235,0.25)',
       },
       keyframes: {
         float: {

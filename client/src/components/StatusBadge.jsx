@@ -6,37 +6,33 @@ const StatusBadge = ({ status, note }) => {
 
   const normalizedStatus = status?.toLowerCase() || 'pending';
 
-  let bgClass, textClass, ringClass, label;
+  let badgeClass, label;
 
   switch (normalizedStatus) {
     case 'approved':
-      bgClass = 'bg-emerald-100';
-      textClass = 'text-emerald-800';
-      ringClass = 'ring-emerald-600/20';
+      badgeClass = 'badge-green';
       label = 'Approved';
       break;
     case 'rejected':
-      bgClass = 'bg-red-100';
-      textClass = 'text-red-800';
-      ringClass = 'ring-red-600/20';
+      badgeClass = 'badge-red';
       label = 'Rejected';
       break;
     case 'pending':
     default:
-      bgClass = 'bg-amber-100';
-      textClass = 'text-amber-800';
-      ringClass = 'ring-amber-600/20';
+      badgeClass = 'badge-amber';
       label = 'Pending Review';
       break;
   }
 
   return (
-    <div className="relative inline-flex items-center gap-1.5 ml-2">
-      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider ring-1 ring-inset ${ringClass} ${bgClass} ${textClass}`}>
+    <div className="relative inline-flex items-center gap-1.5 ml-2 shrink-0">
+      <span className={`${badgeClass} whitespace-nowrap`}>
         {label}
         {normalizedStatus === 'rejected' && note && (
-          <button 
-            className="ml-1 text-red-600 hover:text-red-900 focus:outline-none cursor-pointer"
+          <button
+            type="button"
+            aria-label="Show rejection reason"
+            className="ml-0.5 text-red-600 hover:text-red-800 focus:outline-none cursor-pointer"
             onMouseEnter={() => setShowTooltip(true)}
             onMouseLeave={() => setShowTooltip(false)}
             onClick={(e) => {
@@ -44,17 +40,17 @@ const StatusBadge = ({ status, note }) => {
               setShowTooltip(!showTooltip);
             }}
           >
-            <Info size={12} strokeWidth={3} />
+            <Info size={12} strokeWidth={2.5} />
           </button>
         )}
       </span>
 
       {showTooltip && normalizedStatus === 'rejected' && note && (
-        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 p-2 bg-slate-800 text-white text-xs rounded shadow-lg z-50 pointer-events-none">
-          <div className="font-bold mb-1">Rejection Reason:</div>
-          <div>{note}</div>
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-52 max-w-[70vw] p-2.5 bg-dark-900 text-white text-xs rounded-xl shadow-lg z-50 pointer-events-none">
+          <div className="font-semibold mb-1">Rejection Reason:</div>
+          <div className="text-slate-200 break-words">{note}</div>
           {/* Arrow */}
-          <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-slate-800"></div>
+          <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-dark-900"></div>
         </div>
       )}
     </div>

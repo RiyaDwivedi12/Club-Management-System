@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import useClubStore from '../store/clubStore';
-import { Send, Loader, Hash, Search, MoreVertical, MessageSquare } from 'lucide-react';
+import { Send, Loader, Hash, Search, MessageSquare, ArrowLeft } from 'lucide-react';
+import UserAvatar from '../components/ui/UserAvatar';
 import socket from '../utils/socket';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -19,6 +20,8 @@ const Chat = () => {
   const [newMessage, setNewMessage] = useState('');
   const [isFetchingMessages, setIsFetchingMessages] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  // Layout-only: on small screens show either the club list or the open conversation.
+  const [showListOnMobile, setShowListOnMobile] = useState(!queryClubId);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -107,63 +110,60 @@ const Chat = () => {
   const activeClub = myClubs.find(c => c._id === activeClubId);
 
   return (
-    <div className="w-full h-[calc(100vh-100px)] flex bg-white shadow-lg overflow-hidden font-sans border border-gray-200">
-      
+    <div className="max-w-7xl mx-auto w-full h-[calc(100dvh-184px)] lg:h-[calc(100dvh-128px)] min-h-[420px] flex card overflow-hidden">
+
       {/* Sidebar (Chats List) */}
-      <div className="w-full md:w-[30%] lg:w-[350px] bg-white flex flex-col border-r border-gray-200 shrink-0">
-        
+      <div className={`${showListOnMobile ? 'flex' : 'hidden'} md:flex w-full md:w-80 lg:w-[340px] bg-white flex-col md:border-r border-slate-200 shrink-0 min-w-0`}>
+
         {/* Sidebar Header */}
-        <div className="bg-[#f0f2f5] h-16 flex items-center justify-between px-4 shrink-0 border-b border-gray-200">
-          <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center overflow-hidden">
-             {/* User Avatar Placeholder */}
-             <img src={`https://ui-avatars.com/api/?name=${user?.name || 'User'}&background=random`} alt="Profile" className="w-full h-full object-cover"/>
-          </div>
-          <div className="flex gap-4 text-[#54656f]">
-            <MoreVertical size={24} className="cursor-pointer" />
+        <div className="h-16 flex items-center gap-3 px-4 shrink-0 border-b border-slate-100">
+          <UserAvatar user={user} size="md" />
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-dark-900 leading-tight">Club Chats</p>
+            <p className="text-xs text-slate-500 truncate">{user?.name}</p>
           </div>
         </div>
 
         {/* Search Bar */}
-        <div className="bg-white p-2 border-b border-gray-200 shrink-0">
-          <div className="bg-[#f0f2f5] rounded-lg flex items-center px-3 py-1.5 gap-3">
-            <Search size={18} className="text-[#54656f]" />
-            <input 
-              type="text" 
-              placeholder="Search clubs..." 
+        <div className="p-3 border-b border-slate-100 shrink-0">
+          <div className="relative">
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search clubs..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-transparent border-none outline-none text-sm w-full placeholder-[#54656f]"
+              className="input input-icon py-2"
             />
           </div>
         </div>
-        
+
         {/* Chat List */}
-        <div className="flex-1 overflow-y-auto bg-white">
+        <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
           {filteredClubs.length === 0 ? (
-            <div className="p-4 text-center text-[#54656f] text-sm mt-4">
+            <div className="p-4 text-center text-slate-500 text-sm mt-4">
               {searchQuery ? 'No clubs found.' : 'You have not joined any clubs yet.'}
             </div>
           ) : (
             filteredClubs.map(club => (
               <button
                 key={club._id}
-                onClick={() => setActiveClubId(club._id)}
-                className={`w-full text-left flex items-center px-4 py-3.5 transition-colors cursor-pointer ${
-                  activeClubId === club._id ? 'bg-teal-50/80 border-l-4 border-l-teal-600' : 'hover:bg-gray-50'
+                type="button"
+                onClick={() => { setActiveClubId(club._id); setShowListOnMobile(false); }}
+                className={`w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors cursor-pointer ${
+                  activeClubId === club._id ? 'bg-blue-50 ring-1 ring-inset ring-blue-100' : 'hover:bg-slate-50'
                 }`}
               >
-                <div className="w-11 h-11 rounded-xl bg-teal-100 flex items-center justify-center shrink-0 overflow-hidden mr-3">
+                <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center shrink-0 overflow-hidden">
                    {club.logo ? (
                      <img src={club.logo} alt={club.name} className="w-full h-full object-cover"/>
                    ) : (
-                     <Hash size={20} className="text-teal-700" />
+                     <Hash size={20} className="text-blue-600" />
                    )}
                 </div>
-                <div className="flex-1 min-w-0 border-b border-gray-100 pb-2">
-                  <div className="flex justify-between items-center mb-0.5">
-                    <span className="text-sm font-black text-gray-900 truncate">{club.name}</span>
-                  </div>
-                  <span className="text-xs text-gray-500 font-medium truncate block">Club discussion channel</span>
+                <div className="flex-1 min-w-0">
+                  <span className={`text-sm font-semibold truncate block ${activeClubId === club._id ? 'text-blue-700' : 'text-dark-900'}`}>{club.name}</span>
+                  <span className="text-xs text-slate-500 truncate block">Club discussion channel</span>
                 </div>
               </button>
             ))
@@ -172,49 +172,54 @@ const Chat = () => {
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 bg-[#efeae2] flex flex-col relative">
-        
+      <div className={`${showListOnMobile ? 'hidden' : 'flex'} md:flex flex-1 min-w-0 bg-slate-50 flex-col relative`}>
+
         {/* Chat Header */}
-        <div className="bg-[#f0f2f5] h-16 flex items-center px-4 shrink-0 border-b border-gray-200 z-10">
+        <div className="bg-white h-16 flex items-center gap-3 px-3 sm:px-4 shrink-0 border-b border-slate-100 z-10">
+          <button
+            type="button"
+            onClick={() => setShowListOnMobile(true)}
+            className="btn-icon md:hidden -ml-1"
+            aria-label="Back to chats"
+          >
+            <ArrowLeft size={20} />
+          </button>
           {activeClub ? (
             <>
-              <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center shrink-0 overflow-hidden mr-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0 overflow-hidden">
                 {activeClub.logo ? (
                   <img src={activeClub.logo} alt={activeClub.name} className="w-full h-full object-cover"/>
                 ) : (
-                  <Hash size={20} className="text-gray-500" />
+                  <Hash size={20} className="text-blue-600" />
                 )}
               </div>
-              <div className="flex-1 cursor-pointer">
-                <h2 className="text-[16px] text-[#111b21]">{activeClub.name}</h2>
-                <p className="text-[13px] text-[#667781]">
+              <div className="flex-1 min-w-0">
+                <h2 className="text-sm sm:text-base font-bold text-dark-900 truncate">{activeClub.name}</h2>
+                <p className="text-xs text-slate-500 truncate">
                   This is a {activeClub.name} group
                 </p>
               </div>
-              <div className="flex gap-4 text-[#54656f]">
-                <Search size={24} className="cursor-pointer" />
-                <MoreVertical size={24} className="cursor-pointer" />
-              </div>
             </>
           ) : (
-            <div className="text-[#111b21] font-medium">Select a chat</div>
+            <div className="text-sm font-semibold text-slate-600">Select a chat</div>
           )}
         </div>
 
         {/* Messages */}
-        <div 
-          className="flex-1 p-4 overflow-y-auto z-10 bg-[#f0f2f5]/60"
+        <div
+          className="flex-1 p-3 sm:p-4 overflow-y-auto z-10"
         >
           {!activeClubId ? (
-             <div className="h-full flex flex-col items-center justify-center text-[#54656f]">
+             <div className="h-full flex flex-col items-center justify-center text-slate-400">
+               <MessageSquare size={36} strokeWidth={1.5} />
              </div>
           ) : isFetchingMessages ? (
             <div className="h-full flex items-center justify-center">
-              <Loader className="animate-spin text-primary-600" size={32} />
+              <Loader className="animate-spin text-blue-600" size={32} />
             </div>
           ) : messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center p-6 text-center">
-              <div className="bg-white/80 backdrop-blur-sm text-[13px] text-gray-500 px-4 py-2 rounded-xl shadow-sm border border-gray-100 font-medium">
+              <div className="bg-white text-sm text-slate-500 px-4 py-2.5 rounded-xl shadow-sm border border-slate-200">
                 No messages yet. Send a message to start the conversation!
               </div>
             </div>
@@ -223,21 +228,21 @@ const Chat = () => {
               {messages.map((msg, index) => {
                 const isSelf = msg.sender?._id === user?._id;
                 const showSenderName = !isSelf && (index === 0 || messages[index - 1].sender?._id !== msg.sender?._id);
-                
+
                 return (
                   <div key={msg._id} className={`flex ${isSelf ? 'justify-end' : 'justify-start'} mb-1`}>
-                    <div className={`max-w-[65%] px-2 py-1 rounded-md shadow-sm relative text-[14px] leading-relaxed ${
-                      isSelf ? 'bg-[#d9fdd3] rounded-tr-none' : 'bg-white rounded-tl-none'
+                    <div className={`max-w-[85%] sm:max-w-[70%] px-3 py-2 rounded-2xl shadow-sm relative text-sm leading-relaxed ${
+                      isSelf ? 'bg-blue-600 text-white rounded-br-md' : 'bg-white border border-slate-200 text-dark-900 rounded-bl-md'
                     }`}>
                       {showSenderName && (
-                        <div className="text-[12.5px] font-medium text-[#1fa855] mb-0.5" style={{ filter: 'brightness(0.8)' }}>
+                        <div className="text-xs font-semibold text-indigo-600 mb-0.5">
                           {msg.sender?.name || 'Unknown'}
                         </div>
                       )}
-                      <div className="text-[#111b21] whitespace-pre-wrap word-break">
+                      <div className="whitespace-pre-wrap break-words">
                         {msg.text}
                       </div>
-                      <div className="text-[11px] text-[#667781] text-right mt-1 ml-4 float-right leading-none">
+                      <div className={`text-[11px] text-right mt-1 leading-none ${isSelf ? 'text-blue-100' : 'text-slate-400'}`}>
                         {new Date(msg.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>
@@ -251,21 +256,20 @@ const Chat = () => {
 
         {/* Message Input */}
         {activeClubId && (
-          <form onSubmit={handleSendMessage} className="bg-[#f0f2f5] min-h-[62px] px-4 py-2 flex items-end gap-3 z-10 shrink-0">
-            <div className="flex-1 bg-white rounded-lg flex items-center min-h-[42px] px-4">
-              <input
-                type="text"
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Type a message"
-                className="w-full bg-transparent border-none outline-none text-[#111b21] text-[15px] py-2"
-                autoComplete="off"
-              />
-            </div>
-            <button 
+          <form onSubmit={handleSendMessage} className="bg-white border-t border-slate-100 px-3 sm:px-4 py-3 flex items-center gap-2 sm:gap-3 z-10 shrink-0">
+            <input
+              type="text"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="Type a message"
+              className="input flex-1 min-w-0"
+              autoComplete="off"
+            />
+            <button
               type="submit"
               disabled={!newMessage.trim()}
-              className="bg-teal-600 hover:bg-teal-700 text-white rounded-xl transition-all p-2.5 h-[42px] w-[42px] flex items-center justify-center disabled:opacity-40 shadow-sm cursor-pointer"
+              className="btn-primary w-11 h-11 p-0 shrink-0 disabled:opacity-40"
+              aria-label="Send message"
             >
               <Send size={18} />
             </button>

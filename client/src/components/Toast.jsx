@@ -5,18 +5,18 @@ import { CheckCircle, XCircle, Bell, X } from 'lucide-react';
 // Custom Toast Component to be rendered via toast.custom()
 const CustomToast = ({ t, message, type }) => {
   let Icon = Bell;
-  let iconColor = 'text-indigo-500';
+  let iconColor = 'bg-blue-50 text-blue-600';
   let bgColor = 'bg-white';
-  let borderColor = 'border-indigo-100';
+  let borderColor = 'border-l-blue-500';
 
   if (type === 'success') {
     Icon = CheckCircle;
-    iconColor = 'text-green-500';
-    borderColor = 'border-green-100';
+    iconColor = 'bg-emerald-50 text-emerald-600';
+    borderColor = 'border-l-emerald-500';
   } else if (type === 'error') {
     Icon = XCircle;
-    iconColor = 'text-red-500';
-    borderColor = 'border-red-100';
+    iconColor = 'bg-red-50 text-red-600';
+    borderColor = 'border-l-red-500';
   }
 
   return (
@@ -26,22 +26,24 @@ const CustomToast = ({ t, message, type }) => {
           initial={{ opacity: 0, x: 50, y: -20 }}
           animate={{ opacity: 1, x: 0, y: 0 }}
           exit={{ opacity: 0, x: 50, transition: { duration: 0.2 } }}
-          className={`max-w-sm w-full shadow-lg rounded-xl pointer-events-auto flex ring-1 ring-black ring-opacity-5 ${bgColor} border-l-4 ${borderColor}`}
+          className={`max-w-sm w-[calc(100vw-2rem)] sm:w-full shadow-card-hover rounded-2xl pointer-events-auto flex border border-slate-200/70 overflow-hidden ${bgColor} border-l-4 ${borderColor}`}
         >
-          <div className="flex-1 w-0 p-4">
-            <div className="flex items-start">
-              <div className="flex-shrink-0 pt-0.5">
-                <Icon className={`h-6 w-6 ${iconColor}`} strokeWidth={2} />
+          <div className="flex-1 w-0 p-3.5">
+            <div className="flex items-start gap-3">
+              <div className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center ${iconColor}`}>
+                <Icon className="h-5 w-5" strokeWidth={2} />
               </div>
-              <div className="ml-3 flex-1">
-                <p className="text-sm font-bold text-gray-900 mt-0.5">{message}</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-dark-900 mt-2 break-words">{message}</p>
               </div>
             </div>
           </div>
-          <div className="flex border-l border-gray-100">
+          <div className="flex border-l border-slate-100">
             <button
+              type="button"
+              aria-label="Dismiss notification"
               onClick={() => toast.dismiss(t.id)}
-              className="w-full border border-transparent rounded-none rounded-r-xl p-4 flex items-center justify-center text-sm font-medium text-gray-400 hover:text-gray-600 hover:bg-gray-50 focus:outline-none transition-colors"
+              className="w-full px-3.5 flex items-center justify-center text-slate-400 hover:text-dark-900 hover:bg-slate-50 focus:outline-none transition-colors"
             >
               <X className="h-4 w-4" />
             </button>

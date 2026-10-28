@@ -34,7 +34,7 @@ const useNotificationStore = create((set, get) => ({
         icon: '🔔',
         style: {
           borderRadius: '14px',
-          background: '#0d9488',
+          background: '#2563eb',
           color: '#ffffff',
           fontWeight: 'bold',
           fontSize: '13px',

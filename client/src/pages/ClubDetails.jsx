@@ -10,6 +10,7 @@ import useAuthStore from '../store/authStore';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import PaymentReceiptModal from '../components/PaymentReceiptModal';
+import LoadingState from '../components/ui/LoadingState';
 
 const ClubDetails = () => {
   const { id } = useParams();
@@ -129,7 +130,7 @@ const ClubDetails = () => {
           email: user?.email || '',
           contact: user?.phone || user?.roll_no || ''
         },
-        theme: { color: '#0d9488' },
+        theme: { color: '#2563eb' },
         modal: {
           ondismiss: function () {
             setIsProcessingPayment(false);
@@ -187,15 +188,15 @@ const ClubDetails = () => {
   }, [fetchClubById, id, user]);
 
   if (isLoading || !club) {
-    return (
-      <div className="flex justify-center p-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
-      </div>
-    );
+    return <LoadingState label="Loading club..." />;
   }
 
   if (error) {
-    return <div className="p-8 text-center text-red-500 font-bold">{error}</div>;
+    return (
+      <div className="max-w-5xl mx-auto">
+        <div className="bg-red-50 text-red-700 border border-red-200 p-4 rounded-xl text-sm font-semibold text-center">{error}</div>
+      </div>
+    );
   }
 
   const isMember = club.members?.some(m => (m._id || m) === user?._id) || (user?.clubMemberships && user.clubMemberships.includes(club._id)) || false;
@@ -203,80 +204,96 @@ const ClubDetails = () => {
   const isLeadership = club.presidentId?._id === user?._id || club.facultyId?._id === user?._id || user?.role === 'admin';
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="p-4 md:p-8 max-w-5xl mx-auto"
+      className="max-w-5xl mx-auto space-y-5 pb-12"
     >
-      <Link to="/clubs" className="inline-flex items-center text-teal-600 hover:text-teal-800 font-bold mb-6">
-        <ArrowLeft size={16} className="mr-2" /> Back to Clubs
+      <Link to="/clubs" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">
+        <ArrowLeft size={16} /> Back to Clubs
       </Link>
-      
-      <div className="soft-card overflow-hidden mb-8">
-        <div className="h-64 md:h-80 w-full relative">
-          <img src={club.logo || 'https://via.placeholder.com/1000x400?text=Club+Logo'} alt={club.name} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/40 to-transparent"></div>
-          <div className="absolute bottom-0 left-0 p-5 md:p-8 w-full flex justify-between items-end">
-            <div>
-              <h1 className="text-3xl md:text-5xl font-black text-white mb-2">{club.name}</h1>
-              <div className="flex flex-wrap gap-4 text-white/80 font-medium">
-                <span className="flex items-center"><Users size={18} className="mr-2" /> {club.members?.length || 0} Members</span>
+
+      <div className="card overflow-hidden">
+        <div className="h-52 sm:h-64 md:h-80 w-full relative bg-brand-gradient">
+          {club.logo ? (
+            <img src={club.logo} alt={club.name} className="w-full h-full object-cover" />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-blue-400/20 blur-3xl pointer-events-none" />
+              <span className="text-6xl md:text-7xl font-extrabold text-white/15 tracking-tight select-none">
+                {club.name ? club.name.substring(0, 2).toUpperCase() : 'CL'}
+              </span>
+            </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-dark-900/90 via-dark-900/30 to-transparent"></div>
+          <div className="absolute bottom-0 left-0 p-5 md:p-8 w-full">
+            <div className="min-w-0">
+              {club.category && (
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/15 border border-white/20 text-blue-50 text-xs font-semibold mb-3 backdrop-blur">
+                  {club.category}
+                </span>
+              )}
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-white mb-2 break-words">{club.name}</h1>
+              <div className="flex flex-wrap gap-4 text-sm text-white/85 font-medium">
+                <span className="flex items-center"><Users size={16} className="mr-2" /> {club.members?.length || 0} Members</span>
               </div>
             </div>
           </div>
         </div>
-        
+
         {/* Tabs for Leadership */}
         {isLeadership && (
-          <div className="border-b border-gray-100 flex gap-6 px-8 pt-4">
-            <button 
+          <div className="border-b border-slate-100 flex gap-1.5 px-4 sm:px-6 py-3 overflow-x-auto hide-scrollbar">
+            <button
+              type="button"
               onClick={() => setActiveTab('about')}
-              className={`pb-4 font-bold ${activeTab === 'about' ? 'text-teal-600 border-b-2 border-teal-600' : 'text-gray-400 hover:text-gray-600'}`}
+              className={`tab ${activeTab === 'about' ? 'tab-active' : ''}`}
             >
               Overview
             </button>
-            <button 
+            <button
+              type="button"
               onClick={() => setActiveTab('members')}
-              className={`pb-4 font-bold flex items-center gap-2 ${activeTab === 'members' ? 'text-teal-600 border-b-2 border-teal-600' : 'text-gray-400 hover:text-gray-600'}`}
+              className={`tab flex items-center gap-2 ${activeTab === 'members' ? 'tab-active' : ''}`}
             >
               Manage Members
               {club.pendingRequests?.length > 0 && (
-                <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{club.pendingRequests.length}</span>
+                <span className="bg-red-500 text-white text-[11px] font-semibold px-2 py-0.5 rounded-full">{club.pendingRequests.length}</span>
               )}
             </button>
           </div>
         )}
 
-        <div className="p-5 md:p-8 grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="p-5 md:p-8 grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
           {activeTab === 'about' ? (
             <>
-              <div className="md:col-span-2 space-y-6">
+              <div className="md:col-span-2 space-y-8 min-w-0">
                 <div>
-                  <h2 className="text-2xl font-black text-gray-900 mb-3">About Us</h2>
-                  <p className="text-gray-600 leading-relaxed font-medium">{club.description}</p>
+                  <h2 className="section-title mb-2">About Us</h2>
+                  <p className="text-slate-600 leading-relaxed break-words">{club.description}</p>
                 </div>
-                
+
                 <div>
                   <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-2xl font-black text-gray-900 flex items-center">
-                      <ImageIcon size={24} className="mr-2 text-teal-600" /> Club Gallery ({club.gallery?.length || 0})
+                    <h2 className="section-title flex items-center">
+                      <ImageIcon size={20} className="mr-2 text-blue-600" /> Club Gallery ({club.gallery?.length || 0})
                     </h2>
                   </div>
 
                   {isLeadership && (
-                    <form onSubmit={handleAddPhoto} className="mb-6 p-4 bg-gray-50 rounded-2xl border border-gray-200 flex flex-col sm:flex-row gap-3">
+                    <form onSubmit={handleAddPhoto} className="mb-5 p-3 sm:p-4 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col sm:flex-row gap-3">
                       <input
                         type="url"
                         required
                         placeholder="Paste image URL (e.g. https://...)..."
                         value={galleryUrl}
                         onChange={(e) => setGalleryUrl(e.target.value)}
-                        className="flex-1 px-4 py-2.5 bg-white border border-gray-200 rounded-xl font-medium text-sm text-gray-800 outline-none focus:ring-2 focus:ring-teal-500"
+                        className="input flex-1 min-w-0"
                       />
                       <button
                         type="submit"
                         disabled={isAddingPhoto}
-                        className="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-sm transition-all whitespace-nowrap disabled:opacity-50 cursor-pointer"
+                        className="btn-primary"
                       >
                         {isAddingPhoto ? 'Adding...' : 'Add to Gallery'}
                       </button>
@@ -284,87 +301,90 @@ const ClubDetails = () => {
                   )}
 
                   {club.gallery && club.gallery.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
                       {club.gallery.map((img, i) => (
-                        <div key={i} className="rounded-2xl overflow-hidden h-36 border border-gray-100 shadow-sm group relative">
+                        <div key={i} className="rounded-xl overflow-hidden h-32 sm:h-36 border border-slate-200 group relative">
                           <img src={img} alt={`Gallery ${i}`} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="p-8 border border-dashed border-gray-200 rounded-2xl text-center text-gray-400 font-medium text-sm">
+                    <div className="p-8 border border-dashed border-slate-200 rounded-2xl text-center text-slate-500 text-sm">
                       No gallery photos uploaded yet.
                     </div>
                   )}
                 </div>
               </div>
-              
-              <div className="space-y-6">
-                <div className="bg-primary-50 rounded-2xl p-6 border border-primary-100">
-                  <h3 className="font-black text-gray-900 mb-4">Leadership</h3>
-                  
+
+              <div className="space-y-5 min-w-0">
+                <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200">
+                  <h3 className="font-bold text-dark-900 mb-4 flex items-center gap-2">
+                    <span className="icon-tile w-8 h-8 rounded-lg bg-blue-50 text-blue-600"><Building2 size={16} /></span>
+                    Leadership
+                  </h3>
+
                   <div className="space-y-4">
                     <div>
-                      <p className="text-xs text-primary-600 uppercase font-black tracking-wider mb-1">President</p>
-                      <p className="font-bold text-gray-900">{club.presidentId?.name || 'N/A'}</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">President</p>
+                      <p className="font-semibold text-dark-900 break-words">{club.presidentId?.name || 'N/A'}</p>
                       {club.presidentId?.email && (
-                        <a href={`mailto:${club.presidentId.email}`} className="text-sm text-primary-600 flex items-center mt-1 font-bold hover:underline">
+                        <a href={`mailto:${club.presidentId.email}`} className="text-sm text-blue-600 inline-flex items-center mt-1 font-semibold hover:underline">
                           <Mail size={14} className="mr-1" /> Contact
                         </a>
                       )}
                     </div>
-                    
-                    <div className="pt-4 border-t border-primary-200/50">
-                      <p className="text-xs text-primary-600 uppercase font-black tracking-wider mb-1">Faculty Advisor</p>
-                      <p className="font-bold text-gray-900">{club.facultyId?.name || 'N/A'}</p>
+
+                    <div className="pt-4 border-t border-slate-200">
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Faculty Advisor</p>
+                      <p className="font-semibold text-dark-900 break-words">{club.facultyId?.name || 'N/A'}</p>
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Join/Leave & Membership Fee Record Logic */}
                 {user && user.role === 'student' && !isLeadership && (
                   <>
                     {(isMember || userPayment) ? (
-                      <div className="bg-emerald-50 border border-emerald-200/90 rounded-2xl p-5 shadow-sm space-y-3.5">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 sm:p-5 space-y-3.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
                               <ShieldCheck size={18} />
                             </div>
-                            <div>
-                              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 block">
+                            <div className="min-w-0">
+                              <span className="text-[11px] font-semibold text-emerald-700 block">
                                 Membership Status
                               </span>
-                              <h4 className="font-black text-slate-900 text-sm">Official Active Member</h4>
+                              <h4 className="font-bold text-dark-900 text-sm">Official Active Member</h4>
                             </div>
                           </div>
-                          <span className="text-xs font-black px-2.5 py-1 bg-emerald-600 text-white rounded-full">
+                          <span className="text-[11px] font-semibold px-2.5 py-1 bg-emerald-600 text-white rounded-full shrink-0">
                             Fee Paid
                           </span>
                         </div>
 
                         {userPayment ? (
-                          <div className="bg-white/95 p-3.5 rounded-xl border border-emerald-200 text-xs space-y-2 shadow-xs">
-                            <div className="flex justify-between items-center">
-                              <span className="text-slate-500 font-medium">Receipt No:</span>
-                              <span className="font-mono font-bold text-slate-900">
+                          <div className="bg-white p-3.5 rounded-xl border border-emerald-200 text-xs space-y-2">
+                            <div className="flex justify-between items-center gap-2">
+                              <span className="text-slate-500">Receipt No:</span>
+                              <span className="font-mono font-semibold text-dark-900 break-all text-right">
                                 {userPayment.receiptNumber || `RCP-${(userPayment._id || '').slice(-6).toUpperCase()}`}
                               </span>
                             </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-slate-500 font-medium">Amount Paid:</span>
-                              <span className="font-black text-emerald-700 text-sm">
+                            <div className="flex justify-between items-center gap-2">
+                              <span className="text-slate-500">Amount Paid:</span>
+                              <span className="font-bold text-emerald-700 text-sm">
                                 ₹{Number(userPayment.amount || club.joinFee || 500).toLocaleString('en-IN')}
                               </span>
                             </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-slate-500 font-medium">Payment Mode:</span>
-                              <span className="font-semibold text-slate-700">
+                            <div className="flex justify-between items-center gap-2">
+                              <span className="text-slate-500">Payment Mode:</span>
+                              <span className="font-semibold text-slate-700 text-right">
                                 {userPayment.paymentMethod || 'Razorpay / UPI'}
                               </span>
                             </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-slate-500 font-medium">Paid Date:</span>
+                            <div className="flex justify-between items-center gap-2">
+                              <span className="text-slate-500">Paid Date:</span>
                               <span className="text-slate-600">
                                 {new Date(userPayment.createdAt || userPayment.date || Date.now()).toLocaleDateString(undefined, {
                                   day: 'numeric',
@@ -375,7 +395,7 @@ const ClubDetails = () => {
                             </div>
                           </div>
                         ) : (
-                          <div className="bg-white/90 p-3 rounded-xl border border-emerald-100 text-xs text-slate-600">
+                          <div className="bg-white p-3 rounded-xl border border-emerald-100 text-xs text-slate-600">
                             <p className="font-semibold text-slate-800">Membership verified & fee settled.</p>
                             <p className="text-[11px] text-slate-500 mt-0.5">You have full access to club events, matches, and elections.</p>
                           </div>
@@ -383,6 +403,7 @@ const ClubDetails = () => {
 
                         <div className="pt-1 flex flex-col gap-2">
                           <button
+                            type="button"
                             onClick={() => setSelectedReceipt(userPayment || {
                               _id: `MEM-${club._id.slice(-6)}`,
                               receiptNumber: `RCP-${club._id.slice(-6).toUpperCase()}`,
@@ -392,32 +413,35 @@ const ClubDetails = () => {
                               userId: user,
                               createdAt: new Date()
                             })}
-                            className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs hover:shadow"
+                            className="btn w-full bg-dark-900 hover:bg-dark-800 text-white"
                           >
-                            <Receipt size={14} className="text-teal-400" />
+                            <Receipt size={15} className="text-blue-300" />
                             <span>View & Print Official Receipt</span>
                           </button>
 
-                          <button 
+                          <button
+                            type="button"
                             onClick={() => leaveClub(club._id)}
-                            className="w-full py-2 text-slate-500 hover:text-red-600 rounded-xl font-bold text-xs hover:bg-red-50/50 transition-all cursor-pointer text-center"
+                            className="btn w-full text-slate-500 hover:text-red-600 hover:bg-red-50"
                           >
                             Leave Club
                           </button>
                         </div>
                       </div>
                     ) : isPending ? (
-                      <button 
+                      <button
+                        type="button"
                         disabled
-                        className="w-full py-3 bg-gray-100 text-gray-400 rounded-xl font-bold cursor-not-allowed"
+                        className="btn w-full py-3 bg-amber-50 text-amber-700 border border-amber-200"
                       >
                         Request Pending...
                       </button>
                     ) : club.isAcceptingMembers ? (
-                      <button 
+                      <button
+                        type="button"
                         onClick={handlePayment}
                         disabled={isProcessingPayment}
-                        className="w-full py-3.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold shadow-sm hover:-translate-y-0.5 transition-all flex flex-col items-center justify-center cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="btn-primary w-full py-3.5 flex-col gap-0.5"
                       >
                         {isProcessingPayment ? (
                           <div className="flex items-center gap-2 text-sm">
@@ -429,7 +453,7 @@ const ClubDetails = () => {
                             <span className="text-sm">
                               {club.joinFee === 0 ? 'Join Club (Free)' : `Pay ₹${club.joinFee || 500} & Join Club`}
                             </span>
-                            <span className="text-xs text-teal-100 mt-0.5 font-medium flex items-center gap-1">
+                            <span className="text-xs text-blue-100 font-medium flex items-center gap-1">
                               <ShieldCheck size={12} />
                               {club.joinFee === 0 ? 'Instant Admission' : 'Secured by Razorpay'}
                             </span>
@@ -437,9 +461,10 @@ const ClubDetails = () => {
                         )}
                       </button>
                     ) : (
-                      <button 
+                      <button
+                        type="button"
                         disabled
-                        className="w-full py-3 bg-gray-100 text-gray-400 rounded-xl font-bold cursor-not-allowed flex items-center justify-center"
+                        className="btn w-full py-3 bg-slate-100 text-slate-500"
                       >
                         Recruitment Closed
                       </button>
@@ -449,28 +474,28 @@ const ClubDetails = () => {
               </div>
             </>
           ) : (
-            <div className="col-span-full">
-               <h2 className="text-2xl font-black text-gray-900 mb-6">Pending Requests</h2>
+            <div className="col-span-full min-w-0">
+               <h2 className="section-title mb-4">Pending Requests</h2>
                {club.pendingRequests?.length === 0 ? (
-                 <p className="text-gray-500 font-medium bg-gray-50 p-6 rounded-2xl text-center">No pending requests at the moment.</p>
+                 <p className="text-slate-500 text-sm bg-slate-50 border border-slate-200 p-6 rounded-2xl text-center">No pending requests at the moment.</p>
                ) : (
-                 <div className="space-y-4">
+                 <div className="space-y-3">
                    {club.pendingRequests?.map(req => (
-                     <div key={req._id} className="flex items-center justify-between p-4 border border-gray-100 rounded-2xl bg-white shadow-sm">
-                       <div className="flex items-center gap-4">
-                         <div className="w-10 h-10 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center font-bold">
+                     <div key={req._id} className="flex items-center justify-between gap-3 p-3 sm:p-4 border border-slate-200 rounded-2xl bg-white">
+                       <div className="flex items-center gap-3 min-w-0">
+                         <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center font-bold shrink-0">
                            {req.name?.charAt(0)}
                          </div>
-                         <div>
-                           <p className="font-bold text-gray-900">{req.name}</p>
-                           <p className="text-sm text-gray-500">{req.email}</p>
+                         <div className="min-w-0">
+                           <p className="font-semibold text-dark-900 truncate">{req.name}</p>
+                           <p className="text-sm text-slate-500 truncate">{req.email}</p>
                          </div>
                        </div>
-                       <div className="flex gap-2">
-                         <button onClick={() => approveMember(club._id, req._id, 'reject')} className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors">
+                       <div className="flex gap-2 shrink-0">
+                         <button type="button" onClick={() => approveMember(club._id, req._id, 'reject')} className="w-10 h-10 inline-flex items-center justify-center text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors" aria-label="Reject">
                            <X size={20} />
                          </button>
-                         <button onClick={() => approveMember(club._id, req._id, 'approve')} className="p-2 text-green-500 hover:bg-green-50 rounded-xl transition-colors">
+                         <button type="button" onClick={() => approveMember(club._id, req._id, 'approve')} className="w-10 h-10 inline-flex items-center justify-center text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-xl transition-colors" aria-label="Approve">
                            <Check size={20} />
                          </button>
                        </div>
@@ -479,16 +504,16 @@ const ClubDetails = () => {
                  </div>
                )}
 
-               <h2 className="text-2xl font-black text-gray-900 mb-6 mt-12">Current Members</h2>
-               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+               <h2 className="section-title mb-4 mt-10">Current Members</h2>
+               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                  {club.members?.map(member => (
-                   <div key={member._id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl">
-                     <div className="w-10 h-10 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center font-bold">
+                   <div key={member._id} className="flex items-center gap-3 p-3 sm:p-4 bg-slate-50 border border-slate-100 rounded-2xl min-w-0">
+                     <div className="w-10 h-10 bg-white border border-slate-200 text-slate-600 rounded-full flex items-center justify-center font-bold shrink-0">
                        {member.name?.charAt(0)}
                      </div>
-                     <div>
-                       <p className="font-bold text-gray-900">{member.name}</p>
-                       <p className="text-xs text-gray-500 truncate w-32">{member.email}</p>
+                     <div className="min-w-0">
+                       <p className="font-semibold text-dark-900 truncate">{member.name}</p>
+                       <p className="text-xs text-slate-500 truncate">{member.email}</p>
                      </div>
                    </div>
                  ))}
@@ -500,61 +525,63 @@ const ClubDetails = () => {
 
       {/* Razorpay Test Simulation Modal (when keys are mock/unconfigured) */}
       {mockOrderData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div className="modal-overlay">
           <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-100 relative"
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="modal-panel sm:max-w-md p-5 sm:p-6 relative"
           >
-            <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center font-bold">
+            <div className="flex items-center justify-between gap-3 mb-4 pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="icon-tile w-10 h-10 bg-blue-50 text-blue-600">
                   <CreditCard size={20} />
                 </div>
-                <div>
-                  <h3 className="font-black text-gray-900 text-base">Razorpay Test Simulator</h3>
-                  <p className="text-xs text-gray-500 font-medium">Club Fee Payment Sandbox</p>
+                <div className="min-w-0">
+                  <h3 className="font-bold text-dark-900 text-base">Razorpay Test Simulator</h3>
+                  <p className="text-xs text-slate-500">Club Fee Payment Sandbox</p>
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setMockOrderData(null)}
-                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 text-sm font-bold"
+                className="btn-icon"
+                aria-label="Close"
               >
-                ✕
+                <X size={18} />
               </button>
             </div>
 
-            <div className="p-4 bg-teal-50/70 rounded-2xl border border-teal-100 mb-4 space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Club:</span>
-                <span className="font-bold text-gray-900">{club.name}</span>
+            <div className="p-4 bg-blue-50/70 rounded-2xl border border-blue-100 mb-4 space-y-2 text-sm">
+              <div className="flex justify-between gap-3">
+                <span className="text-slate-500">Club:</span>
+                <span className="font-semibold text-dark-900 text-right break-words min-w-0">{club.name}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Student:</span>
-                <span className="font-bold text-gray-900">{user?.name}</span>
+              <div className="flex justify-between gap-3">
+                <span className="text-slate-500">Student:</span>
+                <span className="font-semibold text-dark-900 text-right break-words min-w-0">{user?.name}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Order Ref:</span>
-                <span className="font-mono text-xs text-gray-600">{mockOrderData.id}</span>
+              <div className="flex justify-between gap-3">
+                <span className="text-slate-500">Order Ref:</span>
+                <span className="font-mono text-xs text-slate-600 break-all text-right">{mockOrderData.id}</span>
               </div>
-              <div className="flex justify-between pt-2 border-t border-teal-200/50">
-                <span className="font-bold text-gray-700">Total Dues:</span>
-                <span className="font-black text-teal-700 text-base">₹{club.joinFee || 500}</span>
+              <div className="flex justify-between pt-2 border-t border-blue-200/60">
+                <span className="font-semibold text-slate-700">Total Dues:</span>
+                <span className="font-extrabold text-blue-700 text-base">₹{club.joinFee || 500}</span>
               </div>
             </div>
 
             <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 mb-5 flex items-start gap-2.5 text-xs text-amber-800">
               <AlertCircle size={16} className="shrink-0 mt-0.5 text-amber-600" />
               <p>
-                Real Razorpay keys are not yet added to <code className="bg-amber-100 px-1 py-0.5 rounded font-mono font-bold">server/.env</code>. You can simulate this test payment now to verify instant club admission, membership records, and official receipt generation!
+                Real Razorpay keys are not yet added to <code className="bg-amber-100 px-1 py-0.5 rounded font-mono font-semibold">server/.env</code>. You can simulate this test payment now to verify instant club admission, membership records, and official receipt generation!
               </p>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3">
               <button
                 type="button"
                 onClick={() => setMockOrderData(null)}
-                className="flex-1 py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-sm transition-all"
+                className="btn-secondary flex-1"
               >
                 Cancel
               </button>
@@ -562,7 +589,7 @@ const ClubDetails = () => {
                 type="button"
                 onClick={handleSimulatePayment}
                 disabled={isProcessingPayment}
-                className="flex-1 py-2.5 px-4 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-sm shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                className="btn-primary flex-1"
               >
                 {isProcessingPayment ? (
                   <Loader2 size={16} className="animate-spin" />

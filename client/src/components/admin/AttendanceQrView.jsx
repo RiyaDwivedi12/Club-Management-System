@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { QrCode, CheckCircle2, AlertTriangle, Users, Award, Search, Calendar, Clock, ShieldCheck } from 'lucide-react';
+import { QrCode, CheckCircle2, AlertTriangle, Users, Award, ShieldCheck, Ticket } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import PageHeader from '../ui/PageHeader';
+import StatTile from '../ui/StatTile';
 
 const AttendanceQrView = ({ events = [] }) => {
   const [selectedEventId, setSelectedEventId] = useState(events[0]?._id || '');
@@ -99,23 +101,17 @@ const AttendanceQrView = ({ events = [] }) => {
 
   return (
     <div className="space-y-6">
-      {/* Event Selection Bar */}
-      <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-black text-gray-900 flex items-center gap-2">
-            <QrCode className="text-primary-600" size={24} />
-            Attendance & QR Check-in Terminal
-          </h2>
-          <p className="text-xs text-gray-500 mt-1">
-            Real-time event registration verification, duplicate check-in detection, and verified certificate qualification.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3 w-full md:w-auto">
+      <PageHeader
+        icon={QrCode}
+        eyebrow="Check-in"
+        title="Attendance & QR Check-in"
+        description="Real-time event registration verification, duplicate check-in detection, and verified certificate qualification."
+        actions={
           <select
             value={selectedEventId}
             onChange={(e) => setSelectedEventId(e.target.value)}
-            className="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-800 outline-none w-full md:w-72"
+            className="input w-full sm:w-72"
+            aria-label="Choose event"
           >
             <option value="">-- Choose Event --</option>
             {events.map((ev) => (
@@ -124,25 +120,25 @@ const AttendanceQrView = ({ events = [] }) => {
               </option>
             ))}
           </select>
-        </div>
-      </div>
+        }
+      />
 
       {/* Main Scanner & Statistics Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Check-in Input Panel */}
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-between">
+        <div className="card p-5 sm:p-6 flex flex-col justify-between min-w-0">
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Scan Station</span>
-              <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 font-bold text-[10px] rounded-full border border-emerald-100 flex items-center gap-1">
+            <div className="flex items-center justify-between gap-2 mb-4">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Scan station</span>
+              <span className="badge-green">
                 <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span> Terminal Ready
               </span>
             </div>
 
             <form onSubmit={handleScanSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                  Pass Code / QR Barcode Scanner Input
+                <label className="label">
+                  Pass code / QR barcode scanner input
                 </label>
                 <input
                   type="text"
@@ -150,14 +146,14 @@ const AttendanceQrView = ({ events = [] }) => {
                   value={ticketInput}
                   onChange={(e) => setTicketInput(e.target.value)}
                   autoFocus
-                  className="w-full px-4 py-3 bg-gray-50 border-2 border-primary-200 focus:border-primary-600 rounded-2xl text-sm font-mono font-bold outline-none transition"
+                  className="input font-mono font-semibold py-3"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={scanning}
-                className="w-full py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold text-xs shadow-md transition disabled:opacity-50 flex items-center justify-center gap-2"
+                className="btn-primary w-full py-3 disabled:opacity-50"
               >
                 <ShieldCheck size={16} />
                 {scanning ? 'Verifying...' : 'Validate & Mark Attendance'}
@@ -172,23 +168,23 @@ const AttendanceQrView = ({ events = [] }) => {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0 }}
-                className={`mt-4 p-4 rounded-2xl border ${
+                className={`mt-4 p-4 rounded-xl border ${
                   scanResult.success
-                    ? 'bg-emerald-50 border-emerald-200 text-emerald-950'
-                    : 'bg-rose-50 border-rose-200 text-rose-950'
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                    : 'bg-red-50 border-red-200 text-red-900'
                 }`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-start gap-3">
                   {scanResult.success ? (
-                    <CheckCircle2 size={24} className="text-emerald-600 shrink-0" />
+                    <CheckCircle2 size={22} className="text-emerald-600 shrink-0" />
                   ) : (
-                    <AlertTriangle size={24} className="text-rose-600 shrink-0" />
+                    <AlertTriangle size={22} className="text-red-600 shrink-0" />
                   )}
-                  <div>
-                    <h4 className="font-black text-sm">{scanResult.success ? 'Attendance Verified!' : 'Check-in Rejected'}</h4>
-                    <p className="text-xs font-medium mt-0.5">{scanResult.message}</p>
+                  <div className="min-w-0">
+                    <h4 className="font-bold text-sm">{scanResult.success ? 'Attendance Verified!' : 'Check-in Rejected'}</h4>
+                    <p className="text-xs mt-0.5 break-words">{scanResult.message}</p>
                     {scanResult.student && (
-                      <p className="text-xs font-bold mt-1">
+                      <p className="text-xs font-semibold mt-1 break-words">
                         Student: {scanResult.student.name} ({scanResult.student.roll_no || 'No Roll No'})
                       </p>
                     )}
@@ -200,33 +196,32 @@ const AttendanceQrView = ({ events = [] }) => {
         </div>
 
         {/* Attendance KPI Cards */}
-        <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-slate-900 text-white p-5 rounded-2xl border border-slate-800 shadow-sm flex flex-col justify-between">
-            <div>
-              <p className="text-xs uppercase font-bold text-slate-400">Total Registered</p>
-              <h3 className="text-3xl font-black mt-1 text-white">{attendanceData?.stats?.totalRegistered || 0}</h3>
-            </div>
-            <p className="text-xs text-slate-400 mt-2 font-medium">Event passes issued</p>
-          </div>
+        <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4 content-start">
+          <StatTile
+            icon={Ticket}
+            label="Total registered"
+            value={attendanceData?.stats?.totalRegistered || 0}
+            hint="Event passes issued"
+            tint="blue"
+          />
+          <StatTile
+            icon={CheckCircle2}
+            label="Present / verified"
+            value={attendanceData?.stats?.totalAttended || 0}
+            hint={`${attendanceData?.stats?.attendanceRate || 0}% turnout rate`}
+            tint="emerald"
+          />
 
-          <div className="bg-emerald-50 border border-emerald-100 p-5 rounded-2xl shadow-sm flex flex-col justify-between">
+          <div className="relative overflow-hidden rounded-2xl bg-brand-gradient text-white p-5 shadow-brand flex flex-col justify-between">
             <div>
-              <p className="text-xs uppercase font-bold text-emerald-600">Present / Verified</p>
-              <h3 className="text-3xl font-black mt-1 text-emerald-950">{attendanceData?.stats?.totalAttended || 0}</h3>
-            </div>
-            <p className="text-xs text-emerald-700 mt-2 font-bold">{attendanceData?.stats?.attendanceRate || 0}% turnout rate</p>
-          </div>
-
-          <div className="bg-gradient-to-br from-indigo-600 to-primary-700 text-white p-5 rounded-2xl shadow-sm flex flex-col justify-between">
-            <div>
-              <p className="text-xs uppercase font-bold text-indigo-100">Certificate Action</p>
-              <h4 className="text-base font-black mt-1">Instant Issuance</h4>
-              <p className="text-xs text-indigo-100 mt-1">Reward verified attendees with tamper-proof certificates.</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-blue-200">Certificate action</p>
+              <h4 className="text-base font-bold mt-1">Instant Issuance</h4>
+              <p className="text-xs text-blue-100/85 mt-1 leading-relaxed">Reward verified attendees with tamper-proof certificates.</p>
             </div>
             <button
               onClick={handleIssueCertificates}
               disabled={issuingCerts || !attendanceData?.stats?.totalAttended}
-              className="mt-3 py-2 px-3 bg-white text-indigo-900 rounded-xl text-xs font-bold hover:bg-indigo-50 transition shadow-sm disabled:opacity-50 flex items-center justify-center gap-1.5"
+              className="btn btn-sm mt-3 bg-white text-blue-700 hover:bg-blue-50 shadow-sm disabled:opacity-50"
             >
               <Award size={14} />
               {issuingCerts ? 'Issuing...' : 'Issue Verified Certificates'}
@@ -236,66 +231,71 @@ const AttendanceQrView = ({ events = [] }) => {
       </div>
 
       {/* Real-time Attendance Roster */}
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="font-bold text-gray-900 text-sm">Event Roster & Real-time Check-in Log</h3>
-          <span className="text-xs text-gray-400 font-medium">
+      <div className="card overflow-hidden">
+        <div className="card-header">
+          <h3 className="card-title">Event Roster & Check-in Log</h3>
+          <span className="text-xs text-slate-400 font-medium">
             {attendanceData?.records?.length || 0} student entries recorded
           </span>
         </div>
 
         {loadingAttendance ? (
-          <div className="p-8 text-center text-gray-400 font-medium text-xs">Loading attendee records...</div>
+          <div className="p-10 flex flex-col items-center gap-3 text-slate-400 text-sm">
+            <div className="spinner" />
+            Loading attendee records...
+          </div>
         ) : !attendanceData?.records?.length ? (
-          <div className="p-12 text-center text-gray-400">
-            <Users size={32} className="mx-auto mb-2 text-gray-300" />
-            <p className="font-bold text-gray-700 text-sm">No registrations found for this event</p>
-            <p className="text-xs text-gray-400 mt-1">Students will appear here once they register for the event.</p>
+          <div className="p-12 text-center">
+            <div className="icon-tile bg-slate-100 text-slate-400 mx-auto mb-3">
+              <Users size={20} />
+            </div>
+            <p className="font-bold text-dark-900 text-sm">No registrations found for this event</p>
+            <p className="text-xs text-slate-500 mt-1">Students will appear here once they register for the event.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
+          <div className="table-wrap">
+            <table className="data-table text-xs">
               <thead>
-                <tr className="bg-gray-50/75 border-b border-gray-100 text-gray-500 uppercase tracking-wider font-black">
-                  <th className="py-3 px-6">Roll Number</th>
-                  <th className="py-3 px-6">Student Name</th>
-                  <th className="py-3 px-6">Branch</th>
-                  <th className="py-3 px-6">Ticket Code</th>
-                  <th className="py-3 px-6">Check-in Status</th>
-                  <th className="py-3 px-6">Check-in Timestamp</th>
-                  <th className="py-3 px-6">Certificate</th>
+                <tr>
+                  <th>Roll Number</th>
+                  <th>Student Name</th>
+                  <th>Branch</th>
+                  <th>Ticket Code</th>
+                  <th>Check-in Status</th>
+                  <th>Check-in Timestamp</th>
+                  <th>Certificate</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 font-medium">
+              <tbody>
                 {attendanceData.records.map((rec) => (
-                  <tr key={rec._id} className="hover:bg-gray-50">
-                    <td className="py-3 px-6 font-mono font-bold text-primary-700">
+                  <tr key={rec._id}>
+                    <td className="font-mono font-semibold text-blue-700 whitespace-nowrap">
                       {rec.userId?.roll_no || rec.roll_no || 'N/A'}
                     </td>
-                    <td className="py-3 px-6 font-bold text-gray-900">{rec.userId?.name || 'Student'}</td>
-                    <td className="py-3 px-6">{rec.userId?.department || 'GENERAL'}</td>
-                    <td className="py-3 px-6 font-mono text-gray-500">{rec.ticketCode}</td>
-                    <td className="py-3 px-6">
+                    <td className="font-semibold text-dark-900 whitespace-nowrap">{rec.userId?.name || 'Student'}</td>
+                    <td>{rec.userId?.department || 'GENERAL'}</td>
+                    <td className="font-mono text-slate-500 whitespace-nowrap">{rec.ticketCode}</td>
+                    <td className="whitespace-nowrap">
                       {rec.status === 'Attended' ? (
-                        <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 rounded-md font-bold text-[10px] flex items-center gap-1 w-fit">
-                          <CheckCircle2 size={12} /> ATTENDED
+                        <span className="badge-green">
+                          <CheckCircle2 size={12} /> Attended
                         </span>
                       ) : (
-                        <span className="px-2.5 py-0.5 bg-gray-100 text-gray-600 rounded-md font-bold text-[10px] w-fit block">
-                          REGISTERED
+                        <span className="badge-slate">
+                          Registered
                         </span>
                       )}
                     </td>
-                    <td className="py-3 px-6 text-gray-500">
+                    <td className="text-slate-500 whitespace-nowrap">
                       {rec.checkedInAt ? new Date(rec.checkedInAt).toLocaleTimeString() : '-'}
                     </td>
-                    <td className="py-3 px-6">
+                    <td>
                       {rec.certificateIssued ? (
-                        <span className="px-2 py-0.5 bg-purple-100 text-purple-800 rounded font-bold text-[10px]">
-                          ISSUED
+                        <span className="badge-indigo">
+                          Issued
                         </span>
                       ) : (
-                        <span className="text-gray-400 text-[11px]">-</span>
+                        <span className="text-slate-400 text-[11px]">-</span>
                       )}
                     </td>
                   </tr>
