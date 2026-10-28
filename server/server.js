@@ -25,10 +25,13 @@ connectDB().then(() => {
 });
 
 const app = express();
+// Enable trust proxy for secure cookies behind reverse proxies (Render, Railway, Heroku, AWS, Nginx)
+app.set('trust proxy', 1);
+
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: (origin, callback) => callback(null, true),
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true
   }
@@ -40,11 +43,12 @@ app.set('io', io);
 app.use(express.json());
 app.use(cookieParser());
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: false
 }));
 app.use(morgan('dev'));
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: (origin, callback) => callback(null, true),
   credentials: true
 }));
 
@@ -71,11 +75,6 @@ import venueRoutes from './routes/venueRoutes.js';
 import auditLogRoutes from './routes/auditLogRoutes.js';
 import classFeeRoutes from './routes/classFeeRoutes.js';
 
-// Basic route
-app.get('/', (req, res) => {
-  res.send('Club Management API is running...');
-});
-
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/clubs', clubRoutes);
@@ -96,6 +95,22 @@ app.use('/api/class-fees', classFeeRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/venues', venueRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
+
+// Serve client static assets if build exists (enables full-stack single-service deployment)
+const clientDistPath = path.join(__dirname, '../client/dist');
+app.use(express.static(clientDistPath));
+
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
+    return res.status(404).json({ message: 'API route not found' });
+  }
+  const indexPath = path.join(clientDistPath, 'index.html');
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      res.send('Club Management API is running...');
+    }
+  });
+});
 
 
 // Socket.io connection handling

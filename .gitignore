@@ -42,6 +42,8 @@ coverage/
 
 # User exclusions
 *.md
+!README.md
+!DEPLOYMENT.md
 agentfile
 server/data/
 
