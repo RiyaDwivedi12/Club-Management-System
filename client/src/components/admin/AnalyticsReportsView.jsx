@@ -3,15 +3,9 @@ import axios from 'axios';
 import {
   TrendingUp,
   Award,
-  Users,
   Calendar,
-  AlertTriangle,
-  DollarSign,
-  PieChart,
-  BarChart3,
-  CheckCircle2
+  BarChart3
 } from 'lucide-react';
-import { motion } from 'framer-motion';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -26,6 +20,8 @@ import {
   Legend
 } from 'chart.js';
 import { Line, Bar } from 'react-chartjs-2';
+import PageHeader from '../ui/PageHeader';
+import LoadingState from '../ui/LoadingState';
 
 ChartJS.register(
   CategoryScale,
@@ -39,6 +35,18 @@ ChartJS.register(
   Filler,
   Legend
 );
+
+const INSIGHT_STYLES = {
+  alert: 'bg-red-50 border-red-100 text-red-900',
+  forecast: 'bg-indigo-50 border-indigo-100 text-indigo-900',
+  growth: 'bg-blue-50 border-blue-100 text-blue-900',
+  default: 'bg-emerald-50 border-emerald-100 text-emerald-900'
+};
+
+const chartScales = {
+  x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 11 } } },
+  y: { grid: { color: '#f1f5f9' }, border: { display: false }, ticks: { color: '#64748b', font: { size: 11 } } }
+};
 
 const AnalyticsReportsView = () => {
   const [data, setData] = useState(null);
@@ -61,7 +69,7 @@ const AnalyticsReportsView = () => {
   }, []);
 
   if (loading || !data) {
-    return <div className="p-12 text-center text-gray-400 font-medium">Computing deep analytics and intelligence models...</div>;
+    return <LoadingState label="Computing deep analytics and intelligence models..." />;
   }
 
   const { metrics, charts, insights } = data;
@@ -72,16 +80,18 @@ const AnalyticsReportsView = () => {
       {
         label: 'Student Enrolments',
         data: charts.userGrowth,
-        borderColor: '#7c3aed',
-        backgroundColor: 'rgba(124, 58, 237, 0.1)',
+        borderColor: '#2563eb',
+        backgroundColor: 'rgba(37, 99, 235, 0.08)',
+        pointBackgroundColor: '#2563eb',
         tension: 0.4,
         fill: true
       },
       {
         label: 'Events Hosted',
         data: charts.eventGrowth,
-        borderColor: '#06b6d4',
-        backgroundColor: 'rgba(6, 182, 212, 0.1)',
+        borderColor: '#0ea5e9',
+        backgroundColor: 'rgba(14, 165, 233, 0.08)',
+        pointBackgroundColor: '#0ea5e9',
         tension: 0.4,
         fill: true
       }
@@ -95,7 +105,7 @@ const AnalyticsReportsView = () => {
         label: 'Students by Department',
         data: charts.departmentDistribution?.map(d => d.count) || [],
         backgroundColor: [
-          '#7c3aed', '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#6366f1'
+          '#2563eb', '#4f46e5', '#0ea5e9', '#1e3a8a', '#6366f1', '#64748b'
         ],
         borderRadius: 8
       }
@@ -104,38 +114,42 @@ const AnalyticsReportsView = () => {
 
   return (
     <div className="space-y-6">
-      {/* AI Operational Insights Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {insights?.map((item, idx) => (
-          <div
-            key={idx}
-            className={`p-5 rounded-2xl border shadow-sm flex flex-col justify-between ${
-              item.type === 'alert' ? 'bg-rose-50 border-rose-200 text-rose-950' :
-              item.type === 'forecast' ? 'bg-indigo-50 border-indigo-200 text-indigo-950' :
-              item.type === 'growth' ? 'bg-purple-50 border-purple-200 text-purple-950' :
-              'bg-emerald-50 border-emerald-200 text-emerald-950'
-            }`}
-          >
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] uppercase font-black tracking-wider px-2 py-0.5 bg-white/70 rounded-md">
-                  {item.category}
-                </span>
-                <TrendingUp size={14} className="opacity-70" />
+      <PageHeader
+        icon={BarChart3}
+        eyebrow="Insights"
+        title="Analytics & Reports"
+        description="Campus growth, department distribution and engagement leaders."
+      />
+
+      {/* Operational Insights Cards */}
+      {insights?.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {insights.map((item, idx) => (
+            <div
+              key={idx}
+              className={`p-5 rounded-2xl border flex flex-col justify-between min-w-0 ${INSIGHT_STYLES[item.type] || INSIGHT_STYLES.default}`}
+            >
+              <div>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 bg-white/70 rounded-md truncate">
+                    {item.category}
+                  </span>
+                  <TrendingUp size={14} className="opacity-70 shrink-0" />
+                </div>
+                <h4 className="font-bold text-sm mt-1 break-words">{item.title}</h4>
+                <p className="text-xs opacity-80 mt-1 leading-relaxed">{item.description}</p>
               </div>
-              <h4 className="font-bold text-sm mt-1">{item.title}</h4>
-              <p className="text-xs opacity-80 mt-1 font-medium">{item.description}</p>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Main Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-black text-gray-900 text-base">Campus Growth & Activity Trend</h3>
-            <span className="text-xs text-gray-400 font-bold">12-Month Progression</span>
+        <div className="card p-5 sm:p-6 min-w-0">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+            <h3 className="font-bold text-dark-900 text-base">Campus Growth & Activity Trend</h3>
+            <span className="badge-slate">12-Month Progression</span>
           </div>
           <div className="h-64">
             <Line
@@ -143,16 +157,17 @@ const AnalyticsReportsView = () => {
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom' } }
+                plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, color: '#475569' } } },
+                scales: chartScales
               }}
             />
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-black text-gray-900 text-base">Student Distribution by Department</h3>
-            <span className="text-xs text-gray-400 font-bold">Live Enrollment</span>
+        <div className="card p-5 sm:p-6 min-w-0">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+            <h3 className="font-bold text-dark-900 text-base">Student Distribution by Department</h3>
+            <span className="badge-blue">Live Enrollment</span>
           </div>
           <div className="h-64">
             <Bar
@@ -160,7 +175,8 @@ const AnalyticsReportsView = () => {
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { display: false } }
+                plugins: { legend: { display: false } },
+                scales: chartScales
               }}
             />
           </div>
@@ -170,46 +186,52 @@ const AnalyticsReportsView = () => {
       {/* Leaderboards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Most Active Clubs */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-          <h3 className="font-black text-gray-900 text-base mb-4 flex items-center gap-2">
-            <Award className="text-primary-600" size={20} /> Most Active Clubs by Membership
+        <div className="card p-5 sm:p-6 min-w-0">
+          <h3 className="font-bold text-dark-900 text-base mb-4 flex items-center gap-2.5">
+            <span className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+              <Award size={16} />
+            </span>
+            Most Active Clubs by Membership
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {charts.mostActiveClubs?.map((c, i) => (
-              <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <span className="w-7 h-7 bg-primary-100 text-primary-700 font-black rounded-lg text-xs flex items-center justify-center">
+              <div key={i} className="flex items-center justify-between gap-3 p-3 bg-slate-50 border border-slate-100 rounded-xl">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="w-8 h-8 bg-blue-100 text-blue-700 font-bold rounded-lg text-xs flex items-center justify-center shrink-0">
                     #{i + 1}
                   </span>
-                  <div>
-                    <h5 className="font-bold text-gray-900 text-xs">{c.name}</h5>
-                    <span className="text-[10px] text-gray-400">{c.category}</span>
+                  <div className="min-w-0">
+                    <h5 className="font-semibold text-dark-900 text-sm truncate">{c.name}</h5>
+                    <span className="text-xs text-slate-400">{c.category}</span>
                   </div>
                 </div>
-                <span className="font-black text-xs text-gray-800">{c.memberCount} members</span>
+                <span className="font-bold text-xs text-slate-700 shrink-0">{c.memberCount} members</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Popular Events */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-          <h3 className="font-black text-gray-900 text-base mb-4 flex items-center gap-2">
-            <Calendar className="text-emerald-600" size={20} /> Top Events by Registration
+        <div className="card p-5 sm:p-6 min-w-0">
+          <h3 className="font-bold text-dark-900 text-base mb-4 flex items-center gap-2.5">
+            <span className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+              <Calendar size={16} />
+            </span>
+            Top Events by Registration
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {charts.popularEvents?.map((e, i) => (
-              <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <span className="w-7 h-7 bg-emerald-100 text-emerald-700 font-black rounded-lg text-xs flex items-center justify-center">
+              <div key={i} className="flex items-center justify-between gap-3 p-3 bg-slate-50 border border-slate-100 rounded-xl">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="w-8 h-8 bg-indigo-100 text-indigo-700 font-bold rounded-lg text-xs flex items-center justify-center shrink-0">
                     #{i + 1}
                   </span>
-                  <div>
-                    <h5 className="font-bold text-gray-900 text-xs">{e.title}</h5>
-                    <span className="text-[10px] text-gray-400">{e.clubName}</span>
+                  <div className="min-w-0">
+                    <h5 className="font-semibold text-dark-900 text-sm truncate">{e.title}</h5>
+                    <span className="text-xs text-slate-400 truncate block">{e.clubName}</span>
                   </div>
                 </div>
-                <span className="font-black text-xs text-emerald-700">{e.participantCount} registrations</span>
+                <span className="font-bold text-xs text-indigo-700 shrink-0">{e.participantCount} registrations</span>
               </div>
             ))}
           </div>

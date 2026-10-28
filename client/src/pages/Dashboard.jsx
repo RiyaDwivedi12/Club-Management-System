@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
+import LoadingState from '../components/ui/LoadingState';
 
 const Dashboard = () => {
   const { user } = useAuthStore();
@@ -35,7 +36,7 @@ const Dashboard = () => {
 
   return (
     <div className="flex items-center justify-center min-h-[50vh]">
-      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-600"></div>
+      <LoadingState label="Opening your dashboard…" />
     </div>
   );
 };

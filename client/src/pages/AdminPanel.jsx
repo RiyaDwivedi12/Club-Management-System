@@ -41,6 +41,7 @@ import EmptyState from '../components/EmptyState';
 import ClassFeeManagementView from '../components/admin/ClassFeeManagementView';
 import CertificateManagementView from '../components/admin/CertificateManagementView';
 import RoleOnboardingView from '../components/admin/RoleOnboardingView';
+import UserAvatar from '../components/ui/UserAvatar';
 
 ChartJS.register(
   CategoryScale,
@@ -52,6 +53,38 @@ ChartJS.register(
   Tooltip,
   Filler,
   Legend
+);
+
+// Two-letter initials for avatar fallbacks (no external avatar services).
+const getInitials = (name = '') => name.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('') || '?';
+
+// Presentational helpers (landing-style KPI tile + quick action)
+const AdminKpiCard = ({ icon: Icon, tint, label, value, hint }) => (
+  <div className="card card-hover p-5 min-w-0">
+    <div className="flex items-center gap-4">
+      <div className={`icon-tile ${tint}`}>
+        <Icon size={20} />
+      </div>
+      <div className="min-w-0">
+        <p className="text-xs font-semibold text-slate-500">{label}</p>
+        <h3 className="text-2xl font-extrabold text-dark-900 tracking-tight mt-0.5 truncate">{value}</h3>
+      </div>
+    </div>
+    {hint && <div className="mt-3 text-xs text-slate-500">{hint}</div>}
+  </div>
+);
+
+const AdminQuickAction = ({ onClick, icon: Icon, tint, title, text }) => (
+  <button
+    onClick={onClick}
+    className="p-3.5 bg-white border border-slate-200/70 hover:border-blue-200 hover:shadow-card-hover hover:-translate-y-0.5 rounded-xl transition-all text-left group cursor-pointer min-w-0"
+  >
+    <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-2.5 group-hover:scale-105 transition ${tint}`}>
+      <Icon size={17} />
+    </div>
+    <p className="font-semibold text-sm text-dark-900 truncate">{title}</p>
+    <p className="text-[11px] text-slate-500 mt-0.5">{text}</p>
+  </button>
 );
 
 const AdminPanel = () => {
@@ -694,7 +727,7 @@ const AdminPanel = () => {
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: '#0F172A',
+        backgroundColor: '#0B132B',
         titleFont: { size: 12, weight: 'bold' },
         bodyFont: { size: 11 },
         padding: 10,
@@ -741,7 +774,7 @@ const AdminPanel = () => {
     });
     const labels = Object.keys(counts);
     const data = Object.values(counts);
-    const colors = ['#2563EB', '#9333EA', '#10B981', '#F59E0B', '#06B6D4', '#EC4899', '#94A3B8'];
+    const colors = ['#2563EB', '#4F46E5', '#0EA5E9', '#F59E0B', '#10B981', '#8B5CF6', '#94A3B8'];
     return {
       labels,
       data,
@@ -760,7 +793,7 @@ const AdminPanel = () => {
     datasets: [
       {
         data: categoryStats.data,
-        backgroundColor: ['#2563EB', '#9333EA', '#10B981', '#F59E0B', '#06B6D4', '#EC4899', '#94A3B8'].slice(0, Math.max(categoryStats.labels.length, 1)),
+        backgroundColor: ['#2563EB', '#4F46E5', '#0EA5E9', '#F59E0B', '#10B981', '#8B5CF6', '#94A3B8'].slice(0, Math.max(categoryStats.labels.length, 1)),
         borderWidth: 0,
         hoverOffset: 4
       }
@@ -798,26 +831,38 @@ const AdminPanel = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F4F6F9] flex text-slate-800 font-sans antialiased">
+    <div className="min-h-screen bg-slate-50 flex text-slate-800 font-sans antialiased">
       {/* Mobile sidebar backdrop */}
       {isSidebarOpen && (
-        <div className="fixed inset-0 bg-black/40 z-[35] lg:hidden" onClick={() => setIsSidebarOpen(false)} />
+        <div className="fixed inset-0 bg-dark-950/50 backdrop-blur-sm z-[35] lg:hidden" onClick={() => setIsSidebarOpen(false)} />
       )}
 
       {/* 1. DARK NAVY SIDEBAR */}
-      <aside className={`w-64 bg-[#0B132B] text-slate-300 min-h-screen flex flex-col justify-between shrink-0 fixed left-0 top-0 bottom-0 z-40 border-r border-slate-800/60 overflow-y-auto transition-transform duration-200 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
+      <aside className={`w-64 bg-dark-900 text-slate-300 min-h-screen flex flex-col justify-between shrink-0 fixed left-0 top-0 bottom-0 z-40 border-r border-white/5 overflow-y-auto transition-transform duration-200 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
         <div className="p-5">
           {/* Brand Header */}
-          <div className="flex items-center gap-3 mb-6 px-2">
-            <div className="w-10 h-10 rounded-xl bg-teal-600 flex items-center justify-center text-white shadow-lg shadow-teal-500/30">
-              <GraduationCap size={22} />
+          <div className="flex items-center justify-between gap-2 mb-6 px-1">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-600/30 shrink-0">
+                <GraduationCap size={22} />
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-white font-extrabold text-lg tracking-tight leading-none">Campus<span className="text-blue-400">Hub</span></h2>
+                <p className="text-slate-400 text-[11px] font-medium mt-1 truncate">College Club Management</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-white font-black text-base tracking-tight leading-none">CampusHub</h2>
-              <p className="text-slate-400 text-[11px] font-semibold mt-1">College Club Management</p>
-            </div>
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              className="lg:hidden w-9 h-9 inline-flex items-center justify-center rounded-xl text-slate-400 hover:bg-white/5 hover:text-white transition cursor-pointer shrink-0"
+              aria-label="Close navigation menu"
+            >
+              <X size={18} />
+            </button>
           </div>
 
+          <p className="text-[11px] uppercase font-semibold tracking-wider text-slate-500 px-3.5 mb-2">
+            Main
+          </p>
           {/* Main Navigation List */}
           <nav className="space-y-1">
             {mainNavItems.map((item) => {
@@ -827,18 +872,18 @@ const AdminPanel = () => {
                 <button
                   key={item.id}
                   onClick={() => switchTab(item.id)}
-                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all duration-150 ${
+                  className={`w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 cursor-pointer ${
                     isActive
-                      ? 'bg-[#2563EB] text-white shadow-md shadow-blue-500/25'
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
                       : 'text-slate-300 hover:bg-white/5 hover:text-white'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <Icon size={16} className={isActive ? 'text-white' : 'text-slate-400'} />
-                    <span>{item.label}</span>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Icon size={17} className={`shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                    <span className="truncate">{item.label}</span>
                   </div>
                   {item.badge > 0 && (
-                    <span className="w-5 h-5 bg-red-500 text-white rounded-full text-[10px] font-black flex items-center justify-center">
+                    <span className="min-w-[20px] h-5 px-1.5 bg-red-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center shrink-0">
                       {item.badge}
                     </span>
                   )}
@@ -848,9 +893,9 @@ const AdminPanel = () => {
           </nav>
 
           {/* SYSTEM section */}
-          <div className="mt-6 pt-4 border-t border-slate-800/80">
-            <p className="text-[10px] uppercase font-black tracking-wider text-slate-500 px-3.5 mb-2">
-              SYSTEM
+          <div className="mt-6 pt-4 border-t border-white/10">
+            <p className="text-[11px] uppercase font-semibold tracking-wider text-slate-500 px-3.5 mb-2">
+              System
             </p>
             <nav className="space-y-1">
               {systemNavItems.map((item) => {
@@ -860,9 +905,9 @@ const AdminPanel = () => {
                   <button
                     key={item.id}
                     onClick={() => switchTab(item.id)}
-                    className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                    className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
                       isActive
-                        ? 'bg-[#2563EB] text-white shadow-md'
+                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
                         : 'text-slate-300 hover:bg-white/5 hover:text-white'
                     }`}
                   >
@@ -876,7 +921,7 @@ const AdminPanel = () => {
         </div>
 
         {/* Sidebar Footer */}
-        <div className="p-5 border-t border-slate-800/80">
+        <div className="p-5 border-t border-white/10">
           <div className="flex items-center gap-2 mb-1">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             <span className="text-[11px] font-semibold text-slate-400">System Status</span>
@@ -887,20 +932,20 @@ const AdminPanel = () => {
       </aside>
 
       {/* 2. MAIN VIEWPORT (LEFT PADDED TO FIT FIXED SIDEBAR) */}
-      <div className={`flex-1 ml-0 lg:ml-64 flex flex-col min-w-0 ${darkMode ? 'bg-black text-slate-100' : 'bg-[#F8FAFC]'}`}>
+      <div className={`flex-1 ml-0 lg:ml-64 flex flex-col min-w-0 ${darkMode ? 'bg-black text-slate-100' : 'bg-slate-50'}`}>
         {/* TOP BAR */}
-        <header className={`${darkMode ? 'bg-black border-slate-800' : 'bg-white border-slate-100'} border-b h-16 px-4 md:px-8 flex items-center justify-between gap-2 sticky top-0 z-30`}>
+        <header className={`${darkMode ? 'bg-black border-slate-800' : 'bg-white/90 backdrop-blur-md border-slate-100'} border-b h-16 px-4 md:px-8 flex items-center justify-between gap-2 sticky top-0 z-30`}>
           <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
           {/* Mobile sidebar toggle */}
           <button
             onClick={() => setIsSidebarOpen(true)}
-            className="lg:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+            className="lg:hidden btn-icon shrink-0"
             aria-label="Open navigation menu"
           >
             <Menu size={20} />
           </button>
           {/* Global Search Bar */}
-          <div className="flex items-center gap-2 sm:gap-2.5 bg-[#F8FAFC] border border-slate-200/80 rounded-xl px-2.5 sm:px-3.5 py-2 flex-1 min-w-0 md:flex-none md:w-72 lg:w-96 text-xs text-slate-400 focus-within:border-blue-500 focus-within:bg-white transition-all">
+          <div className="flex items-center gap-2 sm:gap-2.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 sm:px-3.5 py-2 flex-1 min-w-0 md:flex-none md:w-72 lg:w-96 text-sm text-slate-400 focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-100 focus-within:bg-white transition-all">
             <Search size={15} className="text-slate-400 shrink-0" />
             <input
               id="global-search-input"
@@ -908,7 +953,7 @@ const AdminPanel = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search users, clubs, events, etc..."
-              className="bg-transparent text-slate-800 font-medium placeholder-slate-400 focus:outline-none flex-1 min-w-0 text-xs"
+              className="bg-transparent text-dark-900 font-medium placeholder-slate-400 focus:outline-none flex-1 min-w-0 text-sm"
             />
           </div>
           </div>
@@ -917,21 +962,21 @@ const AdminPanel = () => {
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             <Link 
               to="/clubs"
-              className="flex items-center gap-1.5 px-2 sm:px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition shadow-2xs"
+              className="btn-secondary btn-sm h-9 px-2.5 sm:px-3"
             >
-              <GraduationCap size={15} className="text-teal-600" />
+              <GraduationCap size={15} className="text-blue-600" />
               <span className="hidden sm:inline">Student View</span>
             </Link>
             {/* Notification Bell */}
             <div className="relative">
               <button 
                 onClick={() => setShowNotifications(!showNotifications)}
-                className="relative p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition"
+                className="relative btn-icon"
                 aria-label="Notifications"
               >
                 <Bell size={18} />
                 {events.filter(e => e.approvalStatus === 'pending').length > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center shadow-xs">
+                  <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 bg-red-500 text-white text-[9px] font-bold rounded-full ring-2 ring-white flex items-center justify-center shadow-xs">
                     {events.filter(e => e.approvalStatus === 'pending').length}
                   </span>
                 )}
@@ -939,15 +984,15 @@ const AdminPanel = () => {
 
               {/* Notification Popover */}
               {showNotifications && (
-                <div className="fixed left-4 right-4 top-16 sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:w-80 mt-2 bg-white rounded-2xl shadow-xl border border-slate-100 p-4 z-50 text-xs">
+                <div className="fixed left-4 right-4 top-16 sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:w-80 mt-2 bg-white rounded-2xl shadow-card-hover border border-slate-200/70 p-4 z-50 text-xs">
                   <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
-                    <span className="font-bold text-slate-900">Notifications</span>
+                    <span className="font-bold text-dark-900 text-sm">Notifications</span>
                     {events.filter(e => e.approvalStatus === 'pending').length > 0 ? (
-                      <span className="text-[10px] bg-amber-50 text-amber-700 font-bold px-2 py-0.5 rounded-full">
+                      <span className="badge-amber">
                         {events.filter(e => e.approvalStatus === 'pending').length} Action Required
                       </span>
                     ) : (
-                      <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-full">
+                      <span className="badge-green">
                         All Caught Up
                       </span>
                     )}
@@ -981,7 +1026,7 @@ const AdminPanel = () => {
                           switchTab('event');
                           setShowNotifications(false);
                         }}
-                        className="w-full mt-2 py-1.5 text-center text-[11px] font-bold text-blue-600 hover:underline"
+                        className="w-full mt-2 py-2 text-center text-xs font-semibold text-blue-600 hover:bg-blue-50 rounded-xl transition cursor-pointer"
                       >
                         Review all {events.filter(e => e.approvalStatus === 'pending').length} pending events →
                       </button>
@@ -994,7 +1039,7 @@ const AdminPanel = () => {
             {/* Dark Mode Toggle */}
             <button 
               onClick={toggleDarkMode}
-              className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+              className="btn-icon hidden sm:inline-flex"
               aria-label="Toggle Dark Mode"
               title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
             >
@@ -1005,26 +1050,12 @@ const AdminPanel = () => {
             <div className="relative">
               <button
                 onClick={() => setShowAdminMenu(!showAdminMenu)}
-                className="flex items-center gap-3 pl-3 border-l border-slate-200 hover:opacity-80 transition cursor-pointer text-left"
+                className="flex items-center gap-2.5 pl-2 sm:pl-3 border-l border-slate-200 hover:opacity-80 transition cursor-pointer text-left"
                 title="Administrator Account Menu"
               >
-                {user?.profilePicture && user.profilePicture !== 'default.jpg' && !user.profilePicture.startsWith('/default') ? (
-                  <img
-                    src={user.profilePicture}
-                    alt="Admin User"
-                    className="w-9 h-9 rounded-full object-cover border border-slate-200/90 shadow-2xs"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.style.display = 'none';
-                    }}
-                  />
-                ) : (
-                  <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-600 font-black flex items-center justify-center text-sm flex-shrink-0">
-                    {user?.name ? user.name.charAt(0).toUpperCase() : 'A'}
-                  </div>
-                )}
+                <UserAvatar user={user} size="md" />
                 <div className="text-left hidden sm:block">
-                  <p className="text-xs font-black text-slate-900 leading-tight">{user?.name || 'Admin User'}</p>
+                  <p className="text-sm font-bold text-dark-900 leading-tight">{user?.name || 'Admin User'}</p>
                   <p className="text-[11px] text-slate-400 font-medium leading-none mt-0.5 flex items-center gap-1">
                     Administrator <ChevronDown size={11} className={`transition-transform ${showAdminMenu ? 'rotate-180' : ''}`} />
                   </p>
@@ -1034,27 +1065,13 @@ const AdminPanel = () => {
               {showAdminMenu && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowAdminMenu(false)}></div>
-                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 z-50 text-xs animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="absolute right-0 mt-2 w-64 max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-card-hover border border-slate-200/70 p-2 z-50 text-xs animate-in fade-in slide-in-from-top-2 duration-150">
                     <div className="p-3 border-b border-slate-100 flex items-center gap-3">
-                      {user?.profilePicture && user.profilePicture !== 'default.jpg' && !user.profilePicture.startsWith('/default') ? (
-                        <img
-                          src={user.profilePicture}
-                          alt={user?.name || 'Admin'}
-                          className="w-10 h-10 rounded-full object-cover border border-blue-200 shadow-2xs"
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.style.display = 'none';
-                          }}
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 font-black flex items-center justify-center text-sm">
-                          {user?.name ? user.name.charAt(0).toUpperCase() : 'A'}
-                        </div>
-                      )}
+                      <UserAvatar user={user} size="md" className="w-10 h-10" />
                       <div className="min-w-0 flex-1">
-                        <p className="font-bold text-slate-900 truncate">{user?.name || 'Administrator'}</p>
+                        <p className="font-bold text-dark-900 truncate">{user?.name || 'Administrator'}</p>
                         <p className="text-[10px] text-slate-400 truncate">{user?.email || 'admin@campus.edu'}</p>
-                        <span className="inline-block px-2 py-0.5 bg-blue-50 text-blue-700 text-[9px] font-extrabold rounded-full mt-1">
+                        <span className="badge-blue mt-1">
                           Master Admin
                         </span>
                       </div>
@@ -1066,7 +1083,7 @@ const AdminPanel = () => {
                           switchTab('settings', 'profile');
                           setShowAdminMenu(false);
                         }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-slate-700 hover:bg-slate-50 hover:text-blue-600 rounded-xl font-bold transition text-left cursor-pointer"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-slate-700 hover:bg-slate-50 hover:text-blue-600 rounded-xl font-semibold text-sm transition text-left cursor-pointer"
                       >
                         <User size={15} className="text-blue-600" />
                         <span>Change Profile</span>
@@ -1077,7 +1094,7 @@ const AdminPanel = () => {
                           switchTab('settings', 'roles');
                           setShowAdminMenu(false);
                         }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-slate-700 hover:bg-slate-50 hover:text-blue-600 rounded-xl font-bold transition text-left cursor-pointer"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-slate-700 hover:bg-slate-50 hover:text-blue-600 rounded-xl font-semibold text-sm transition text-left cursor-pointer"
                       >
                         <Shield size={15} className="text-indigo-600" />
                         <span>Roles & Permissions</span>
@@ -1088,7 +1105,7 @@ const AdminPanel = () => {
                           toggleDarkMode();
                           setShowAdminMenu(false);
                         }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-slate-700 hover:bg-slate-50 hover:text-amber-600 rounded-xl font-bold transition text-left cursor-pointer"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-slate-700 hover:bg-slate-50 hover:text-amber-600 rounded-xl font-semibold text-sm transition text-left cursor-pointer"
                       >
                         {darkMode ? <Sun size={15} className="text-amber-500" /> : <Moon size={15} className="text-slate-600" />}
                         <span>{darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}</span>
@@ -1101,7 +1118,7 @@ const AdminPanel = () => {
                           setShowAdminMenu(false);
                           handleLogout();
                         }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-rose-600 hover:bg-rose-50 rounded-xl font-bold transition text-left cursor-pointer"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-rose-600 hover:bg-rose-50 rounded-xl font-semibold text-sm transition text-left cursor-pointer"
                       >
                         <LogOut size={15} />
                         <span>Log Out</span>
@@ -1120,165 +1137,123 @@ const AdminPanel = () => {
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
               {/* Greeting Header */}
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                  <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-                    {getGreeting()}, {user?.name ? user.name.split(' ')[0] : 'Admin'}! <span className="text-2xl">👋</span>
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div className="min-w-0">
+                  <span className="eyebrow mb-3"><ShieldCheck size={14} /> Admin Console</span>
+                  <h1 className="page-title break-words">
+                    {getGreeting()}, {user?.name ? user.name.split(' ')[0] : 'Admin'}! <span>👋</span>
                   </h1>
-                  <p className="text-xs font-medium text-slate-500 mt-1">Real-time overview of college clubs, events, and student registrations.</p>
+                  <p className="page-subtitle mt-1">Real-time overview of college clubs, events, and student registrations.</p>
                 </div>
 
-                <div className="flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-200/90 rounded-xl text-xs font-bold text-slate-700 shadow-2xs">
-                  <Calendar size={14} className="text-slate-500" />
+                <div className="inline-flex items-center gap-2 self-start md:self-auto px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 shadow-card whitespace-nowrap">
+                  <Calendar size={14} className="text-blue-600" />
                   <span>{new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</span>
                 </div>
               </div>
 
               {/* Row 1: 4 Real KPI Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                {/* Total Students */}
-                <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-md transition-all">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-[#EBF5FF] text-[#2563EB] flex items-center justify-center shrink-0">
-                      <Users size={22} />
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-slate-500">Total Students</p>
-                      <h3 className="text-2xl font-black text-slate-900 tracking-tight mt-0.5">
-                        {users.filter(u => u.role === 'student').length.toLocaleString()}
-                      </h3>
-                    </div>
-                  </div>
-                  <div className="mt-3 text-[11px] font-semibold text-slate-400">
-                    Verified student accounts
-                  </div>
-                </div>
-
-                {/* Active Clubs */}
-                <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-md transition-all">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-[#F3E8FF] text-[#9333EA] flex items-center justify-center shrink-0">
-                      <Share2 size={22} />
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-slate-500">Active Clubs</p>
-                      <h3 className="text-2xl font-black text-slate-900 tracking-tight mt-0.5">
-                        {clubs.length.toLocaleString()}
-                      </h3>
-                    </div>
-                  </div>
-                  <div className="mt-3 text-[11px] font-semibold text-slate-400">
-                    Societies & student teams
-                  </div>
-                </div>
-
-                {/* Upcoming Events */}
-                <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-md transition-all">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center shrink-0">
-                      <Calendar size={22} />
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-slate-500">Upcoming Events</p>
-                      <h3 className="text-2xl font-black text-slate-900 tracking-tight mt-0.5">
-                        {events.length.toLocaleString()}
-                      </h3>
-                    </div>
-                  </div>
-                  <div className="mt-3 text-[11px] font-bold text-amber-600">
-                    {events.filter(e => e.approvalStatus === 'pending').length} pending approval
-                  </div>
-                </div>
-
-                {/* Total Revenue */}
-                <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-md transition-all">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-[#FEF3C7] text-[#D97706] flex items-center justify-center shrink-0 font-bold text-xl">
-                      ₹
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-slate-500">Total Revenue</p>
-                      <h3 className="text-2xl font-black text-slate-900 tracking-tight mt-0.5">
-                        ₹ {(financeSummary?.totalRevenue || 0).toLocaleString('en-IN')}
-                      </h3>
-                    </div>
-                  </div>
-                  <div className="mt-3 text-[11px] font-semibold text-slate-400">
-                    Membership collections & dues
-                  </div>
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+                <AdminKpiCard
+                  icon={Users}
+                  tint="bg-blue-50 text-blue-600"
+                  label="Total Students"
+                  value={users.filter(u => u.role === 'student').length.toLocaleString()}
+                  hint="Verified student accounts"
+                />
+                <AdminKpiCard
+                  icon={Share2}
+                  tint="bg-indigo-50 text-indigo-600"
+                  label="Active Clubs"
+                  value={clubs.length.toLocaleString()}
+                  hint="Societies & student teams"
+                />
+                <AdminKpiCard
+                  icon={Calendar}
+                  tint="bg-sky-50 text-sky-600"
+                  label="Upcoming Events"
+                  value={events.length.toLocaleString()}
+                  hint={<span className="text-amber-600 font-semibold">{events.filter(e => e.approvalStatus === 'pending').length} pending approval</span>}
+                />
+                <AdminKpiCard
+                  icon={Wallet}
+                  tint="bg-amber-50 text-amber-600"
+                  label="Total Revenue"
+                  value={`₹ ${(financeSummary?.totalRevenue || 0).toLocaleString('en-IN')}`}
+                  hint="Membership collections & dues"
+                />
               </div>
 
               {/* Row 2: Dual Real-Time Charts Section */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
                 {/* Left: Student Registration Trend (8 of 12 cols) */}
-                <div className="lg:col-span-8 bg-white p-6 rounded-2xl border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between">
+                <div className="lg:col-span-8 card p-5 sm:p-6 flex flex-col justify-between min-w-0">
                   <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
                           <Activity size={17} />
                         </div>
-                        <h4 className="text-sm font-black text-slate-900">Student Registration Trend</h4>
+                        <h4 className="card-title">Student Registration Trend</h4>
                       </div>
-                      <span className="text-xs font-bold text-slate-500 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg">
+                      <span className="badge-slate">
                         Last 6 Months
                       </span>
                     </div>
 
                     <div className="flex items-center justify-end gap-5 text-xs font-semibold text-slate-500 mb-3">
                       <div className="flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#2563EB]"></span>
+                        <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
                         <span className="text-slate-600">Registered Students</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="h-64 w-full">
+                  <div className="h-56 sm:h-64 w-full">
                     <Line data={lineChartData} options={lineChartOptions} />
                   </div>
                 </div>
 
                 {/* Right: Club Categories Donut (4 of 12 cols) */}
-                <div className="lg:col-span-4 bg-white p-6 rounded-2xl border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-sm font-black text-slate-900">Club Categories</h4>
-                    <button onClick={() => switchTab('club')} className="text-xs font-bold text-blue-600 hover:underline">
+                <div className="lg:col-span-4 card p-5 sm:p-6 flex flex-col justify-between min-w-0">
+                  <div className="flex items-center justify-between gap-2 mb-4">
+                    <h4 className="card-title">Club Categories</h4>
+                    <button onClick={() => switchTab('club')} className="text-xs font-semibold text-blue-600 hover:text-blue-700 cursor-pointer">
                       Manage Clubs
                     </button>
                   </div>
 
                   {clubs.length === 0 ? (
                     <div className="py-8 text-center my-auto">
-                      <Share2 size={28} className="mx-auto mb-2 opacity-40 text-slate-400" />
-                      <p className="font-bold text-xs text-slate-600">No clubs created yet</p>
-                      <p className="text-[11px] text-slate-400 mt-0.5 mb-3">Categories will compute automatically once clubs are added</p>
-                      <button 
-                        onClick={() => switchTab('club')} 
-                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-[11px] transition shadow-2xs"
+                      <div className="icon-tile bg-slate-100 text-slate-400 mx-auto mb-3"><Share2 size={20} /></div>
+                      <p className="font-semibold text-sm text-dark-900">No clubs created yet</p>
+                      <p className="text-xs text-slate-500 mt-0.5 mb-3">Categories will compute automatically once clubs are added</p>
+                      <button
+                        onClick={() => switchTab('club')}
+                        className="btn-primary btn-sm"
                       >
                         + Create Club
                       </button>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-between gap-4 my-auto">
+                    <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row items-center justify-between gap-4 my-auto">
                       <div className="relative w-40 h-40 shrink-0 flex items-center justify-center">
                         <Doughnut data={donutChartData} options={donutChartOptions} />
                         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                          <span className="text-2xl font-black text-slate-900">{categoryStats.total}</span>
-                          <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Clubs</span>
+                          <span className="text-2xl font-extrabold text-dark-900">{categoryStats.total}</span>
+                          <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Clubs</span>
                         </div>
                       </div>
 
-                      <div className="space-y-1.5 text-xs font-bold flex-1">
+                      <div className="space-y-1.5 text-xs font-semibold flex-1 w-full min-w-0">
                         {categoryStats.breakdown.map((item) => (
                           <div key={item.label} className="flex items-center justify-between">
                             <div className="flex items-center gap-2 min-w-0">
                               <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: item.color }}></span>
-                              <span className="text-gray-600 font-medium truncate">{item.label}</span>
+                              <span className="text-slate-600 font-medium truncate">{item.label}</span>
                             </div>
-                            <span className="text-gray-900 whitespace-nowrap ml-2">
-                              {item.count} <span className="text-gray-400 text-[10px]">({item.percentage}%)</span>
+                            <span className="text-dark-900 whitespace-nowrap ml-2">
+                              {item.count} <span className="text-slate-400 text-[10px]">({item.percentage}%)</span>
                             </span>
                           </div>
                         ))}
@@ -1289,42 +1264,42 @@ const AdminPanel = () => {
               </div>
 
               {/* Row 3: Real Data Sections (Approvals, Clubs Overview, Quick Actions) */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                 {/* 1. Real Event Approvals */}
-                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between">
+                <div className="card p-5 sm:p-6 flex flex-col justify-between min-w-0">
                   <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="text-sm font-black text-slate-900">Event Approvals</h4>
-                      <button onClick={() => switchTab('event')} className="text-xs font-bold text-blue-600 hover:underline">
+                    <div className="flex items-center justify-between gap-2 mb-4">
+                      <h4 className="card-title">Event Approvals</h4>
+                      <button onClick={() => switchTab('event')} className="text-xs font-semibold text-blue-600 hover:text-blue-700 cursor-pointer whitespace-nowrap">
                         View All ({events.length})
                       </button>
                     </div>
 
                     {events.length === 0 ? (
                       <div className="py-8 text-center text-slate-400">
-                        <Calendar size={28} className="mx-auto mb-2 opacity-40 text-slate-400" />
-                        <p className="font-bold text-xs text-slate-600">No events scheduled</p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">Created events will appear here for review</p>
+                        <div className="icon-tile bg-slate-100 text-slate-400 mx-auto mb-3"><Calendar size={20} /></div>
+                        <p className="font-semibold text-sm text-dark-900">No events scheduled</p>
+                        <p className="text-xs text-slate-500 mt-0.5">Created events will appear here for review</p>
                       </div>
                     ) : (
-                      <div className="space-y-3 text-xs">
+                      <div className="space-y-2 text-xs">
                         {events.slice(0, 5).map((ev) => (
                           <div key={ev._id} className="flex items-start justify-between gap-3 p-2 rounded-xl hover:bg-slate-50 transition">
                             <div className="flex items-start gap-2.5 min-w-0">
-                              <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
                                 ev.approvalStatus === 'approved' ? 'bg-emerald-50 text-emerald-600' :
-                                ev.approvalStatus === 'rejected' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'
+                                ev.approvalStatus === 'rejected' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'
                               }`}>
                                 <Calendar size={15} />
                               </div>
                               <div className="min-w-0">
-                                <p className="font-bold text-slate-900 truncate">{ev.title}</p>
-                                <p className="text-[11px] text-slate-400 truncate">{ev.clubId?.name || 'Club Event'} • {ev.category || 'General'}</p>
+                                <p className="font-semibold text-sm text-dark-900 truncate">{ev.title}</p>
+                                <p className="text-[11px] text-slate-500 truncate">{ev.clubId?.name || 'Club Event'} • {ev.category || 'General'}</p>
                               </div>
                             </div>
-                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full capitalize shrink-0 ${
-                              ev.approvalStatus === 'approved' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                              ev.approvalStatus === 'rejected' ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
+                            <span className={`capitalize shrink-0 ${
+                              ev.approvalStatus === 'approved' ? 'badge-green' :
+                              ev.approvalStatus === 'rejected' ? 'badge-red' : 'badge-amber'
                             }`}>
                               {ev.approvalStatus || 'pending'}
                             </span>
@@ -1336,49 +1311,49 @@ const AdminPanel = () => {
                 </div>
 
                 {/* 2. Real Registered Clubs Overview */}
-                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between">
+                <div className="card p-5 sm:p-6 flex flex-col justify-between min-w-0">
                   <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="text-sm font-black text-slate-900">Campus Clubs</h4>
-                      <button onClick={() => switchTab('club')} className="text-xs font-bold text-blue-600 hover:underline">
+                    <div className="flex items-center justify-between gap-2 mb-4">
+                      <h4 className="card-title">Campus Clubs</h4>
+                      <button onClick={() => switchTab('club')} className="text-xs font-semibold text-blue-600 hover:text-blue-700 cursor-pointer whitespace-nowrap">
                         View All ({clubs.length})
                       </button>
                     </div>
 
                     {clubs.length === 0 ? (
                       <div className="py-8 text-center text-slate-400">
-                        <Share2 size={28} className="mx-auto mb-2 opacity-40 text-slate-400" />
-                        <p className="font-bold text-xs text-slate-600">No clubs created yet</p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">Clubs you create will appear here</p>
-                        <button 
-                          onClick={() => switchTab('club')} 
-                          className="mt-3 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-[11px] transition shadow-2xs"
+                        <div className="icon-tile bg-slate-100 text-slate-400 mx-auto mb-3"><Share2 size={20} /></div>
+                        <p className="font-semibold text-sm text-dark-900">No clubs created yet</p>
+                        <p className="text-xs text-slate-500 mt-0.5">Clubs you create will appear here</p>
+                        <button
+                          onClick={() => switchTab('club')}
+                          className="btn-primary btn-sm mt-3"
                         >
                           + Create Club
                         </button>
                       </div>
                     ) : (
-                      <div className="space-y-3 text-xs">
+                      <div className="space-y-2 text-xs">
                         {[...clubs]
                           .sort((a, b) => (b.members?.length || 0) - (a.members?.length || 0))
                           .slice(0, 5)
                           .map((club, idx) => (
-                            <div key={club._id} className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition">
+                            <div key={club._id} className="flex items-center justify-between gap-2 p-2 rounded-xl hover:bg-slate-50 transition">
                               <div className="flex items-center gap-3 min-w-0">
-                                <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-700 font-black text-[10px] flex items-center justify-center shrink-0">
+                                <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-600 font-bold text-[10px] flex items-center justify-center shrink-0">
                                   {idx + 1}
                                 </span>
-                                <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 font-black flex items-center justify-center shrink-0 text-xs">
+                                <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 font-bold flex items-center justify-center shrink-0 text-sm">
                                   {club.name.charAt(0).toUpperCase()}
                                 </div>
                                 <div className="min-w-0">
-                                  <p className="font-bold text-slate-900 truncate">{club.name}</p>
-                                  <p className="text-[11px] text-slate-400 font-medium">
+                                  <p className="font-semibold text-sm text-dark-900 truncate">{club.name}</p>
+                                  <p className="text-[11px] text-slate-500 font-medium truncate">
                                     {club.category || 'General'}
                                   </p>
                                 </div>
                               </div>
-                              <span className="font-bold text-slate-700 text-xs whitespace-nowrap bg-slate-100 px-2 py-0.5 rounded-md">
+                              <span className="badge-slate whitespace-nowrap shrink-0">
                                 {club.members?.length || 0} {club.members?.length === 1 ? 'member' : 'members'}
                               </span>
                             </div>
@@ -1389,75 +1364,16 @@ const AdminPanel = () => {
                 </div>
 
                 {/* 3. Quick Actions */}
-                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
-                  <h4 className="text-sm font-black text-slate-900 mb-4">Quick Actions</h4>
+                <div className="card p-5 sm:p-6 min-w-0 md:col-span-2 xl:col-span-1">
+                  <h4 className="card-title mb-4">Quick Actions</h4>
 
                   <div className="grid grid-cols-2 gap-3 text-left">
-                    <button
-                      onClick={() => switchTab('club')}
-                      className="p-3.5 bg-white hover:bg-slate-50 border border-slate-100 hover:border-blue-200 rounded-xl transition text-left group shadow-2xs hover:shadow-sm"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-[#2563EB] text-white flex items-center justify-center mb-2.5 group-hover:scale-105 transition shadow-2xs">
-                        <Plus size={16} strokeWidth={2.5} />
-                      </div>
-                      <p className="font-bold text-xs text-slate-900">Add Club</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Register a new club</p>
-                    </button>
-
-                    <button
-                      onClick={() => switchTab('event')}
-                      className="p-3.5 bg-white hover:bg-slate-50 border border-slate-100 hover:border-purple-200 rounded-xl transition text-left group shadow-2xs hover:shadow-sm"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-[#9333EA] text-white flex items-center justify-center mb-2.5 group-hover:scale-105 transition shadow-2xs">
-                        <Calendar size={16} strokeWidth={2} />
-                      </div>
-                      <p className="font-bold text-xs text-slate-900">Schedule Event</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Create campus event</p>
-                    </button>
-
-                    <button
-                      onClick={() => switchTab('certificates')}
-                      className="p-3.5 bg-white hover:bg-slate-50 border border-slate-100 hover:border-purple-200 rounded-xl transition text-left group shadow-2xs hover:shadow-sm"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-[#9333EA] text-white flex items-center justify-center mb-2.5 group-hover:scale-105 transition shadow-2xs">
-                        <Award size={16} strokeWidth={2} />
-                      </div>
-                      <p className="font-bold text-xs text-slate-900">Certificates</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Generate certificates</p>
-                    </button>
-
-                    <button
-                      onClick={() => switchTab('finance')}
-                      className="p-3.5 bg-white hover:bg-slate-50 border border-slate-100 hover:border-indigo-200 rounded-xl transition text-left group shadow-2xs hover:shadow-sm"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-[#6366F1] text-white flex items-center justify-center mb-2.5 group-hover:scale-105 transition shadow-2xs">
-                        <Wallet size={16} strokeWidth={2} />
-                      </div>
-                      <p className="font-bold text-xs text-slate-900">Fees Ledger</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Manage fees & dues</p>
-                    </button>
-
-                    <button
-                      onClick={() => switchTab('directory')}
-                      className="p-3.5 bg-white hover:bg-slate-50 border border-slate-100 hover:border-blue-200 rounded-xl transition text-left group shadow-2xs hover:shadow-sm"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-[#2563EB] text-white flex items-center justify-center mb-2.5 group-hover:scale-105 transition shadow-2xs">
-                        <Users size={16} strokeWidth={2} />
-                      </div>
-                      <p className="font-bold text-xs text-slate-900">User Directory</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">View student roster</p>
-                    </button>
-
-                    <button
-                      onClick={() => switchTab('import')}
-                      className="p-3.5 bg-white hover:bg-slate-50 border border-slate-100 hover:border-blue-200 rounded-xl transition text-left group shadow-2xs hover:shadow-sm"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-[#2563EB] text-white flex items-center justify-center mb-2.5 group-hover:scale-105 transition shadow-2xs">
-                        <FileSpreadsheet size={16} strokeWidth={2} />
-                      </div>
-                      <p className="font-bold text-xs text-slate-900">Import Students</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Upload CSV/Excel</p>
-                    </button>
+                    <AdminQuickAction onClick={() => switchTab('club')} icon={Plus} tint="bg-blue-50 text-blue-600" title="Add Club" text="Register a new club" />
+                    <AdminQuickAction onClick={() => switchTab('event')} icon={Calendar} tint="bg-indigo-50 text-indigo-600" title="Schedule Event" text="Create campus event" />
+                    <AdminQuickAction onClick={() => switchTab('certificates')} icon={Award} tint="bg-emerald-50 text-emerald-600" title="Certificates" text="Generate certificates" />
+                    <AdminQuickAction onClick={() => switchTab('finance')} icon={Wallet} tint="bg-violet-50 text-violet-600" title="Fees Ledger" text="Manage fees & dues" />
+                    <AdminQuickAction onClick={() => switchTab('directory')} icon={Users} tint="bg-sky-50 text-sky-600" title="User Directory" text="View student roster" />
+                    <AdminQuickAction onClick={() => switchTab('import')} icon={FileSpreadsheet} tint="bg-amber-50 text-amber-600" title="Import Students" text="Upload CSV/Excel" />
                   </div>
                 </div>
               </div>
@@ -1465,27 +1381,27 @@ const AdminPanel = () => {
           )}
 
           {/* TAB 2: USER MANAGEMENT (STUDENT DIRECTORY) */}
-            {activeTab === 'directory' && <StudentDirectoryView />}
+          {activeTab === 'directory' && <StudentDirectoryView />}
 
-            {/* TAB 2b: ROLE CREDENTIALS & CSV/EXCEL ONBOARDING */}
-            {activeTab === 'roles_onboarding' && <RoleOnboardingView />}
+          {/* TAB 2b: ROLE CREDENTIALS & CSV/EXCEL ONBOARDING */}
+          {activeTab === 'roles_onboarding' && <RoleOnboardingView />}
 
           {/* TAB 3: CLUBS & MEMBERSHIPS */}
           {activeTab === 'club' && (
             <div className="space-y-6">
-              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                <h3 className="font-black text-gray-900 text-base mb-1">Create Institutional Club</h3>
-                <p className="text-xs text-gray-400 mb-6">Specify club details and assign a Faculty Advisor / Teacher In-Charge.</p>
+              <div className="card p-5 sm:p-6">
+                <h3 className="section-title mb-1">Create Institutional Club</h3>
+                <p className="text-sm text-slate-500 mb-6">Specify club details and assign a Faculty Advisor / Teacher In-Charge.</p>
 
                 <form onSubmit={handleCreateClub} className="space-y-4 max-w-2xl text-xs">
                   <div>
-                    <label className="block font-bold text-gray-700 uppercase mb-1">Club Name</label>
-                    <input required type="text" placeholder="e.g. Robotics & AI Club" value={clubForm.name} onChange={(e) => setClubForm({...clubForm, name: e.target.value})} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-bold outline-none" />
+                    <label className="label">Club Name</label>
+                    <input required type="text" placeholder="e.g. Robotics & AI Club" value={clubForm.name} onChange={(e) => setClubForm({...clubForm, name: e.target.value})} className="input" />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block font-bold text-gray-700 uppercase mb-1">Category</label>
-                      <select required value={clubForm.category} onChange={(e) => setClubForm({...clubForm, category: e.target.value})} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-bold outline-none">
+                      <label className="label">Category</label>
+                      <select required value={clubForm.category} onChange={(e) => setClubForm({...clubForm, category: e.target.value})} className="input">
                         <option value="Sports">Sports</option>
                         <option value="Literary">Literary</option>
                         <option value="Cultural">Cultural</option>
@@ -1494,20 +1410,20 @@ const AdminPanel = () => {
                       </select>
                     </div>
                     <div>
-                      <label className="block font-bold text-gray-700 uppercase mb-1">Logo URL (Optional)</label>
-                      <input type="text" placeholder="https://..." value={clubForm.logo} onChange={(e) => setClubForm({...clubForm, logo: e.target.value})} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none" />
+                      <label className="label">Logo URL (Optional)</label>
+                      <input type="text" placeholder="https://..." value={clubForm.logo} onChange={(e) => setClubForm({...clubForm, logo: e.target.value})} className="input" />
                     </div>
                   </div>
                   <div>
-                    <label className="block font-bold text-gray-700 uppercase mb-1">Description</label>
-                    <textarea required rows={3} placeholder="Brief summary of club objectives and student activities..." value={clubForm.description} onChange={(e) => setClubForm({...clubForm, description: e.target.value})} className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none" />
+                    <label className="label">Description</label>
+                    <textarea required rows={3} placeholder="Brief summary of club objectives and student activities..." value={clubForm.description} onChange={(e) => setClubForm({...clubForm, description: e.target.value})} className="input" />
                   </div>
 
                   {/* President Election Notice (No manual president selector) */}
                   <div className="p-3.5 bg-amber-50/80 border border-amber-200/70 rounded-xl flex items-start gap-3 text-xs text-amber-900">
                     <Vote size={18} className="text-amber-600 shrink-0 mt-0.5" />
                     <div>
-                      <span className="font-black">Club President Selection:</span>
+                      <span className="font-bold">Club President Selection:</span>
                       <p className="text-[11px] text-amber-800 mt-0.5">
                         Presidents are democratically elected by members during Campus Elections. Once an election concludes, the elected student is elevated automatically.
                       </p>
@@ -1516,9 +1432,9 @@ const AdminPanel = () => {
 
                   {/* Faculty Advisor Typeable Input with Autocomplete */}
                   <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="block font-bold text-gray-700 uppercase">Faculty Advisor / Teacher In-Charge</label>
-                      <span className="text-[10px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md">Type Name or Email</span>
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                      <label className="label mb-0">Faculty Advisor / Teacher In-Charge</label>
+                      <span className="badge-blue">Type Name or Email</span>
                     </div>
                     <input
                       type="text"
@@ -1527,7 +1443,7 @@ const AdminPanel = () => {
                       placeholder="Type teacher's name or email (e.g. Dr. Sharma or faculty@campus.edu)"
                       value={clubForm.facultyId}
                       onChange={(e) => setClubForm({...clubForm, facultyId: e.target.value})}
-                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-bold outline-none text-xs focus:bg-white focus:border-teal-600 focus:ring-2 focus:ring-teal-600/10 transition-all text-gray-800 placeholder-gray-400"
+                      className="input"
                     />
                     <datalist id="facultyListOptions">
                       {users.map(u => (
@@ -1536,41 +1452,41 @@ const AdminPanel = () => {
                         </option>
                       ))}
                     </datalist>
-                    <p className="text-[11px] text-gray-400 mt-1">
+                    <p className="text-[11px] text-slate-400 mt-1">
                       You can type any teacher's name or email directly, or pick from existing accounts.
                     </p>
                   </div>
 
-                  <button disabled={loading} type="submit" className="px-6 py-2.5 bg-[#2563EB] hover:bg-blue-700 text-white rounded-xl font-bold shadow-md transition cursor-pointer">
+                  <button disabled={loading} type="submit" className="btn-primary">
                     {loading ? 'Creating...' : '+ Create Club'}
                   </button>
                 </form>
               </div>
 
               {/* Active Clubs & In-Between Faculty Advisor Management */}
-              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="font-black text-gray-900 text-base flex items-center gap-2">
-                      <Share2 size={18} className="text-blue-600" /> Active Clubs & Faculty Advisor Management
+              <div className="card p-5 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                  <div className="min-w-0">
+                    <h3 className="section-title flex items-center gap-2">
+                      <Share2 size={18} className="text-blue-600 shrink-0" /> Active Clubs & Faculty Advisor Management
                     </h3>
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    <p className="text-sm text-slate-500 mt-0.5">
                       Review campus clubs and update or change their designated Faculty Advisor / Teacher in-between anytime.
                     </p>
                   </div>
-                  <span className="text-xs font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded-full">
+                  <span className="badge-blue self-start sm:self-auto shrink-0">
                     {clubs.length} Active Clubs
                   </span>
                 </div>
 
-                <div className="divide-y divide-gray-100 border border-gray-100 rounded-2xl overflow-hidden">
+                <div className="divide-y divide-slate-100 border border-slate-100 rounded-2xl overflow-hidden">
                   {clubs.length === 0 ? (
-                    <div className="p-8 text-center text-gray-400 text-xs">No clubs created yet.</div>
+                    <div className="p-8 text-center text-slate-400 text-xs">No clubs created yet.</div>
                   ) : (
                     clubs.map((c) => (
-                      <div key={c._id} className="p-4 bg-white hover:bg-gray-50/60 transition flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div key={c._id} className="p-4 bg-white hover:bg-slate-50/60 transition flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="flex items-center gap-3.5 min-w-0">
-                          <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-black text-base shrink-0 overflow-hidden border border-blue-100">
+                          <div className="icon-tile bg-blue-50 text-blue-600 font-bold text-base overflow-hidden border border-blue-100">
                             {c.logo ? (
                               <img src={c.logo} alt={c.name} className="w-full h-full object-cover" />
                             ) : (
@@ -1578,16 +1494,16 @@ const AdminPanel = () => {
                             )}
                           </div>
                           <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <h4 className="font-black text-gray-900 text-sm truncate">{c.name}</h4>
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-600">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <h4 className="card-title truncate">{c.name}</h4>
+                              <span className="badge-slate shrink-0">
                                 {c.category || 'General'}
                               </span>
                             </div>
-                            <p className="text-xs text-gray-400 mt-0.5 truncate">
+                            <p className="text-xs text-slate-400 mt-0.5 truncate">
                               President:{' '}
                               {c.presidentId?.name ? (
-                                <span className="font-bold text-gray-700">{c.presidentId.name}</span>
+                                <span className="font-bold text-slate-700">{c.presidentId.name}</span>
                               ) : (
                                 <span className="text-amber-600 font-bold inline-flex items-center gap-1">
                                   <Vote size={12} /> Awaiting Campus Election
@@ -1598,16 +1514,16 @@ const AdminPanel = () => {
                         </div>
 
                         {/* Faculty Advisor Section with Inline Change in-between */}
-                        <div className="flex items-center gap-3 shrink-0">
+                        <div className="flex items-center gap-3 min-w-0 md:shrink-0">
                           {editingClubFaculty === c._id ? (
-                            <div className="flex items-center gap-2 bg-blue-50/60 p-2 rounded-xl border border-blue-200">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 bg-blue-50/60 p-2 rounded-xl border border-blue-200 w-full">
                               <input
                                 type="text"
                                 list="editFacultyListOptions"
                                 placeholder="Type teacher's name or email..."
                                 value={selectedNewFaculty}
                                 onChange={(e) => setSelectedNewFaculty(e.target.value)}
-                                className="px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-800 outline-none w-56 placeholder-gray-400"
+                                className="input py-2 text-xs sm:w-56"
                               />
                               <datalist id="editFacultyListOptions">
                                 {users.map(u => (
@@ -1619,7 +1535,7 @@ const AdminPanel = () => {
                               <button
                                 onClick={() => handleUpdateClubFaculty(c._id)}
                                 disabled={updatingFaculty}
-                                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition cursor-pointer"
+                                className="btn-primary btn-sm"
                               >
                                 {updatingFaculty ? 'Saving...' : 'Save'}
                               </button>
@@ -1628,16 +1544,16 @@ const AdminPanel = () => {
                                   setEditingClubFaculty(null);
                                   setSelectedNewFaculty('');
                                 }}
-                                className="px-2.5 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-xs font-bold transition cursor-pointer"
+                                className="btn-secondary btn-sm"
                               >
                                 Cancel
                               </button>
                             </div>
                           ) : (
-                            <div className="flex items-center gap-3">
-                              <div className="text-right">
-                                <p className="text-[10px] uppercase font-bold text-gray-400">Faculty Advisor / Teacher</p>
-                                <p className="text-xs font-bold text-gray-800">
+                            <div className="flex items-center justify-between md:justify-end gap-3 w-full">
+                              <div className="text-left md:text-right min-w-0">
+                                <p className="text-[11px] uppercase font-semibold tracking-wider text-slate-400">Faculty Advisor / Teacher</p>
+                                <p className="text-xs font-bold text-slate-800">
                                   {c.facultyId?.name || 'Not Assigned'}
                                 </p>
                               </div>
@@ -1646,7 +1562,7 @@ const AdminPanel = () => {
                                   setEditingClubFaculty(c._id);
                                   setSelectedNewFaculty(c.facultyId?._id || '');
                                 }}
-                                className="px-3 py-1.5 bg-gray-100 hover:bg-blue-50 hover:text-blue-600 text-gray-700 rounded-xl text-xs font-bold transition cursor-pointer border border-gray-200/80"
+                                className="btn-secondary btn-sm shrink-0"
                               >
                                 Change Teacher
                               </button>
@@ -1660,14 +1576,14 @@ const AdminPanel = () => {
               </div>
 
               {/* Recruitment Management */}
-              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                <h3 className="font-black text-gray-900 text-base mb-1">Recruitment Phase & Membership Fees</h3>
+              <div className="card p-5 sm:p-6">
+                <h3 className="section-title mb-1">Recruitment Phase & Membership Fees</h3>
                 <form onSubmit={handleUpdateRecruitment} className="space-y-4 max-w-2xl text-xs">
                   <div>
-                    <label className="block font-bold text-gray-700 uppercase mb-1">Select Clubs to Configure</label>
-                    <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-3 border border-gray-200 rounded-xl bg-gray-50">
+                    <label className="label">Select Clubs to Configure</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-3 border border-slate-200 rounded-xl bg-slate-50">
                       {clubs.map(c => (
-                        <label key={c._id} className="flex items-center gap-2 cursor-pointer font-bold text-gray-700">
+                        <label key={c._id} className="flex items-center gap-2 cursor-pointer font-semibold text-slate-700 min-w-0">
                           <input
                             type="checkbox"
                             checked={recruitmentForm.clubIds.includes(c._id)}
@@ -1677,29 +1593,29 @@ const AdminPanel = () => {
                                 : recruitmentForm.clubIds.filter(id => id !== c._id);
                               setRecruitmentForm({...recruitmentForm, clubIds: newIds});
                             }}
-                            className="rounded text-blue-600"
+                            className="rounded text-blue-600 shrink-0"
                           />
-                          <span>{c.name}</span>
+                          <span className="truncate">{c.name}</span>
                         </label>
                       ))}
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block font-bold text-gray-700 uppercase mb-1">Join Fee (₹)</label>
-                      <input required type="number" min="0" value={recruitmentForm.joinFee} onChange={(e) => setRecruitmentForm({...recruitmentForm, joinFee: parseInt(e.target.value)})} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold outline-none" />
+                      <label className="label">Join Fee (₹)</label>
+                      <input required type="number" min="0" value={recruitmentForm.joinFee} onChange={(e) => setRecruitmentForm({...recruitmentForm, joinFee: parseInt(e.target.value)})} className="input" />
                     </div>
                     <div>
-                      <label className="block font-bold text-gray-700 uppercase mb-1">Recruitment Status</label>
-                      <select required value={recruitmentForm.isAcceptingMembers ? 'open' : 'closed'} onChange={(e) => setRecruitmentForm({...recruitmentForm, isAcceptingMembers: e.target.value === 'open'})} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold outline-none">
+                      <label className="label">Recruitment Status</label>
+                      <select required value={recruitmentForm.isAcceptingMembers ? 'open' : 'closed'} onChange={(e) => setRecruitmentForm({...recruitmentForm, isAcceptingMembers: e.target.value === 'open'})} className="input">
                         <option value="open">Open for Recruitment</option>
                         <option value="closed">Closed</option>
                       </select>
                     </div>
                   </div>
 
-                  <button disabled={loading} type="submit" className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold transition">
+                  <button disabled={loading} type="submit" className="btn-primary">
                     Update Recruitment Settings
                   </button>
                 </form>
@@ -1710,16 +1626,16 @@ const AdminPanel = () => {
           {/* TAB 4: EVENTS & APPROVALS */}
           {activeTab === 'event' && (
             <div className="space-y-6">
-              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-black text-gray-900 text-sm">Event Approval Queue</h3>
-                  <div className="flex items-center gap-2">
+              <div className="card p-5 sm:p-6 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <h3 className="card-title">Event Approval Queue</h3>
+                  <div className="flex items-center gap-1.5 overflow-x-auto hide-scrollbar -mx-1 px-1">
                     {['all', 'pending', 'approved', 'rejected'].map(st => (
                       <button
                         key={st}
                         onClick={() => setApprovalFilter(st)}
-                        className={`px-3 py-1 rounded-full text-xs font-bold capitalize transition ${
-                          approvalFilter === st ? 'bg-slate-900 text-white' : 'bg-gray-100 text-gray-600'
+                        className={`tab capitalize py-1.5 text-xs ${
+                          approvalFilter === st ? 'tab-active' : 'bg-slate-100'
                         }`}
                       >
                         {st}
@@ -1733,11 +1649,11 @@ const AdminPanel = () => {
                     <EmptyState icon={CheckCircle2} title="No events in this category" description="Filter is clear." />
                   ) : (
                     events.filter(e => approvalFilter === 'all' ? true : e.approvalStatus === approvalFilter).map(event => (
-                      <div key={event._id} className="relative">
+                      <div key={event._id} className="space-y-2">
                         <ApprovalCard event={event} onApprove={handleApprove} onReject={handleReject} isRemoving={false} />
                         {event.approvalStatus !== 'pending' && (
-                          <div className="absolute top-4 right-4 z-10">
-                            <button onClick={() => setShowOverrideModal(event)} className="px-3 py-1 bg-white border border-gray-200 shadow-sm text-[11px] font-bold text-gray-700 rounded-lg">
+                          <div className="flex justify-end">
+                            <button onClick={() => setShowOverrideModal(event)} className="btn-secondary btn-sm">
                               Override
                             </button>
                           </div>
@@ -1749,24 +1665,24 @@ const AdminPanel = () => {
               </div>
 
               {/* Create Event */}
-              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                <h3 className="font-black text-gray-900 text-base mb-4">Create Campus Event</h3>
+              <div className="card p-5 sm:p-6">
+                <h3 className="section-title mb-4">Create Campus Event</h3>
                 <form onSubmit={handleCreateEvent} className="space-y-4 max-w-2xl text-xs">
                   <div>
-                    <label className="block font-bold text-gray-700 uppercase mb-1">Event Title</label>
-                    <input required type="text" value={eventForm.title} onChange={(e) => setEventForm({...eventForm, title: e.target.value})} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none font-bold" />
+                    <label className="label">Event Title</label>
+                    <input required type="text" value={eventForm.title} onChange={(e) => setEventForm({...eventForm, title: e.target.value})} className="input" />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block font-bold text-gray-700 uppercase mb-1">Associated Club</label>
-                      <select required value={eventForm.clubId} onChange={(e) => setEventForm({...eventForm, clubId: e.target.value})} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-bold outline-none">
+                      <label className="label">Associated Club</label>
+                      <select required value={eventForm.clubId} onChange={(e) => setEventForm({...eventForm, clubId: e.target.value})} className="input">
                         <option value="">Select Club</option>
                         {clubs.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label className="block font-bold text-gray-700 uppercase mb-1">Category</label>
-                      <select required value={eventForm.category} onChange={(e) => setEventForm({...eventForm, category: e.target.value})} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-bold outline-none">
+                      <label className="label">Category</label>
+                      <select required value={eventForm.category} onChange={(e) => setEventForm({...eventForm, category: e.target.value})} className="input">
                         <option value="Sports">Sports</option>
                         <option value="Literary">Literary</option>
                         <option value="Cultural">Cultural</option>
@@ -1774,38 +1690,38 @@ const AdminPanel = () => {
                     </div>
                   </div>
                   <div>
-                    <label className="block font-bold text-gray-700 uppercase mb-1">Description</label>
-                    <textarea required rows={3} value={eventForm.description} onChange={(e) => setEventForm({...eventForm, description: e.target.value})} className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none" />
+                    <label className="label">Description</label>
+                    <textarea required rows={3} value={eventForm.description} onChange={(e) => setEventForm({...eventForm, description: e.target.value})} className="input" />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block font-bold text-gray-700 uppercase mb-1">Date & Time</label>
-                      <input required type="datetime-local" value={eventForm.date} onChange={(e) => setEventForm({...eventForm, date: e.target.value})} className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none" />
+                      <label className="label">Date & Time</label>
+                      <input required type="datetime-local" value={eventForm.date} onChange={(e) => setEventForm({...eventForm, date: e.target.value})} className="input" />
                     </div>
                     <div>
-                      <label className="block font-bold text-gray-700 uppercase mb-1">Max Capacity (0 = unlimited)</label>
-                      <input required type="number" min="0" value={eventForm.maxParticipants} onChange={(e) => setEventForm({...eventForm, maxParticipants: parseInt(e.target.value) || 0})} className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none" />
+                      <label className="label">Max Capacity (0 = unlimited)</label>
+                      <input required type="number" min="0" value={eventForm.maxParticipants} onChange={(e) => setEventForm({...eventForm, maxParticipants: parseInt(e.target.value) || 0})} className="input" />
                     </div>
                   </div>
-                  <button disabled={loading} type="submit" className="px-6 py-2.5 bg-[#2563EB] hover:bg-blue-700 text-white rounded-xl font-bold shadow-md">
+                  <button disabled={loading} type="submit" className="btn-primary">
                     {loading ? 'Creating...' : '+ Publish Event'}
                   </button>
                 </form>
               </div>
 
               {showOverrideModal && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                  <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
-                    <h3 className="text-xl font-black mb-2 text-gray-900">Administrative Override</h3>
-                    <p className="text-xs text-gray-500 mb-4 font-medium">You are exercising administrative override for "{showOverrideModal.title}".</p>
-                    <select id="adminOverrideStatus" className="w-full mb-4 px-4 py-2.5 border border-gray-200 rounded-xl outline-none font-bold text-xs" defaultValue={showOverrideModal.approvalStatus === 'approved' ? 'rejected' : 'approved'}>
+                <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowOverrideModal(null); }}>
+                  <div className="modal-panel sm:max-w-md p-6">
+                    <h3 className="text-xl font-bold tracking-tight mb-2 text-dark-900">Administrative Override</h3>
+                    <p className="text-sm text-slate-600 mb-4">You are exercising administrative override for "{showOverrideModal.title}".</p>
+                    <select id="adminOverrideStatus" className="input mb-4" defaultValue={showOverrideModal.approvalStatus === 'approved' ? 'rejected' : 'approved'}>
                       <option value="approved">Approved</option>
                       <option value="rejected">Rejected</option>
                     </select>
-                    <textarea id="adminOverrideReason" placeholder="Reason for administrative override (Required)" className="w-full mb-4 px-4 py-2.5 border border-gray-200 rounded-xl outline-none text-xs font-medium" rows="3"></textarea>
-                    <div className="flex gap-2 justify-end">
-                      <button onClick={() => setShowOverrideModal(null)} className="px-4 py-2 font-bold text-xs text-gray-600 hover:bg-gray-100 rounded-xl">Cancel</button>
-                      <button onClick={() => handleOverride(showOverrideModal._id, document.getElementById('adminOverrideStatus').value, document.getElementById('adminOverrideReason').value)} className="px-5 py-2 font-bold text-xs text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition">Confirm Override</button>
+                    <textarea id="adminOverrideReason" placeholder="Reason for administrative override (Required)" className="input mb-4" rows="3"></textarea>
+                    <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+                      <button onClick={() => setShowOverrideModal(null)} className="btn-ghost">Cancel</button>
+                      <button onClick={() => handleOverride(showOverrideModal._id, document.getElementById('adminOverrideStatus').value, document.getElementById('adminOverrideReason').value)} className="btn-primary">Confirm Override</button>
                     </div>
                   </div>
                 </div>
@@ -1816,30 +1732,30 @@ const AdminPanel = () => {
           {/* TAB 5: SPORTS & TOURNAMENTS */}
           {activeTab === 'sports' && (
             <div className="space-y-6">
-              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                <h3 className="font-black text-gray-900 text-base mb-1">Campus Sports Disciplines</h3>
+              <div className="card p-5 sm:p-6">
+                <h3 className="section-title mb-1">Campus Sports Disciplines</h3>
                 <form onSubmit={handleCreateGame} className="space-y-4 max-w-2xl text-xs mb-6">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block font-bold text-gray-700 uppercase mb-1">Discipline Name</label>
-                      <input type="text" required placeholder="e.g. Volleyball, Chess" value={gameForm.name} onChange={(e) => setGameForm({ ...gameForm, name: e.target.value })} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none font-bold" />
+                      <label className="label">Discipline Name</label>
+                      <input type="text" required placeholder="e.g. Volleyball, Chess" value={gameForm.name} onChange={(e) => setGameForm({ ...gameForm, name: e.target.value })} className="input" />
                     </div>
                     <div>
-                      <label className="block font-bold text-gray-700 uppercase mb-1">Type</label>
-                      <select value={gameForm.type} onChange={(e) => setGameForm({ ...gameForm, type: e.target.value })} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold outline-none">
+                      <label className="label">Type</label>
+                      <select value={gameForm.type} onChange={(e) => setGameForm({ ...gameForm, type: e.target.value })} className="input">
                         <option value="team-based">Team-Based</option>
                         <option value="individual">Individual</option>
                       </select>
                     </div>
                   </div>
-                  <button type="submit" disabled={loading} className="px-5 py-2 bg-slate-900 text-white rounded-xl font-bold">
+                  <button type="submit" disabled={loading} className="btn-primary">
                     + Add Sport
                   </button>
                 </form>
 
                 <div className="flex flex-wrap gap-2">
                   {games.map(g => (
-                    <span key={g._id} className="px-3 py-1.5 bg-gray-50 border border-gray-200 text-gray-800 rounded-xl text-xs font-bold flex items-center gap-2">
+                    <span key={g._id} className="px-3 py-1.5 bg-blue-50 border border-blue-100 text-blue-800 rounded-xl text-xs font-semibold flex items-center gap-2">
                       <Gamepad2 size={14} className="text-blue-600" />
                       {g.name} ({g.type})
                     </span>
@@ -1848,25 +1764,25 @@ const AdminPanel = () => {
               </div>
 
               {/* Schedule Inter-Class Match */}
-              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+              <div className="card p-5 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className="font-black text-gray-900 text-base">Schedule Inter-Class Match</h3>
-                    <p className="text-xs text-gray-500 font-medium">Schedule intra-club fixtures between sections/classes with dedicated referees and rotating slots.</p>
+                    <h3 className="section-title">Schedule Inter-Class Match</h3>
+                    <p className="text-sm text-slate-500 mt-0.5">Schedule intra-club fixtures between sections/classes with dedicated referees and rotating slots.</p>
                   </div>
                 </div>
                 <form onSubmit={handleCreateMatch} className="space-y-4 max-w-3xl text-xs">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <label className="block font-bold text-gray-700 uppercase mb-1">Club</label>
-                      <select required value={matchForm.clubId} onChange={(e) => setMatchForm({...matchForm, clubId: e.target.value})} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold outline-none">
+                      <label className="label">Club</label>
+                      <select required value={matchForm.clubId} onChange={(e) => setMatchForm({...matchForm, clubId: e.target.value})} className="input">
                         <option value="">Select Club</option>
                         {clubs.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label className="block font-bold text-gray-700 uppercase mb-1">Sport / Discipline</label>
-                      <select required value={matchForm.sport} onChange={(e) => setMatchForm({...matchForm, sport: e.target.value})} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold outline-none">
+                      <label className="label">Sport / Discipline</label>
+                      <select required value={matchForm.sport} onChange={(e) => setMatchForm({...matchForm, sport: e.target.value})} className="input">
                         <option value="Cricket">Cricket</option>
                         <option value="Football">Football / Soccer</option>
                         <option value="Volleyball">Volleyball</option>
@@ -1878,8 +1794,8 @@ const AdminPanel = () => {
                       </select>
                     </div>
                     <div>
-                      <label className="block font-bold text-gray-700 uppercase mb-1">Wing</label>
-                      <select required value={matchForm.wing} onChange={(e) => setMatchForm({...matchForm, wing: e.target.value})} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold outline-none">
+                      <label className="label">Wing</label>
+                      <select required value={matchForm.wing} onChange={(e) => setMatchForm({...matchForm, wing: e.target.value})} className="input">
                         <option value="General">General Wing</option>
                         <option value="Junior">Junior Wing (1st & 2nd Year)</option>
                         <option value="Senior">Senior Wing (3rd & 4th Year)</option>
@@ -1889,19 +1805,19 @@ const AdminPanel = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block font-bold text-gray-700 uppercase mb-1">Class / Section A</label>
-                      <input required type="text" placeholder="e.g. CSE-A, IT-2nd Year" value={matchForm.teamA} onChange={(e) => setMatchForm({...matchForm, teamA: e.target.value})} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none font-bold" />
+                      <label className="label">Class / Section A</label>
+                      <input required type="text" placeholder="e.g. CSE-A, IT-2nd Year" value={matchForm.teamA} onChange={(e) => setMatchForm({...matchForm, teamA: e.target.value})} className="input" />
                     </div>
                     <div>
-                      <label className="block font-bold text-gray-700 uppercase mb-1">Class / Section B</label>
-                      <input required type="text" placeholder="e.g. CSE-B, MECH-2nd Year" value={matchForm.teamB} onChange={(e) => setMatchForm({...matchForm, teamB: e.target.value})} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none font-bold" />
+                      <label className="label">Class / Section B</label>
+                      <input required type="text" placeholder="e.g. CSE-B, MECH-2nd Year" value={matchForm.teamB} onChange={(e) => setMatchForm({...matchForm, teamB: e.target.value})} className="input" />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <label className="block font-bold text-gray-700 uppercase mb-1">Assigned Referee</label>
-                      <select required value={matchForm.refereeId} onChange={(e) => setMatchForm({...matchForm, refereeId: e.target.value})} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold outline-none">
+                      <label className="label">Assigned Referee</label>
+                      <select required value={matchForm.refereeId} onChange={(e) => setMatchForm({...matchForm, refereeId: e.target.value})} className="input">
                         <option value="">Select Referee</option>
                         {users.filter(u => u.role === 'referee' || u.isReferee || u.role === 'admin').map(u => (
                           <option key={u._id} value={u._id}>{u.name} ({u.role}{u.isReferee ? ', Student Referee' : ''})</option>
@@ -1909,12 +1825,12 @@ const AdminPanel = () => {
                       </select>
                     </div>
                     <div>
-                      <label className="block font-bold text-gray-700 uppercase mb-1">Date</label>
-                      <input required type="date" value={matchForm.date} onChange={(e) => setMatchForm({...matchForm, date: e.target.value})} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none font-bold" />
+                      <label className="label">Date</label>
+                      <input required type="date" value={matchForm.date} onChange={(e) => setMatchForm({...matchForm, date: e.target.value})} className="input" />
                     </div>
                     <div>
-                      <label className="block font-bold text-gray-700 uppercase mb-1">Time Slot</label>
-                      <select value={matchForm.timeSlot} onChange={(e) => setMatchForm({...matchForm, timeSlot: e.target.value})} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold outline-none">
+                      <label className="label">Time Slot</label>
+                      <select value={matchForm.timeSlot} onChange={(e) => setMatchForm({...matchForm, timeSlot: e.target.value})} className="input">
                         <option value="09:00 AM - 10:30 AM">09:00 AM - 10:30 AM</option>
                         <option value="10:45 AM - 12:15 PM">10:45 AM - 12:15 PM</option>
                         <option value="01:30 PM - 03:00 PM">01:30 PM - 03:00 PM</option>
@@ -1924,11 +1840,11 @@ const AdminPanel = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 pt-2">
-                    <button type="submit" disabled={loading} className="px-6 py-2.5 bg-[#2563EB] hover:bg-blue-700 text-white rounded-xl font-bold shadow-md transition-all">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-2">
+                    <button type="submit" disabled={loading} className="btn-primary">
                       Schedule Inter-Class Match
                     </button>
-                    <a href="/api/matches/export/excel" className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold transition-all">
+                    <a href="/api/matches/export/excel" className="btn-secondary">
                       Export Schedule (.xlsx)
                     </a>
                   </div>
@@ -1941,33 +1857,33 @@ const AdminPanel = () => {
           {activeTab === 'elections' && (
             <div className="space-y-6">
               {/* Header Stats Banner */}
-              <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden">
+              <div className="bg-brand-gradient text-white p-5 sm:p-6 rounded-3xl shadow-brand relative overflow-hidden">
                 <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="p-2 bg-blue-500/20 text-blue-300 rounded-xl border border-blue-400/20">
+                      <span className="p-2 bg-white/10 text-blue-200 rounded-xl border border-white/15 shrink-0">
                         <Vote size={22} />
                       </span>
-                      <h3 className="font-black text-xl tracking-tight">Campus Elections & Leadership Elevation</h3>
+                      <h3 className="font-extrabold text-lg sm:text-xl tracking-tight">Campus Elections & Leadership Elevation</h3>
                     </div>
-                    <p className="text-xs text-blue-200/80 mt-1.5 max-w-2xl">
+                    <p className="text-sm text-blue-100/80 mt-2 max-w-2xl">
                       Schedule floating voting windows, pit Candidate 1 against Candidate 2 with manifestos and photos, and automatically elevate winning students to Club President or Vice President.
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 text-xs">
+                  <div className="grid grid-cols-3 gap-2 text-xs md:flex md:items-center shrink-0">
                     <div className="bg-white/10 backdrop-blur-md px-3.5 py-2 rounded-xl border border-white/10 text-center">
-                      <p className="text-blue-200 text-[10px] font-bold uppercase">Total</p>
-                      <p className="font-black text-lg text-white">{elections.length}</p>
+                      <p className="text-blue-200 text-[11px] font-semibold uppercase tracking-wider">Total</p>
+                      <p className="font-bold text-lg text-white">{elections.length}</p>
                     </div>
                     <div className="bg-emerald-500/20 backdrop-blur-md px-3.5 py-2 rounded-xl border border-emerald-400/30 text-center">
-                      <p className="text-emerald-300 text-[10px] font-bold uppercase">Active</p>
-                      <p className="font-black text-lg text-emerald-400">
+                      <p className="text-emerald-300 text-[11px] font-semibold uppercase tracking-wider">Active</p>
+                      <p className="font-bold text-lg text-emerald-400">
                         {elections.filter(e => !e.isConcluded && new Date(e.startDate) <= new Date() && new Date() <= new Date(e.endDate)).length}
                       </p>
                     </div>
                     <div className="bg-amber-500/20 backdrop-blur-md px-3.5 py-2 rounded-xl border border-amber-400/30 text-center">
-                      <p className="text-amber-300 text-[10px] font-bold uppercase">Elevated</p>
-                      <p className="font-black text-lg text-amber-400">
+                      <p className="text-amber-300 text-[11px] font-semibold uppercase tracking-wider">Elevated</p>
+                      <p className="font-bold text-lg text-amber-400">
                         {elections.filter(e => e.isConcluded).length}
                       </p>
                     </div>
@@ -1976,18 +1892,18 @@ const AdminPanel = () => {
               </div>
 
               {/* Launch Matchup Form */}
-              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                <div className="flex items-center justify-between mb-5 border-b border-gray-100 pb-3">
+              <div className="card p-5 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 border-b border-slate-100 pb-4">
                   <div>
-                    <h4 className="font-black text-gray-900 text-sm flex items-center gap-2">
+                    <h4 className="card-title flex items-center gap-2">
                       <Swords size={18} className="text-blue-600" />
                       Create New Leadership Matchup
                     </h4>
-                    <p className="text-xs text-gray-400 mt-0.5">Pair Candidate 1 vs Candidate 2 for election into club executive roles.</p>
+                    <p className="text-sm text-slate-500 mt-0.5">Pair Candidate 1 vs Candidate 2 for election into club executive roles.</p>
                   </div>
                   <Link
                     to="/elections"
-                    className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                    className="btn-soft btn-sm self-start sm:self-auto"
                   >
                     Open Live Ballot Station <ExternalLink size={13} />
                   </Link>
@@ -1996,34 +1912,34 @@ const AdminPanel = () => {
                 <form onSubmit={handleCreateElection} className="space-y-5 text-xs">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="md:col-span-1">
-                      <label className="block font-bold text-gray-700 uppercase mb-1">Election Title</label>
+                      <label className="label">Election Title</label>
                       <input
                         required
                         type="text"
                         placeholder="e.g. Cricket Club Presidential Election 2026"
                         value={electionForm.title}
                         onChange={(e) => setElectionForm({ ...electionForm, title: e.target.value })}
-                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold outline-none focus:border-blue-500 transition-all"
+                        className="input"
                       />
                     </div>
                     <div>
-                      <label className="block font-bold text-gray-700 uppercase mb-1">Club / Organization</label>
+                      <label className="label">Club / Organization</label>
                       <select
                         required
                         value={electionForm.clubId}
                         onChange={(e) => setElectionForm({ ...electionForm, clubId: e.target.value })}
-                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold outline-none focus:border-blue-500 transition-all"
+                        className="input"
                       >
                         <option value="">-- Choose Club --</option>
                         {clubs.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label className="block font-bold text-gray-700 uppercase mb-1">Leadership Position To Win</label>
+                      <label className="label">Leadership Position To Win</label>
                       <select
                         value={electionForm.position}
                         onChange={(e) => setElectionForm({ ...electionForm, position: e.target.value })}
-                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold outline-none focus:border-blue-500 transition-all text-blue-700"
+                        className="input"
                       >
                         <option value="President">Club President (Elevates winner to President)</option>
                         <option value="Vice President">Vice President (Elevates winner to Vice President)</option>
@@ -2033,32 +1949,32 @@ const AdminPanel = () => {
 
                   {/* Floating Timing Window */}
                   <div className="p-4 bg-blue-50/60 rounded-xl border border-blue-100">
-                    <div className="flex items-center gap-2 mb-2 text-blue-900 font-bold">
+                    <div className="flex flex-wrap items-center gap-2 mb-3 text-blue-900 font-bold">
                       <Timer size={15} />
                       Floating Voting Window
-                      <span className="text-[10px] font-medium text-blue-600 bg-blue-100/70 px-2 py-0.5 rounded-full">
+                      <span className="badge-blue font-medium">
                         Ballots can only be cast between Start and End times
                       </span>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block font-bold text-gray-700 uppercase mb-1">Start Date & Time</label>
+                        <label className="label">Start Date & Time</label>
                         <input
                           required
                           type="datetime-local"
                           value={electionForm.startDate}
                           onChange={(e) => setElectionForm({ ...electionForm, startDate: e.target.value })}
-                          className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl font-medium outline-none focus:border-blue-500"
+                          className="input"
                         />
                       </div>
                       <div>
-                        <label className="block font-bold text-gray-700 uppercase mb-1">End Date & Time</label>
+                        <label className="label">End Date & Time</label>
                         <input
                           required
                           type="datetime-local"
                           value={electionForm.endDate}
                           onChange={(e) => setElectionForm({ ...electionForm, endDate: e.target.value })}
-                          className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl font-medium outline-none focus:border-blue-500"
+                          className="input"
                         />
                       </div>
                     </div>
@@ -2066,15 +1982,15 @@ const AdminPanel = () => {
 
                   {/* Candidate 1 vs Candidate 2 Matchup Cards */}
                   <div>
-                    <h5 className="font-bold text-gray-800 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+                    <h5 className="font-bold text-dark-900 text-sm mb-3 flex items-center gap-1.5">
                       <Users size={15} className="text-blue-600" />
                       Candidate Matchup Pairing (Profile 1 vs Profile 2)
                     </h5>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative">
                       {/* Candidate 1 */}
-                      <div className="p-4 bg-gradient-to-br from-blue-50/50 to-white rounded-2xl border border-blue-200 space-y-3 relative">
+                      <div className="p-4 bg-blue-50/40 rounded-2xl border border-blue-200 space-y-3 relative min-w-0">
                         <div className="flex items-center justify-between">
-                          <span className="px-2.5 py-1 bg-blue-600 text-white font-black text-[10px] rounded-lg tracking-wider uppercase">
+                          <span className="px-2.5 py-1 bg-blue-600 text-white font-semibold text-[11px] rounded-lg">
                             Candidate 1 (Profile 1)
                           </span>
                         </div>
@@ -2082,13 +1998,13 @@ const AdminPanel = () => {
                         {/* Student Roll Number & Name Inputs */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <div>
-                            <label className="block font-bold text-gray-700 mb-1">Student Roll Number</label>
+                            <label className="label">Student Roll Number</label>
                             <input
                               type="text"
                               placeholder="e.g. 23CS012"
                               value={electionForm.candidate1.roll_no || ''}
                               onChange={(e) => handleRollNoChange('candidate1', e.target.value)}
-                              className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl font-bold outline-none text-xs"
+                              className="input"
                             />
                             {electionForm.candidate1.roll_no && users.some(u => u.roll_no?.toUpperCase() === electionForm.candidate1.roll_no.trim().toUpperCase()) && (
                               <span className="text-[10px] text-emerald-600 font-bold block mt-0.5">
@@ -2097,7 +2013,7 @@ const AdminPanel = () => {
                             )}
                           </div>
                           <div>
-                            <label className="block font-bold text-gray-700 mb-1">Student Full Name</label>
+                            <label className="label">Student Full Name</label>
                             <input
                               type="text"
                               placeholder="e.g. Alex Johnson"
@@ -2110,7 +2026,7 @@ const AdminPanel = () => {
                                   name: electionForm.candidate1.name || e.target.value
                                 }
                               })}
-                              className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl font-bold outline-none text-xs"
+                              className="input"
                             />
                           </div>
                         </div>
@@ -2118,7 +2034,7 @@ const AdminPanel = () => {
                         {/* Display Name & Direct Photo Upload from System */}
                         <div className="space-y-2">
                           <div>
-                            <label className="block font-bold text-gray-700 mb-1">Display Name (Ballot Card Title)</label>
+                            <label className="label">Display Name (Ballot Card Title)</label>
                             <input
                               type="text"
                               placeholder="Candidate 1 Name"
@@ -2127,12 +2043,12 @@ const AdminPanel = () => {
                                 ...electionForm,
                                 candidate1: { ...electionForm.candidate1, name: e.target.value }
                               })}
-                              className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl font-bold outline-none text-xs"
+                              className="input"
                             />
                           </div>
                           <div>
-                            <label className="block font-bold text-gray-700 mb-1">Candidate Photo (Upload from System)</label>
-                            <div className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-blue-200 shadow-2xs">
+                            <label className="label">Candidate Photo (Upload from System)</label>
+                            <div className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-blue-200">
                               {electionForm.candidate1.photo ? (
                                 <img 
                                   src={electionForm.candidate1.photo} 
@@ -2148,7 +2064,7 @@ const AdminPanel = () => {
                                 <button
                                   type="button"
                                   onClick={() => candidate1PhotoRef.current?.click()}
-                                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-xs rounded-lg transition shadow-2xs cursor-pointer flex items-center gap-1.5"
+                                  className="btn-primary btn-sm max-w-full whitespace-normal text-left"
                                 >
                                   <Upload size={13} /> Choose Photo from Computer
                                 </button>
@@ -2168,7 +2084,7 @@ const AdminPanel = () => {
                         </div>
 
                         <div>
-                          <label className="block font-bold text-gray-700 mb-1">Manifesto / Agenda</label>
+                          <label className="label">Manifesto / Agenda</label>
                           <textarea
                             rows={2}
                             placeholder="e.g. Dedicated to organizing weekly collegiate workshops and inter-college tournaments."
@@ -2177,15 +2093,15 @@ const AdminPanel = () => {
                               ...electionForm,
                               candidate1: { ...electionForm.candidate1, manifesto: e.target.value }
                             })}
-                            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl outline-none text-xs"
+                            className="input"
                           />
                         </div>
                       </div>
 
                       {/* Candidate 2 */}
-                      <div className="p-4 bg-gradient-to-br from-indigo-50/50 to-white rounded-2xl border border-indigo-200 space-y-3 relative">
+                      <div className="p-4 bg-indigo-50/40 rounded-2xl border border-indigo-200 space-y-3 relative min-w-0">
                         <div className="flex items-center justify-between">
-                          <span className="px-2.5 py-1 bg-indigo-600 text-white font-black text-[10px] rounded-lg tracking-wider uppercase">
+                          <span className="px-2.5 py-1 bg-indigo-600 text-white font-semibold text-[11px] rounded-lg">
                             Candidate 2 (Profile 2)
                           </span>
                         </div>
@@ -2193,13 +2109,13 @@ const AdminPanel = () => {
                         {/* Student Roll Number & Name Inputs */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <div>
-                            <label className="block font-bold text-gray-700 mb-1">Student Roll Number</label>
+                            <label className="label">Student Roll Number</label>
                             <input
                               type="text"
                               placeholder="e.g. 23CS045"
                               value={electionForm.candidate2.roll_no || ''}
                               onChange={(e) => handleRollNoChange('candidate2', e.target.value)}
-                              className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl font-bold outline-none text-xs"
+                              className="input"
                             />
                             {electionForm.candidate2.roll_no && users.some(u => u.roll_no?.toUpperCase() === electionForm.candidate2.roll_no.trim().toUpperCase()) && (
                               <span className="text-[10px] text-indigo-600 font-bold block mt-0.5">
@@ -2208,7 +2124,7 @@ const AdminPanel = () => {
                             )}
                           </div>
                           <div>
-                            <label className="block font-bold text-gray-700 mb-1">Student Full Name</label>
+                            <label className="label">Student Full Name</label>
                             <input
                               type="text"
                               placeholder="e.g. Samantha Miller"
@@ -2221,7 +2137,7 @@ const AdminPanel = () => {
                                   name: electionForm.candidate2.name || e.target.value
                                 }
                               })}
-                              className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl font-bold outline-none text-xs"
+                              className="input"
                             />
                           </div>
                         </div>
@@ -2229,7 +2145,7 @@ const AdminPanel = () => {
                         {/* Display Name & Direct Photo Upload from System */}
                         <div className="space-y-2">
                           <div>
-                            <label className="block font-bold text-gray-700 mb-1">Display Name (Ballot Card Title)</label>
+                            <label className="label">Display Name (Ballot Card Title)</label>
                             <input
                               type="text"
                               placeholder="Candidate 2 Name"
@@ -2238,12 +2154,12 @@ const AdminPanel = () => {
                                 ...electionForm,
                                 candidate2: { ...electionForm.candidate2, name: e.target.value }
                               })}
-                              className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl font-bold outline-none text-xs"
+                              className="input"
                             />
                           </div>
                           <div>
-                            <label className="block font-bold text-gray-700 mb-1">Candidate Photo (Upload from System)</label>
-                            <div className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-indigo-200 shadow-2xs">
+                            <label className="label">Candidate Photo (Upload from System)</label>
+                            <div className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-indigo-200">
                               {electionForm.candidate2.photo ? (
                                 <img 
                                   src={electionForm.candidate2.photo} 
@@ -2259,7 +2175,7 @@ const AdminPanel = () => {
                                 <button
                                   type="button"
                                   onClick={() => candidate2PhotoRef.current?.click()}
-                                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs rounded-lg transition shadow-2xs cursor-pointer flex items-center gap-1.5"
+                                  className="btn btn-sm bg-indigo-600 hover:bg-indigo-700 text-white max-w-full whitespace-normal text-left"
                                 >
                                   <Upload size={13} /> Choose Photo from Computer
                                 </button>
@@ -2279,7 +2195,7 @@ const AdminPanel = () => {
                         </div>
 
                         <div>
-                          <label className="block font-bold text-gray-700 mb-1">Manifesto / Agenda</label>
+                          <label className="label">Manifesto / Agenda</label>
                           <textarea
                             rows={2}
                             placeholder="e.g. Transparent leadership, expanding sponsorship funds, and inclusive club hackathons."
@@ -2288,7 +2204,7 @@ const AdminPanel = () => {
                               ...electionForm,
                               candidate2: { ...electionForm.candidate2, manifesto: e.target.value }
                             })}
-                            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl outline-none text-xs"
+                            className="input"
                           />
                         </div>
                       </div>
@@ -2299,7 +2215,7 @@ const AdminPanel = () => {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-black text-xs shadow-md transition-all flex items-center gap-2"
+                      className="btn-primary w-full sm:w-auto whitespace-normal"
                     >
                       <Plus size={16} />
                       Launch Election & Publish Candidate Matchup
@@ -2310,13 +2226,13 @@ const AdminPanel = () => {
 
               {/* Elections List & Matchup Roster */}
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-black text-gray-900 text-sm">Active & Concluded Matchups</h4>
-                  <span className="text-xs text-gray-400 font-medium">{elections.length} elections scheduled</span>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h4 className="section-title">Active & Concluded Matchups</h4>
+                  <span className="text-xs text-slate-400 font-medium">{elections.length} elections scheduled</span>
                 </div>
 
                 {elections.length === 0 ? (
-                  <div className="p-8 bg-white rounded-2xl border border-gray-100 text-center text-gray-400 text-xs">
+                  <div className="card p-8 text-center text-slate-500 text-sm">
                     No elections created yet. Launch an election above to configure the first Candidate 1 vs Candidate 2 ballot.
                   </div>
                 ) : (
@@ -2334,53 +2250,53 @@ const AdminPanel = () => {
                     return (
                       <div
                         key={el._id}
-                        className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:border-blue-200 transition-all space-y-4"
+                        className="card card-hover p-4 sm:p-5 space-y-4 min-w-0"
                       >
                         {/* Top Bar */}
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3">
-                          <div>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                          <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <h5 className="font-black text-gray-900 text-sm">{el.title}</h5>
-                              <span className="px-2.5 py-0.5 bg-blue-50 text-blue-700 rounded-md font-bold text-[11px] border border-blue-100">
+                              <h5 className="card-title break-words">{el.title}</h5>
+                              <span className="badge-blue">
                                 {el.clubId?.name || 'Club'}
                               </span>
-                              <span className="px-2.5 py-0.5 bg-purple-50 text-purple-700 rounded-md font-bold text-[11px] border border-purple-100">
+                              <span className="badge-indigo">
                                 {el.position || 'President'}
                               </span>
                               {isConcluded ? (
-                                <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-black text-[10px] flex items-center gap-1">
+                                <span className="badge-green">
                                   <Crown size={12} /> CONCLUDED & ELEVATED
                                 </span>
                               ) : isLive ? (
-                                <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded font-black text-[10px] flex items-center gap-1 animate-pulse">
+                                <span className="badge-blue animate-pulse">
                                   🟢 LIVE VOTING WINDOW
                                 </span>
                               ) : isUpcoming ? (
-                                <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded font-bold text-[10px]">
+                                <span className="badge-amber">
                                   SCHEDULED
                                 </span>
                               ) : (
-                                <span className="px-2 py-0.5 bg-rose-100 text-rose-800 rounded font-bold text-[10px]">
+                                <span className="badge-red">
                                   WINDOW EXPIRED (READY TO CONCLUDE)
                                 </span>
                               )}
                             </div>
-                            <p className="text-xs text-gray-400 mt-1 flex items-center gap-2 flex-wrap">
+                            <p className="text-xs text-slate-500 mt-1.5 flex items-center gap-x-2 gap-y-1 flex-wrap">
                               <span>Window: {new Date(el.startDate).toLocaleString()} — {new Date(el.endDate).toLocaleString()}</span>
                               <span>•</span>
-                              <span className="font-bold text-gray-700">{totalVotes} Ballots Cast</span>
+                              <span className="font-bold text-slate-700">{totalVotes} Ballots Cast</span>
                               <span>•</span>
                               <span className="text-blue-600 font-bold">{el.clubId?.members?.length || 0} Registered Club Members</span>
                             </p>
                           </div>
 
                           {/* Quick Admin Actions */}
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             {!isConcluded && (
                               <button
                                 onClick={() => handleConcludeElection(el._id)}
                                 disabled={loading}
-                                className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-sm transition-all flex items-center gap-1.5"
+                                className="btn-success btn-sm"
                                 title="Conclude election and elevate winner to President/VP"
                               >
                                 <Crown size={14} /> Conclude & Elevate Winner
@@ -2388,13 +2304,13 @@ const AdminPanel = () => {
                             )}
                             <Link
                               to="/elections"
-                              className="px-3 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-xl text-xs font-bold border border-gray-200 transition-all flex items-center gap-1"
+                              className="btn-secondary btn-sm"
                             >
                               Ballot Station <ExternalLink size={12} />
                             </Link>
                             <button
                               onClick={() => handleDeleteElection(el._id)}
-                              className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                              className="btn-icon text-red-500 hover:bg-red-50 hover:text-red-600"
                               title="Delete Election"
                             >
                               <Trash2 size={16} />
@@ -2408,29 +2324,35 @@ const AdminPanel = () => {
                           <div className={`p-3.5 rounded-xl border transition-all ${
                             isConcluded && el.winner?.name === cand1?.name
                               ? 'bg-amber-50/70 border-amber-300 ring-2 ring-amber-400/40'
-                              : 'bg-gray-50/70 border-gray-200'
+                              : 'bg-slate-50/70 border-slate-200'
                           }`}>
                             <div className="flex items-center gap-3">
-                              <img
-                                src={cand1?.photo || `/default_avatar.png || 'Candidate 1')}&background=2563EB&color=fff`}
-                                alt={cand1?.name || 'Candidate 1'}
-                                className="w-12 h-12 rounded-xl object-cover border border-gray-200 shadow-sm"
-                              />
+                              {cand1?.photo && !cand1.photo.startsWith('/default') ? (
+                                <img
+                                  src={cand1.photo}
+                                  alt={cand1?.name || 'Candidate 1'}
+                                  className="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0"
+                                />
+                              ) : (
+                                <div className="w-12 h-12 rounded-xl bg-blue-600 text-white font-bold text-sm flex items-center justify-center shrink-0">
+                                  {getInitials(cand1?.name || 'Candidate 1')}
+                                </div>
+                              )}
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-1.5">
-                                  <h6 className="font-bold text-gray-900 text-xs truncate">{cand1?.name || 'Profile 1'}</h6>
+                                  <h6 className="font-bold text-dark-900 text-xs truncate">{cand1?.name || 'Profile 1'}</h6>
                                   {isConcluded && el.winner?.name === cand1?.name && (
-                                    <span className="px-2 py-0.5 bg-amber-500 text-white text-[9px] font-black rounded-md flex items-center gap-0.5">
+                                    <span className="px-2 py-0.5 bg-amber-500 text-white text-[9px] font-bold rounded-md flex items-center gap-0.5">
                                       <Crown size={10} /> WINNER
                                     </span>
                                   )}
                                 </div>
-                                <p className="text-[11px] text-gray-500 italic mt-0.5 line-clamp-1">
+                                <p className="text-[11px] text-slate-500 italic mt-0.5 line-clamp-1">
                                   "{cand1?.manifesto || 'No manifesto provided'}"
                                 </p>
                                 <div className="mt-1 flex items-center justify-between text-[11px]">
-                                  <span className="text-gray-400 font-medium">Votes Cast:</span>
-                                  <span className="font-black text-blue-600">{cand1?.votes || 0}</span>
+                                  <span className="text-slate-400 font-medium">Votes Cast:</span>
+                                  <span className="font-bold text-blue-600">{cand1?.votes || 0}</span>
                                 </div>
                               </div>
                             </div>
@@ -2440,29 +2362,35 @@ const AdminPanel = () => {
                           <div className={`p-3.5 rounded-xl border transition-all ${
                             isConcluded && el.winner?.name === cand2?.name
                               ? 'bg-amber-50/70 border-amber-300 ring-2 ring-amber-400/40'
-                              : 'bg-gray-50/70 border-gray-200'
+                              : 'bg-slate-50/70 border-slate-200'
                           }`}>
                             <div className="flex items-center gap-3">
-                              <img
-                                src={cand2?.photo || `/default_avatar.png || 'Candidate 2')}&background=4F46E5&color=fff`}
-                                alt={cand2?.name || 'Candidate 2'}
-                                className="w-12 h-12 rounded-xl object-cover border border-gray-200 shadow-sm"
-                              />
+                              {cand2?.photo && !cand2.photo.startsWith('/default') ? (
+                                <img
+                                  src={cand2.photo}
+                                  alt={cand2?.name || 'Candidate 2'}
+                                  className="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0"
+                                />
+                              ) : (
+                                <div className="w-12 h-12 rounded-xl bg-indigo-600 text-white font-bold text-sm flex items-center justify-center shrink-0">
+                                  {getInitials(cand2?.name || 'Candidate 2')}
+                                </div>
+                              )}
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-1.5">
-                                  <h6 className="font-bold text-gray-900 text-xs truncate">{cand2?.name || 'Profile 2'}</h6>
+                                  <h6 className="font-bold text-dark-900 text-xs truncate">{cand2?.name || 'Profile 2'}</h6>
                                   {isConcluded && el.winner?.name === cand2?.name && (
-                                    <span className="px-2 py-0.5 bg-amber-500 text-white text-[9px] font-black rounded-md flex items-center gap-0.5">
+                                    <span className="px-2 py-0.5 bg-amber-500 text-white text-[9px] font-bold rounded-md flex items-center gap-0.5">
                                       <Crown size={10} /> WINNER
                                     </span>
                                   )}
                                 </div>
-                                <p className="text-[11px] text-gray-500 italic mt-0.5 line-clamp-1">
+                                <p className="text-[11px] text-slate-500 italic mt-0.5 line-clamp-1">
                                   "{cand2?.manifesto || 'No manifesto provided'}"
                                 </p>
                                 <div className="mt-1 flex items-center justify-between text-[11px]">
-                                  <span className="text-gray-400 font-medium">Votes Cast:</span>
-                                  <span className="font-black text-indigo-600">{cand2?.votes || 0}</span>
+                                  <span className="text-slate-400 font-medium">Votes Cast:</span>
+                                  <span className="font-bold text-indigo-600">{cand2?.votes || 0}</span>
                                 </div>
                               </div>
                             </div>
@@ -2471,14 +2399,14 @@ const AdminPanel = () => {
 
                         {/* Winner Elevation Notification Bar */}
                         {isConcluded && el.winner?.name && (
-                          <div className="p-3 bg-gradient-to-r from-amber-500/10 via-emerald-500/10 to-blue-500/10 rounded-xl border border-amber-200 flex items-center justify-between text-xs">
+                          <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                             <div className="flex items-center gap-2">
                               <Crown size={16} className="text-amber-500" />
-                              <span className="font-bold text-gray-900">
+                              <span className="font-bold text-dark-900">
                                 {el.winner.name} officially elected as {el.position || 'President'} of {el.clubId?.name || 'the club'}!
                               </span>
                             </div>
-                            <span className="text-[10px] text-emerald-700 bg-emerald-100 font-bold px-2 py-0.5 rounded">
+                            <span className="badge-green self-start sm:self-auto shrink-0">
                               Leadership Privileges Elevated
                             </span>
                           </div>
@@ -2509,33 +2437,33 @@ const AdminPanel = () => {
           {/* TAB: NOTIFICATIONS & ALERTS */}
           {activeTab === 'notifications' && (
             <div className="space-y-6">
-              <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h3 className="font-black text-slate-900 text-base">System Notifications & Approvals</h3>
-                    <p className="text-xs text-slate-400 mt-0.5">Real-time alerts, pending event proposals, and administrative requests.</p>
+              <div className="card p-5 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+                  <div className="min-w-0">
+                    <h3 className="section-title">System Notifications & Approvals</h3>
+                    <p className="text-sm text-slate-500 mt-0.5">Real-time alerts, pending event proposals, and administrative requests.</p>
                   </div>
-                  <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full">
+                  <span className="badge-blue self-start sm:self-auto shrink-0">
                     {events.filter(e => e.approvalStatus === 'pending').length} pending actions
                   </span>
                 </div>
 
                 {events.filter(e => e.approvalStatus === 'pending').length === 0 ? (
                   <div className="py-12 text-center text-slate-400">
-                    <CheckCircle2 size={36} className="mx-auto mb-2 text-emerald-500 opacity-80" />
+                    <div className="icon-tile bg-emerald-50 text-emerald-600 mx-auto mb-3"><CheckCircle2 size={22} /></div>
                     <p className="font-bold text-sm text-slate-700">All alerts cleared</p>
                     <p className="text-xs text-slate-400 mt-1">There are no pending event approvals or urgent requests right now.</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {events.filter(e => e.approvalStatus === 'pending').map((ev) => (
-                      <div key={ev._id} className="p-4 bg-amber-50/40 border border-amber-200/60 rounded-xl flex items-center justify-between gap-4">
+                      <div key={ev._id} className="p-4 bg-amber-50/40 border border-amber-200/60 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div className="flex items-center gap-3 min-w-0">
                           <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
                             <Calendar size={18} />
                           </div>
                           <div className="min-w-0">
-                            <p className="text-xs font-bold text-slate-900 truncate">Event Approval Required: {ev.title}</p>
+                            <p className="text-sm font-semibold text-dark-900 truncate">Event Approval Required: {ev.title}</p>
                             <p className="text-[11px] text-slate-500 mt-0.5 truncate">
                               Proposed by <span className="font-semibold text-slate-700">{ev.clubId?.name || 'Club'}</span> • Category: {ev.category || 'General'}
                             </p>
@@ -2543,7 +2471,7 @@ const AdminPanel = () => {
                         </div>
                         <button
                           onClick={() => switchTab('event')}
-                          className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition shadow-xs shrink-0"
+                          className="btn btn-sm bg-amber-500 hover:bg-amber-600 text-white shrink-0 self-start sm:self-auto"
                         >
                           Review Event
                         </button>
@@ -2562,13 +2490,13 @@ const AdminPanel = () => {
           {(activeTab === 'settings' || activeTab === 'admin') && (
             <div className="space-y-6 max-w-5xl">
               {/* Settings Header */}
-              <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="card p-5 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold shadow-xs">
+                  <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
                     <Settings size={24} />
                   </div>
                   <div>
-                    <h2 className="text-xl font-black text-slate-900 tracking-tight">Settings & Privileges</h2>
+                    <h2 className="text-xl font-extrabold text-dark-900 tracking-tight">Settings & Privileges</h2>
                     <p className="text-xs text-slate-500 mt-0.5">
                       Manage profile credentials, role permissions, dark mode theme, and security session.
                     </p>
@@ -2576,13 +2504,13 @@ const AdminPanel = () => {
                 </div>
 
                 {/* Subtab Pill Selectors */}
-                <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl">
+                <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl overflow-x-auto hide-scrollbar max-w-full">
                   <button
                     onClick={() => setSettingsSubTab('profile')}
-                    className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition ${
+                    className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
                       settingsSubTab === 'profile'
-                        ? 'bg-white text-blue-600 shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
+                        ? 'bg-white text-blue-600 shadow-sm'
+                        : 'text-slate-600 hover:text-dark-900'
                     }`}
                   >
                     <User size={15} />
@@ -2591,10 +2519,10 @@ const AdminPanel = () => {
 
                   <button
                     onClick={() => setSettingsSubTab('roles')}
-                    className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition ${
+                    className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
                       settingsSubTab === 'roles'
-                        ? 'bg-white text-blue-600 shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
+                        ? 'bg-white text-blue-600 shadow-sm'
+                        : 'text-slate-600 hover:text-dark-900'
                     }`}
                   >
                     <Shield size={15} />
@@ -2603,10 +2531,10 @@ const AdminPanel = () => {
 
                   <button
                     onClick={() => setSettingsSubTab('appearance')}
-                    className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition ${
+                    className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
                       settingsSubTab === 'appearance'
-                        ? 'bg-white text-blue-600 shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
+                        ? 'bg-white text-blue-600 shadow-sm'
+                        : 'text-slate-600 hover:text-dark-900'
                     }`}
                   >
                     <Moon size={15} />
@@ -2615,10 +2543,10 @@ const AdminPanel = () => {
 
                   <button
                     onClick={() => setSettingsSubTab('security')}
-                    className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition ${
+                    className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
                       settingsSubTab === 'security'
-                        ? 'bg-white text-rose-600 shadow-xs'
-                        : 'text-slate-600 hover:text-rose-600'
+                        ? 'bg-white text-red-600 shadow-sm'
+                        : 'text-slate-600 hover:text-red-600'
                     }`}
                   >
                     <LogOut size={15} />
@@ -2631,7 +2559,7 @@ const AdminPanel = () => {
               {settingsSubTab === 'profile' && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {/* Left Column: Profile Card */}
-                  <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center text-center">
+                  <div className="card p-5 sm:p-6 flex flex-col items-center text-center">
                     {/* Avatar with Camera Icon Badge */}
                     <div className="relative mb-3 group">
                       <div 
@@ -2645,7 +2573,7 @@ const AdminPanel = () => {
                           className="w-full h-full object-cover transition duration-200 group-hover:brightness-75"
                           onError={(e) => {
                             e.target.onerror = null;
-                            e.target.src = "/default_avatar.png";
+                            e.target.src = '/admin_avatar.jpg';
                           }}
                         />
                         <div className="absolute inset-0 bg-slate-900/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition duration-200 text-white text-[11px] font-bold gap-1">
@@ -2679,17 +2607,17 @@ const AdminPanel = () => {
                       />
                     </div>
 
-                    <h3 className="font-black text-slate-900 text-lg leading-tight mt-1">{user?.name || 'Administrator'}</h3>
+                    <h3 className="font-bold text-dark-900 text-lg leading-tight mt-1">{user?.name || 'Administrator'}</h3>
                     <p className="text-xs text-slate-400 mt-0.5 font-medium">@{user?.username || 'admin'}</p>
 
-                    <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full">
+                    <div className="mt-3 badge-blue px-3 py-1 text-xs">
                       <ShieldCheck size={14} /> Master Administrator
                     </div>
 
                     <div className="mt-6 w-full pt-4 border-t border-slate-100 text-left space-y-2.5 text-xs">
                       <div className="flex justify-between items-center text-slate-600">
                         <span className="text-slate-400">Email:</span>
-                        <span className="font-semibold text-slate-800">{user?.email || 'N/A'}</span>
+                        <span className="font-semibold text-slate-800 truncate ml-3">{user?.email || 'N/A'}</span>
                       </div>
                       <div className="flex justify-between items-center text-slate-600">
                         <span className="text-slate-400">Department:</span>
@@ -2703,61 +2631,61 @@ const AdminPanel = () => {
                   </div>
 
                   {/* Right Column: Profile Edit Form */}
-                  <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                    <h3 className="font-black text-slate-900 text-base mb-1">Edit Account Credentials</h3>
-                    <p className="text-xs text-slate-400 mb-6">Update your display information and administrative login credentials.</p>
+                  <div className="lg:col-span-2 card p-5 sm:p-6 min-w-0">
+                    <h3 className="section-title mb-1">Edit Account Credentials</h3>
+                    <p className="text-sm text-slate-500 mb-6">Update your display information and administrative login credentials.</p>
 
                     <form onSubmit={handleUpdateProfile} className="space-y-4 text-xs font-medium">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block font-bold text-slate-700 uppercase mb-1">Full Name</label>
+                          <label className="label">Full Name</label>
                           <input
                             type="text"
                             required
                             value={profileForm.name}
                             onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-slate-800 focus:border-blue-500 focus:bg-white transition"
+                            className="input"
                           />
                         </div>
                         <div>
-                          <label className="block font-bold text-slate-700 uppercase mb-1">Username</label>
+                          <label className="label">Username</label>
                           <input
                             type="text"
                             required
                             value={profileForm.username}
                             onChange={(e) => setProfileForm({ ...profileForm, username: e.target.value })}
-                            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-slate-800 focus:border-blue-500 focus:bg-white transition"
+                            className="input"
                           />
                         </div>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block font-bold text-slate-700 uppercase mb-1">Institutional Email</label>
+                          <label className="label">Institutional Email</label>
                           <input
                             type="email"
                             required
                             value={profileForm.email}
                             onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
-                            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-slate-800 focus:border-blue-500 focus:bg-white transition"
+                            className="input"
                           />
                         </div>
                         <div>
-                          <label className="block font-bold text-slate-700 uppercase mb-1">Department / Branch</label>
+                          <label className="label">Department / Branch</label>
                           <input
                             type="text"
                             value={profileForm.department}
                             onChange={(e) => setProfileForm({ ...profileForm, department: e.target.value })}
                             placeholder="e.g. Administration / Engineering"
-                            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-slate-800 focus:border-blue-500 focus:bg-white transition"
+                            className="input"
                           />
                         </div>
                       </div>
 
                       {/* Profile Photo Link or Direct Upload */}
                       <div>
-                        <label className="block font-bold text-slate-700 uppercase mb-1">Profile Photo (Direct Link or Upload)</label>
-                        <div className="flex gap-2">
+                        <label className="label">Profile Photo (Direct Link or Upload)</label>
+                        <div className="flex flex-col sm:flex-row gap-2">
                           <input
                             type="text"
                             value={profileForm.profilePicture || ''}
@@ -2769,12 +2697,12 @@ const AdminPanel = () => {
                               }
                             }}
                             placeholder="Paste image URL (https://...) or click Browse to upload from device"
-                            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-slate-800 focus:border-blue-500 focus:bg-white transition text-xs"
+                            className="input"
                           />
                           <button
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
-                            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-xl font-bold text-xs shrink-0 flex items-center gap-1.5 transition shadow-xs cursor-pointer"
+                            className="btn-soft shrink-0"
                           >
                             <Camera size={14} /> Browse Image
                           </button>
@@ -2783,26 +2711,26 @@ const AdminPanel = () => {
 
                       {/* Password Change Box */}
                       <div className="pt-4 mt-2 border-t border-slate-100">
-                        <p className="font-bold text-slate-900 text-xs mb-3 flex items-center gap-1.5">
+                        <p className="font-bold text-dark-900 text-xs mb-3 flex items-center gap-1.5">
                           <Lock size={14} className="text-blue-600" /> Change Password (Leave blank to keep current)
                         </p>
 
                         <div className="space-y-3">
                           <div>
-                            <label className="block text-[11px] font-bold text-slate-600 mb-1">Current Password</label>
+                            <label className="label">Current Password</label>
                             <div className="relative">
                               <input
                                 type={showCurrentPw ? "text" : "password"}
                                 value={profileForm.currentPassword}
                                 autoComplete="new-password"
-                  onChange={(e) => setProfileForm({ ...profileForm, currentPassword: e.target.value })}
+                                onChange={(e) => setProfileForm({ ...profileForm, currentPassword: e.target.value })}
                                 placeholder="Enter current password if changing"
-                                className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-800 text-xs pr-10"
+                                className="input pr-10"
                               />
                               <button
                                 type="button"
                                 onClick={() => setShowCurrentPw(!showCurrentPw)}
-                                className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
                               >
                                 {showCurrentPw ? <EyeOff size={15} /> : <Eye size={15} />}
                               </button>
@@ -2811,34 +2739,34 @@ const AdminPanel = () => {
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
-                              <label className="block text-[11px] font-bold text-slate-600 mb-1">New Password</label>
+                              <label className="label">New Password</label>
                               <div className="relative">
                                 <input
                                   type={showNewPw ? "text" : "password"}
                                   value={profileForm.newPassword}
                                   autoComplete="new-password"
-                  onChange={(e) => setProfileForm({ ...profileForm, newPassword: e.target.value })}
+                                  onChange={(e) => setProfileForm({ ...profileForm, newPassword: e.target.value })}
                                   placeholder="Min 4 characters"
-                                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-800 text-xs pr-10"
+                                  className="input pr-10"
                                 />
                                 <button
                                   type="button"
                                   onClick={() => setShowNewPw(!showNewPw)}
-                                  className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
                                 >
                                   {showNewPw ? <EyeOff size={15} /> : <Eye size={15} />}
                                 </button>
                               </div>
                             </div>
                             <div>
-                              <label className="block text-[11px] font-bold text-slate-600 mb-1">Confirm New Password</label>
+                              <label className="label">Confirm New Password</label>
                               <input
                                 type="password"
                                 value={profileForm.confirmPassword}
                                 autoComplete="new-password"
-                  onChange={(e) => setProfileForm({ ...profileForm, confirmPassword: e.target.value })}
+                                onChange={(e) => setProfileForm({ ...profileForm, confirmPassword: e.target.value })}
                                 placeholder="Re-type new password"
-                                className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-800 text-xs"
+                                className="input"
                               />
                             </div>
                           </div>
@@ -2849,7 +2777,7 @@ const AdminPanel = () => {
                         <button
                           type="submit"
                           disabled={profileSaving}
-                          className="flex items-center gap-2 px-6 py-2.5 bg-[#2563EB] hover:bg-blue-700 text-white rounded-xl font-bold shadow-md transition cursor-pointer"
+                          className="btn-primary w-full sm:w-auto"
                         >
                           <Save size={16} />
                           {profileSaving ? 'Saving Changes...' : 'Save Profile Changes'}
@@ -2864,17 +2792,17 @@ const AdminPanel = () => {
               {settingsSubTab === 'roles' && (
                 <div className="space-y-6">
                   {/* Section A: Role Delegation & Reassignment Tool */}
-                  <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <h3 className="font-black text-slate-900 text-base flex items-center gap-2">
+                  <div className="card p-5 sm:p-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                      <div className="min-w-0">
+                        <h3 className="section-title flex items-center gap-2">
                           <UserCheck className="text-blue-600" size={18} /> Assign & Reassign User Roles
                         </h3>
-                        <p className="text-xs text-slate-400 mt-0.5">
+                        <p className="text-sm text-slate-500 mt-0.5">
                           Promote students or coordinators to leadership roles (President, Vice President, Referee, Faculty).
                         </p>
                       </div>
-                      <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+                      <span className="badge-slate self-start sm:self-auto shrink-0">
                         {users.length} Registered Users
                       </span>
                     </div>
@@ -2882,9 +2810,9 @@ const AdminPanel = () => {
                     <form onSubmit={handleUpdateUserRole} className="p-4 bg-slate-50/70 border border-slate-200/60 rounded-xl space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <div className="flex items-center justify-between mb-1">
-                            <label className="block text-xs font-bold text-slate-700 uppercase">User / Student</label>
-                            <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md">Type Name, Email or Roll No</span>
+                          <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                            <label className="label mb-0">User / Student</label>
+                            <span className="badge-blue">Type Name, Email or Roll No</span>
                           </div>
                           <input
                             type="text"
@@ -2893,7 +2821,7 @@ const AdminPanel = () => {
                             placeholder="Type student name, email, or roll no (e.g. 23CS012)..."
                             value={roleChangeData.userId}
                             onChange={(e) => setRoleChangeData({ ...roleChangeData, userId: e.target.value })}
-                            className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl outline-none text-xs font-bold text-slate-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 placeholder-slate-400 transition-all"
+                            className="input"
                           />
                           <datalist id="roleUserListOptions">
                             {users.map((u) => (
@@ -2905,12 +2833,12 @@ const AdminPanel = () => {
                         </div>
 
                         <div>
-                          <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Assign New Role</label>
+                          <label className="label">Assign New Role</label>
                           <select
                             required
                             value={roleChangeData.role}
                             onChange={(e) => setRoleChangeData({ ...roleChangeData, role: e.target.value })}
-                            className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl outline-none text-xs font-bold text-slate-800"
+                            className="input"
                           >
                             <option value="student">Student (Standard Member)</option>
                             <option value="president">Club President (Club Leadership)</option>
@@ -2922,14 +2850,14 @@ const AdminPanel = () => {
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between pt-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
                         <p className="text-[11px] text-slate-500">
                           Role changes take effect immediately on next request or token refresh.
                         </p>
                         <button
                           type="submit"
                           disabled={roleUpdating || !roleChangeData.userId}
-                          className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer flex items-center gap-1.5"
+                          className="btn-primary btn-sm shrink-0"
                         >
                           <UserCheck size={14} />
                           {roleUpdating ? 'Updating...' : 'Update Role'}
@@ -2939,61 +2867,61 @@ const AdminPanel = () => {
                   </div>
 
                   {/* Section B: Create Dedicated Administrator Account */}
-                  <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                    <h3 className="font-black text-slate-900 text-base mb-1 flex items-center gap-2">
+                  <div className="card p-5 sm:p-6">
+                    <h3 className="section-title mb-1 flex items-center gap-2">
                       <ShieldCheck className="text-blue-600" size={18} /> Authorize New Administrator
                     </h3>
-                    <p className="text-xs text-slate-400 mb-6">Create dedicated administrator accounts protected by multi-factor authentication codes.</p>
+                    <p className="text-sm text-slate-500 mb-6">Create dedicated administrator accounts protected by multi-factor authentication codes.</p>
 
                     <form onSubmit={handleCreateAdmin} className="space-y-4 max-w-2xl text-xs">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block font-bold text-slate-700 uppercase mb-1">Full Name</label>
+                          <label className="label">Full Name</label>
                           <input
                             required
                             type="text"
                             value={adminForm.name}
                             onChange={(e) => setAdminForm({...adminForm, name: e.target.value})}
-                            className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-slate-800"
+                            className="input"
                           />
                         </div>
                         <div>
-                          <label className="block font-bold text-slate-700 uppercase mb-1">Username</label>
+                          <label className="label">Username</label>
                           <input
                             required
                             type="text"
                             value={adminForm.username}
                             onChange={(e) => setAdminForm({...adminForm, username: e.target.value})}
-                            className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-slate-800"
+                            className="input"
                           />
                         </div>
                       </div>
                       <div>
-                        <label className="block font-bold text-slate-700 uppercase mb-1">Email Address</label>
+                        <label className="label">Email Address</label>
                         <input
                           required
                           type="email"
                           value={adminForm.email}
                           onChange={(e) => setAdminForm({...adminForm, email: e.target.value})}
-                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-slate-800"
+                          className="input"
                         />
                       </div>
                       <div>
-                        <label className="block font-bold text-slate-700 uppercase mb-1">Admin Verification Code (MFA Authorization Key)</label>
+                        <label className="label">Admin Verification Code (MFA Authorization Key)</label>
                         <input
                           required
                           type="password"
                           placeholder="Enter institutional key (e.g. admin123)"
                           value={adminForm.secretCode}
                           autoComplete="new-password"
-                  onChange={(e) => setAdminForm({...adminForm, secretCode: e.target.value})}
-                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-slate-800"
+                          onChange={(e) => setAdminForm({...adminForm, secretCode: e.target.value})}
+                          className="input"
                         />
                       </div>
                       <button
                         disabled={loading}
                         type="submit"
-                        className="px-6 py-2.5 bg-[#2563EB] hover:bg-blue-700 text-white rounded-xl font-bold shadow-md transition cursor-pointer"
+                        className="btn-primary"
                       >
                         {loading ? 'Authorizing...' : '+ Authorize Administrator'}
                       </button>
@@ -3001,68 +2929,68 @@ const AdminPanel = () => {
                   </div>
 
                   {/* Section C: Role Hierarchy & Permissions Matrix Table */}
-                  <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                    <h3 className="font-black text-slate-900 text-base mb-1">Campus Role Hierarchy & Privilege Matrix</h3>
-                    <p className="text-xs text-slate-400 mb-4">Detailed permissions breakdown across institutional tiers.</p>
+                  <div className="card p-5 sm:p-6 overflow-hidden">
+                    <h3 className="section-title mb-1">Campus Role Hierarchy & Privilege Matrix</h3>
+                    <p className="text-sm text-slate-500 mb-4">Detailed permissions breakdown across institutional tiers.</p>
 
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs border-collapse">
+                    <div className="table-wrap -mx-5 sm:-mx-6 border-t border-slate-100">
+                      <table className="data-table min-w-[640px] text-xs">
                         <thead>
-                          <tr className="border-b border-slate-100 text-slate-400 font-bold uppercase text-[10px]">
-                            <th className="py-2.5 px-3">Role Tier</th>
-                            <th className="py-2.5 px-3">Scope & Access</th>
-                            <th className="py-2.5 px-3">Primary Capabilities</th>
-                            <th className="py-2.5 px-3">Security Level</th>
+                          <tr>
+                            <th>Role Tier</th>
+                            <th>Scope & Access</th>
+                            <th>Primary Capabilities</th>
+                            <th>Security Level</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-50 text-slate-700">
+                        <tbody>
                           <tr>
-                            <td className="py-3 px-3 font-bold text-slate-900 flex items-center gap-1.5">
+                            <td className="font-bold text-dark-900 whitespace-nowrap"><span className="inline-flex items-center gap-1.5">
                               <Shield size={14} className="text-blue-600" /> Administrator
-                            </td>
-                            <td className="py-3 px-3">System-wide master control</td>
-                            <td className="py-3 px-3">Manage all users, fees, classes, venues, clubs, approvals</td>
-                            <td className="py-3 px-3"><span className="px-2 py-0.5 bg-red-50 text-red-700 rounded-full font-bold text-[10px]">Tier 1 (Master)</span></td>
+                            </span></td>
+                            <td>System-wide master control</td>
+                            <td>Manage all users, fees, classes, venues, clubs, approvals</td>
+                            <td><span className="badge-red whitespace-nowrap">Tier 1 (Master)</span></td>
                           </tr>
                           <tr>
-                            <td className="py-3 px-3 font-bold text-slate-900 flex items-center gap-1.5">
-                              <Building2 size={14} className="text-purple-600" /> Faculty Coordinator
-                            </td>
-                            <td className="py-3 px-3">Departmental & Club Advisory</td>
-                            <td className="py-3 px-3">Approve/reject event proposals, oversee elections, view class rosters</td>
-                            <td className="py-3 px-3"><span className="px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full font-bold text-[10px]">Tier 2 (Faculty)</span></td>
+                            <td className="font-bold text-dark-900 whitespace-nowrap"><span className="inline-flex items-center gap-1.5">
+                              <Building2 size={14} className="text-indigo-600" /> Faculty Coordinator
+                            </span></td>
+                            <td>Departmental & Club Advisory</td>
+                            <td>Approve/reject event proposals, oversee elections, view class rosters</td>
+                            <td><span className="badge-indigo whitespace-nowrap">Tier 2 (Faculty)</span></td>
                           </tr>
                           <tr>
-                            <td className="py-3 px-3 font-bold text-slate-900 flex items-center gap-1.5">
+                            <td className="font-bold text-dark-900 whitespace-nowrap"><span className="inline-flex items-center gap-1.5">
                               <Trophy size={14} className="text-amber-500" /> Club President
-                            </td>
-                            <td className="py-3 px-3">Designated Club Governance</td>
-                            <td className="py-3 px-3">Propose events, coordinate members, announce meetings, manage chat</td>
-                            <td className="py-3 px-3"><span className="px-2 py-0.5 bg-amber-50 text-amber-700 rounded-full font-bold text-[10px]">Tier 3 (Student Lead)</span></td>
+                            </span></td>
+                            <td>Designated Club Governance</td>
+                            <td>Propose events, coordinate members, announce meetings, manage chat</td>
+                            <td><span className="badge-amber whitespace-nowrap">Tier 3 (Student Lead)</span></td>
                           </tr>
                           <tr>
-                            <td className="py-3 px-3 font-bold text-slate-900 flex items-center gap-1.5">
-                              <Award size={14} className="text-teal-600" /> Vice President
-                            </td>
-                            <td className="py-3 px-3">Club Leadership & Operations</td>
-                            <td className="py-3 px-3">Assist president, assign match referees, register teams</td>
-                            <td className="py-3 px-3"><span className="px-2 py-0.5 bg-teal-50 text-teal-700 rounded-full font-bold text-[10px]">Tier 3 (Student Lead)</span></td>
+                            <td className="font-bold text-dark-900 whitespace-nowrap"><span className="inline-flex items-center gap-1.5">
+                              <Award size={14} className="text-blue-600" /> Vice President
+                            </span></td>
+                            <td>Club Leadership & Operations</td>
+                            <td>Assist president, assign match referees, register teams</td>
+                            <td><span className="badge-blue whitespace-nowrap">Tier 3 (Student Lead)</span></td>
                           </tr>
                           <tr>
-                            <td className="py-3 px-3 font-bold text-slate-900 flex items-center gap-1.5">
+                            <td className="font-bold text-dark-900 whitespace-nowrap"><span className="inline-flex items-center gap-1.5">
                               <Timer size={14} className="text-rose-500" /> Official Referee
-                            </td>
-                            <td className="py-3 px-3">Match & Tournament Scoring</td>
-                            <td className="py-3 px-3">Live score updates, referee terminal access, match winner declaration</td>
-                            <td className="py-3 px-3"><span className="px-2 py-0.5 bg-rose-50 text-rose-700 rounded-full font-bold text-[10px]">Tier 4 (Official)</span></td>
+                            </span></td>
+                            <td>Match & Tournament Scoring</td>
+                            <td>Live score updates, referee terminal access, match winner declaration</td>
+                            <td><span className="badge-slate whitespace-nowrap">Tier 4 (Official)</span></td>
                           </tr>
                           <tr>
-                            <td className="py-3 px-3 font-bold text-slate-900 flex items-center gap-1.5">
+                            <td className="font-bold text-dark-900 whitespace-nowrap"><span className="inline-flex items-center gap-1.5">
                               <GraduationCap size={14} className="text-emerald-600" /> Student
-                            </td>
-                            <td className="py-3 px-3">Campus-wide Student Member</td>
-                            <td className="py-3 px-3">Join clubs, tournament participation, vote in elections, download certificates</td>
-                            <td className="py-3 px-3"><span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full font-bold text-[10px]">Tier 5 (Member)</span></td>
+                            </span></td>
+                            <td>Campus-wide Student Member</td>
+                            <td>Join clubs, tournament participation, vote in elections, download certificates</td>
+                            <td><span className="badge-green whitespace-nowrap">Tier 5 (Member)</span></td>
                           </tr>
                         </tbody>
                       </table>
@@ -3073,21 +3001,21 @@ const AdminPanel = () => {
 
               {/* 3. SUBTAB: DARK MODE / APPEARANCE */}
               {settingsSubTab === 'appearance' && (
-                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm max-w-2xl">
-                  <div className="flex items-center justify-between pb-6 border-b border-slate-100">
+                <div className="card p-5 sm:p-6 max-w-2xl">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-6 border-b border-slate-100">
                     <div>
-                      <h3 className="font-black text-slate-900 text-base mb-1">Display Theme & Dark Mode</h3>
-                      <p className="text-xs text-slate-400">Toggle between high-contrast light mode and sleek dark mode.</p>
+                      <h3 className="section-title mb-1">Display Theme & Dark Mode</h3>
+                      <p className="text-sm text-slate-500">Toggle between high-contrast light mode and sleek dark mode.</p>
                     </div>
                     <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                      darkMode ? 'bg-slate-900 text-white' : 'bg-amber-50 text-amber-700'
+                      darkMode ? 'bg-dark-900 text-white' : 'bg-amber-50 text-amber-700'
                     }`}>
                       {darkMode ? '🌙 Dark Mode Active' : '☀️ Light Mode Active'}
                     </span>
                   </div>
 
                   <div className="py-6 space-y-6">
-                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <div className="flex items-center justify-between gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
                       <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                           darkMode ? 'bg-slate-800 text-amber-400' : 'bg-amber-100 text-amber-600'
@@ -3095,7 +3023,7 @@ const AdminPanel = () => {
                           {darkMode ? <Moon size={20} /> : <Sun size={20} />}
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-slate-900">Dark Mode Theme</p>
+                          <p className="text-sm font-bold text-dark-900">Dark Mode Theme</p>
                           <p className="text-[11px] text-slate-400">Optimizes UI for low-light environments and reduces glare</p>
                         </div>
                       </div>
@@ -3116,7 +3044,7 @@ const AdminPanel = () => {
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div 
                         onClick={() => { if (darkMode) toggleDarkMode(); }}
                         className={`p-4 rounded-xl border-2 transition cursor-pointer text-center ${
@@ -3133,7 +3061,7 @@ const AdminPanel = () => {
                       <div 
                         onClick={() => { if (!darkMode) toggleDarkMode(); }}
                         className={`p-4 rounded-xl border-2 transition cursor-pointer text-center ${
-                          darkMode ? 'border-blue-500 bg-slate-800 text-white' : 'border-slate-200 hover:border-slate-300 bg-slate-900 text-white'
+                          darkMode ? 'border-blue-500 bg-slate-800 text-white' : 'border-slate-200 hover:border-slate-300 bg-dark-900 text-white'
                         }`}
                       >
                         <div className="w-8 h-8 rounded-full bg-slate-800 text-blue-400 mx-auto mb-2 flex items-center justify-center border border-slate-700">
@@ -3151,14 +3079,14 @@ const AdminPanel = () => {
               {settingsSubTab === 'security' && (
                 <div className="space-y-6 max-w-2xl">
                   {/* Active Session Info */}
-                  <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                    <h3 className="font-black text-slate-900 text-base mb-1">Active Authentication Session</h3>
-                    <p className="text-xs text-slate-400 mb-4">Current device connection and authorization status.</p>
+                  <div className="card p-5 sm:p-6">
+                    <h3 className="section-title mb-1">Active Authentication Session</h3>
+                    <p className="text-sm text-slate-500 mb-4">Current device connection and authorization status.</p>
 
                     <div className="p-4 bg-slate-50 rounded-xl space-y-2.5 text-xs">
                       <div className="flex justify-between items-center">
                         <span className="text-slate-400">Authenticated User:</span>
-                        <span className="font-bold text-slate-800">{user?.name} ({user?.email})</span>
+                        <span className="font-bold text-slate-800 text-right break-all ml-3">{user?.name} ({user?.email})</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-slate-400">Role Privilege:</span>
@@ -3172,39 +3100,39 @@ const AdminPanel = () => {
                   </div>
 
                   {/* Terminate Session / Logout Card */}
-                  <div className="bg-rose-50/50 p-6 rounded-2xl border border-rose-200/60 shadow-sm">
+                  <div className="bg-red-50/50 p-5 sm:p-6 rounded-2xl border border-red-200/60">
                     <div className="flex items-start gap-3.5">
-                      <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
                         <LogOut size={20} />
                       </div>
-                      <div>
-                        <h4 className="font-black text-rose-950 text-base">Terminate Session & Log Out</h4>
-                        <p className="text-xs text-rose-700 mt-1 leading-relaxed">
+                      <div className="min-w-0">
+                        <h4 className="font-bold text-red-950 text-base">Terminate Session & Log Out</h4>
+                        <p className="text-sm text-red-700 mt-1 leading-relaxed">
                           Logging out will securely invalidate your active browser session cookie and return you to the public portal homepage.
                         </p>
 
                         {!showLogoutConfirm ? (
                           <button
                             onClick={() => setShowLogoutConfirm(true)}
-                            className="mt-4 px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer flex items-center gap-2"
+                            className="btn-danger mt-4"
                           >
                             <LogOut size={15} /> Log Out of CampusHub
                           </button>
                         ) : (
-                          <div className="mt-4 p-4 bg-white rounded-xl border border-rose-200 space-y-3">
+                          <div className="mt-4 p-4 bg-white rounded-xl border border-red-200 space-y-3">
                             <p className="text-xs font-bold text-slate-800">
                               Are you sure you want to log out right now?
                             </p>
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
                               <button
                                 onClick={handleLogout}
-                                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition cursor-pointer"
+                                className="btn-danger btn-sm"
                               >
                                 Yes, Log Out Now
                               </button>
                               <button
                                 onClick={() => setShowLogoutConfirm(false)}
-                                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition cursor-pointer"
+                                className="btn-secondary btn-sm"
                               >
                                 Cancel
                               </button>

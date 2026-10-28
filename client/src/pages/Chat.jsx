@@ -5,7 +5,7 @@ import useClubStore from '../store/clubStore';
 import { 
   Send, Loader, Hash, Search, MoreVertical, MessageSquare, Image, 
   Reply, Heart, X, Lock, ShieldCheck, Crown, Award, CheckCircle2, 
-  Sparkles, Camera, Eye
+  Sparkles, Camera, Eye, ArrowLeft
 } from 'lucide-react';
 import socket from '../utils/socket';
 import axios from 'axios';
@@ -19,6 +19,8 @@ const Chat = () => {
   const queryClubId = searchParams.get('clubId');
   
   const [activeClubId, setActiveClubId] = useState(queryClubId || null);
+  // Phones show either the club list or the open conversation
+  const [showListOnMobile, setShowListOnMobile] = useState(!queryClubId);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [isFetchingMessages, setIsFetchingMessages] = useState(false);
@@ -233,13 +235,13 @@ const Chat = () => {
   };
 
   return (
-    <div className="h-[calc(100vh-80px)] flex bg-slate-50 border-t border-slate-100 overflow-hidden font-sans">
+    <div className="max-w-7xl mx-auto w-full h-[calc(100dvh-184px)] lg:h-[calc(100dvh-128px)] min-h-[420px] flex card overflow-hidden">
       {/* ── LEFT SIDEBAR: CLUBS ───────────────────────────────────── */}
-      <div className="w-80 bg-white border-r border-slate-200 flex flex-col shrink-0">
+      <div className={`${showListOnMobile ? 'flex' : 'hidden'} md:flex w-full md:w-80 lg:w-[340px] bg-white flex-col md:border-r border-slate-200 shrink-0 min-w-0`}>
         <div className="p-4 border-b border-slate-100">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <MessageSquare className="text-teal-600" size={20} /> Club Group Chats
+            <h2 className="text-lg font-bold text-dark-900 tracking-tight flex items-center gap-2">
+              <MessageSquare className="text-blue-600" size={20} /> Club Group Chats
             </h2>
           </div>
           <div className="relative">
@@ -249,7 +251,7 @@ const Chat = () => {
               placeholder="Search your clubs..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-teal-500 outline-none"
+              className="input input-icon py-2"
             />
           </div>
         </div>
@@ -270,14 +272,14 @@ const Chat = () => {
               return (
                 <button
                   key={club._id}
-                  onClick={() => setActiveClubId(club._id)}
+                  onClick={() => { setActiveClubId(club._id); setShowListOnMobile(false); }}
                   className={`w-full p-3 rounded-2xl flex items-center gap-3 transition-all text-left cursor-pointer ${
                     isSelected
-                      ? 'bg-gradient-to-r from-teal-50 to-emerald-50 text-teal-900 shadow-xs border border-teal-200/60'
+                      ? 'bg-blue-50 text-blue-900 border border-blue-200/60'
                       : 'hover:bg-slate-50 text-slate-700'
                   }`}
                 >
-                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-teal-600 to-emerald-500 text-white flex items-center justify-center font-black text-sm shrink-0 shadow-xs overflow-hidden">
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-xs overflow-hidden">
                     {club.logo ? (
                       <img src={club.logo} alt={club.name} className="w-full h-full object-cover" />
                     ) : (
@@ -286,13 +288,13 @@ const Chat = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-xs font-black truncate">{club.name}</h4>
+                      <h4 className="text-xs font-bold truncate">{club.name}</h4>
                       {isClubPres ? (
-                        <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
+                        <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
                           <Crown size={10} /> Pres
                         </span>
                       ) : isClubVP ? (
-                        <span className="text-[10px] font-black text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
+                        <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
                           <Award size={10} /> VP
                         </span>
                       ) : null}
@@ -310,20 +312,28 @@ const Chat = () => {
 
       {/* ── RIGHT MAIN CHAT AREA (INSTAGRAM STYLE) ────────────────── */}
       {activeClub ? (
-        <div className="flex-1 flex flex-col bg-white">
+        <div className={`${showListOnMobile ? 'hidden' : 'flex'} md:flex flex-1 min-w-0 flex-col bg-white`}>
           {/* Top Chat Bar */}
-          <div className="px-6 py-3.5 border-b border-slate-100 flex items-center justify-between bg-white/95 backdrop-blur-md shadow-xs">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-teal-600 to-emerald-500 text-white flex items-center justify-center font-black text-sm shadow-xs overflow-hidden">
+          <div className="px-3 sm:px-6 py-3 border-b border-slate-100 flex items-center justify-between gap-2 bg-white">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+              <button
+                type="button"
+                onClick={() => setShowListOnMobile(true)}
+                className="btn-icon md:hidden -ml-1 shrink-0"
+                aria-label="Back to club list"
+              >
+                <ArrowLeft size={20} />
+              </button>
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-xs overflow-hidden">
                 {activeClub.logo ? (
                   <img src={activeClub.logo} alt={activeClub.name} className="w-full h-full object-cover" />
                 ) : (
                   activeClub.name.charAt(0).toUpperCase()
                 )}
               </div>
-              <div>
-                <h3 className="font-black text-sm text-slate-900 flex items-center gap-1.5">
-                  {activeClub.name}
+              <div className="min-w-0">
+                <h3 className="font-bold text-sm text-dark-900 flex flex-wrap items-center gap-1.5">
+                  <span className="truncate">{activeClub.name}</span>
                   {allowAllToChat ? (
                     <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                       Open Chat
@@ -341,7 +351,7 @@ const Chat = () => {
             </div>
 
             {/* Leadership Controls: Allow all to chat toggle */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               {isLeader && (
                 <button
                   onClick={handleTogglePermission}
@@ -352,14 +362,15 @@ const Chat = () => {
                       : 'bg-emerald-600 text-white hover:bg-emerald-700'
                   }`}
                   title={allowAllToChat ? "Switch to Leaders-Only Announcements" : "Allow All Members to Chat"}
+                  aria-label={allowAllToChat ? "Restrict to Leaders Only" : "Allow All Members to Chat"}
                 >
                   {allowAllToChat ? (
                     <>
-                      <Lock size={13} /> Restrict to Leaders Only
+                      <Lock size={13} /> <span className="hidden sm:inline">Restrict to Leaders Only</span>
                     </>
                   ) : (
                     <>
-                      <Sparkles size={13} /> Allow All Members to Chat
+                      <Sparkles size={13} /> <span className="hidden sm:inline">Allow All Members to Chat</span>
                     </>
                   )}
                 </button>
@@ -368,17 +379,17 @@ const Chat = () => {
           </div>
 
           {/* Messages Stream */}
-          <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-slate-50/50">
+          <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 space-y-4 bg-slate-50/50">
             {isFetchingMessages ? (
               <div className="h-full flex items-center justify-center">
-                <Loader className="animate-spin text-teal-600" size={24} />
+                <Loader className="animate-spin text-blue-600" size={24} />
               </div>
             ) : messages.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center p-8">
-                <div className="w-16 h-16 rounded-3xl bg-teal-50 text-teal-600 flex items-center justify-center mb-3">
+                <div className="w-16 h-16 rounded-3xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3">
                   <MessageSquare size={32} />
                 </div>
-                <h4 className="font-black text-slate-900 text-sm">No messages yet</h4>
+                <h4 className="font-bold text-dark-900 text-sm">No messages yet</h4>
                 <p className="text-xs text-slate-400 max-w-sm mt-1">
                   Start the conversation! Share event updates, images, and chat with members.
                 </p>
@@ -399,7 +410,7 @@ const Chat = () => {
                       <span className="text-[11px] font-bold text-slate-500 mb-1 ml-1 flex items-center gap-1">
                         {msg.sender?.name || 'Member'}
                         {isMsgLeader && (
-                          <span className="text-[9px] font-black uppercase bg-teal-50 text-teal-700 px-1.5 py-0.2 rounded">
+                          <span className="text-[9px] font-bold uppercase bg-blue-50 text-blue-700 px-1.5 py-0.2 rounded">
                             {msg.sender?.role === 'president' ? 'President' : msg.sender?.role === 'vice_president' ? 'VP' : 'Leader'}
                           </span>
                         )}
@@ -407,15 +418,15 @@ const Chat = () => {
                     )}
 
                     {/* Main Bubble Container with Instagram Hover Actions */}
-                    <div className="relative max-w-md">
+                    <div className="relative max-w-[85%] sm:max-w-md">
                       {/* Quoted Reply Header (Instagram Style) */}
                       {msg.replyTo && (msg.replyTo.text || msg.replyTo.image || msg.replyTo.senderName) && (
                         <div className={`text-[11px] p-2 rounded-t-2xl border-l-4 mb-0.5 ${
                           isMe 
-                            ? 'bg-teal-700/30 text-teal-100 border-white' 
-                            : 'bg-slate-200/80 text-slate-700 border-teal-600'
+                            ? 'bg-blue-700/30 text-blue-100 border-white' 
+                            : 'bg-slate-200/80 text-slate-700 border-blue-600'
                         }`}>
-                          <span className="font-black block text-[10px]">
+                          <span className="font-bold block text-[10px]">
                             ↳ Replying to {msg.replyTo.senderName || 'Member'}
                           </span>
                           <p className="truncate font-medium">{msg.replyTo.text || '📷 Photo'}</p>
@@ -427,8 +438,8 @@ const Chat = () => {
                         onDoubleClick={() => handleReact(msg._id)}
                         className={`rounded-3xl p-3.5 shadow-xs transition-all relative overflow-hidden select-text ${
                           isMe
-                            ? 'bg-gradient-to-tr from-teal-600 to-emerald-600 text-white rounded-br-xs'
-                            : 'bg-white text-slate-900 border border-slate-200/70 rounded-bl-xs'
+                            ? 'bg-gradient-to-tr from-blue-600 to-indigo-600 text-white rounded-br-xs'
+                            : 'bg-white text-dark-900 border border-slate-200/70 rounded-bl-xs'
                         }`}
                       >
                         {/* Attached Image (Instagram Style) */}
@@ -452,7 +463,7 @@ const Chat = () => {
 
                         {/* Timestamp */}
                         <span className={`text-[9px] block text-right mt-1 font-semibold ${
-                          isMe ? 'text-teal-200' : 'text-slate-400'
+                          isMe ? 'text-blue-200' : 'text-slate-400'
                         }`}>
                           {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
@@ -472,8 +483,8 @@ const Chat = () => {
                       )}
 
                       {/* Hover Action: Reply & React (Instagram Style) */}
-                      <div className={`absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition flex items-center gap-1 ${
-                        isMe ? '-left-16' : '-right-16'
+                      <div className={`flex items-center gap-1 mt-3 sm:mt-0 sm:absolute sm:top-1/2 sm:-translate-y-1/2 sm:opacity-0 sm:group-hover:opacity-100 transition ${
+                        isMe ? 'sm:-left-16' : 'sm:-right-16'
                       }`}>
                         <button
                           onClick={() => setReplyingTo({
@@ -506,12 +517,12 @@ const Chat = () => {
           </div>
 
           {/* ── INPUT AREA ─────────────────────────────────────────── */}
-          <div className="p-4 bg-white border-t border-slate-100">
+          <div className="p-3 sm:p-4 bg-white border-t border-slate-100">
             {/* Instagram Replying-To Banner */}
             {replyingTo && (
-              <div className="mb-2 px-3 py-2 bg-teal-50 border border-teal-200 rounded-2xl flex items-center justify-between text-xs text-teal-900 animate-in fade-in duration-150">
+              <div className="mb-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-2xl flex items-center justify-between text-xs text-blue-900 animate-in fade-in duration-150">
                 <div className="flex items-center gap-2 truncate">
-                  <Reply size={14} className="text-teal-600 shrink-0" />
+                  <Reply size={14} className="text-blue-600 shrink-0" />
                   <span className="font-bold">Replying to {replyingTo.senderName}:</span>
                   <span className="text-slate-600 truncate">{replyingTo.text || '📷 Photo'}</span>
                 </div>
@@ -555,7 +566,7 @@ const Chat = () => {
                 <button
                   type="button"
                   onClick={() => imageInputRef.current?.click()}
-                  className="p-2.5 text-slate-500 hover:text-teal-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+                  className="p-2.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
                   title="Share Image"
                 >
                   <Camera size={18} />
@@ -566,13 +577,13 @@ const Chat = () => {
                   placeholder={replyingTo ? "Write your reply..." : "Send message or photo..."}
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
-                  className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-medium focus:ring-2 focus:ring-teal-500 outline-none"
+                  className="input flex-1 min-w-0 rounded-2xl"
                 />
 
                 <button
                   type="submit"
                   disabled={(!newMessage.trim() && !selectedImage) || isSending}
-                  className="p-2.5 bg-gradient-to-tr from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 disabled:opacity-40 text-white rounded-2xl transition shadow-xs cursor-pointer"
+                  className="p-2.5 bg-gradient-to-tr from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-40 text-white rounded-2xl transition shadow-xs cursor-pointer"
                 >
                   {isSending ? <Loader size={16} className="animate-spin" /> : <Send size={16} />}
                 </button>
@@ -586,9 +597,9 @@ const Chat = () => {
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-slate-50">
+        <div className={`${showListOnMobile ? 'hidden' : 'flex'} md:flex flex-1 flex-col items-center justify-center text-center p-8 bg-slate-50`}>
           <MessageSquare size={48} className="text-slate-300 mb-3" />
-          <h3 className="font-black text-slate-700 text-sm">Select a club chat</h3>
+          <h3 className="font-bold text-slate-700 text-sm">Select a club chat</h3>
           <p className="text-xs text-slate-400 mt-1 max-w-sm">
             Choose a club from the left to read messages, share photos, and interact with fellow members.
           </p>

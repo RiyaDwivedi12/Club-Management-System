@@ -12,6 +12,9 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import io from 'socket.io-client';
 import toast from 'react-hot-toast';
+import PageHeader from '../components/ui/PageHeader';
+import LoadingState from '../components/ui/LoadingState';
+import EmptyState from '../components/EmptyState';
 
 // Helper component for live countdown timer
 const ElectionCountdown = ({ startDate, endDate, isCompleted, isLive }) => {
@@ -46,12 +49,27 @@ const ElectionCountdown = ({ startDate, endDate, isCompleted, isLive }) => {
   }, [startDate, endDate, isCompleted]);
 
   return (
-    <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black tracking-wide ${
-      isLive ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' :
-      isCompleted ? 'bg-slate-100 text-slate-600 border border-slate-200' : 'bg-blue-50 text-blue-700 border border-blue-200'
+    <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold tabular-nums ${
+      isLive ? 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20' :
+      isCompleted ? 'bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/15' : 'bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/15'
     }`}>
       <Clock size={13} className={isLive ? 'animate-spin' : ''} style={{ animationDuration: '4s' }} />
       <span>{timeLeft}</span>
+    </div>
+  );
+};
+
+
+// Candidate photo with an initials fallback (no stock imagery).
+const CandidatePhoto = ({ src, name, tint }) => {
+  const [failed, setFailed] = useState(false);
+  if (src && !failed) {
+    return <img src={src} alt={name || 'Candidate'} className="w-full h-full object-cover" onError={() => setFailed(true)} />;
+  }
+  const initials = (name || '?').split(' ').filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
+  return (
+    <div className={`w-full h-full bg-gradient-to-br ${tint} text-white font-extrabold text-2xl flex items-center justify-center`}>
+      {initials}
     </div>
   );
 };
@@ -255,89 +273,68 @@ const Elections = () => {
   }, [elections, filterClub, filterStatus]);
 
   return (
-    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-8">
+    <div className="max-w-7xl mx-auto space-y-6">
       {/* Top Hero Banner */}
-      <div className="relative overflow-hidden rounded-[32px] bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 p-8 md:p-10 text-white shadow-2xl border border-indigo-500/20">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-xs font-black uppercase tracking-wider mb-3">
-              <Vote size={14} className="text-indigo-400" />
-              <span>Campus Democratic Elections</span>
-            </div>
-            <h1 className="text-3xl md:text-5xl font-black tracking-tight text-white mb-2">
-              Club Presidential & Leadership Elections
-            </h1>
-            <p className="text-slate-300 font-medium text-sm md:text-base leading-relaxed">
-              Vote between candidates during live election hours. The winning candidate automatically inherits administrative access to lead the club!
-            </p>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            {canCreateElection && (
-              <button 
-                onClick={() => setShowCreateModal(true)}
-                className="flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-2xl font-black text-sm shadow-xl shadow-blue-500/25 transition-all hover:scale-105 cursor-pointer"
-              >
-                <Plus size={18} />
-                <span>Launch New Election</span>
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Ambient glow decoration */}
-        <div className="absolute -right-20 -top-20 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute right-40 -bottom-20 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl pointer-events-none"></div>
-      </div>
+      <PageHeader
+        variant="hero"
+        eyebrow="Campus Democratic Elections"
+        eyebrowIcon={Vote}
+        icon={Vote}
+        title="Club Presidential & Leadership Elections"
+        description="Vote between candidates during live election hours. The winning candidate automatically inherits administrative access to lead the club!"
+        actions={canCreateElection && (
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="btn w-full sm:w-auto bg-white text-blue-700 hover:bg-blue-50 shadow-md"
+          >
+            <Plus size={18} />
+            <span>Launch New Election</span>
+          </button>
+        )}
+      />
 
       {/* Filter and Tab Bar */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="card p-3 sm:p-4 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
+        <div className="flex items-center gap-1.5 overflow-x-auto hide-scrollbar -mx-1 px-1">
           {['all', 'live', 'completed', 'upcoming'].map((st) => (
             <button
               key={st}
               onClick={() => setFilterStatus(st)}
-              className={`px-4 py-2 rounded-xl text-xs font-black capitalize transition-all ${
-                filterStatus === st 
-                  ? 'bg-slate-900 text-white shadow-md' 
-                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-              }`}
+              className={`tab capitalize ${filterStatus === st ? 'tab-active' : ''}`}
             >
               {st === 'all' ? 'All Elections' : st}
             </button>
           ))}
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <div className="flex items-center bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 w-full sm:w-auto text-xs">
-            <Filter size={15} className="text-slate-400 mr-2 shrink-0" />
-            <select
-              className="bg-transparent font-bold text-slate-700 outline-none w-full"
-              value={filterClub}
-              onChange={(e) => setFilterClub(e.target.value)}
-            >
-              <option value="">Filter by Club (All)</option>
-              {clubs.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
-            </select>
-          </div>
+        <div className="relative w-full md:w-64">
+          <Filter size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <select
+            className="input input-icon"
+            value={filterClub}
+            onChange={(e) => setFilterClub(e.target.value)}
+          >
+            <option value="">Filter by Club (All)</option>
+            {clubs.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+          </select>
         </div>
       </div>
 
       {/* Main Election Cards List */}
       {isLoading ? (
-        <div className="flex justify-center p-16">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        <div className="card">
+          <LoadingState label="Loading elections…" />
         </div>
       ) : filteredElections.length === 0 ? (
-        <div className="bg-white rounded-3xl p-12 text-center border border-slate-100 shadow-sm">
-          <Vote size={48} className="mx-auto text-slate-300 mb-3" />
-          <h3 className="text-lg font-black text-slate-800">No Elections Found</h3>
-          <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
-            There are currently no elections matching this filter. Admins can launch an election with custom candidate matchups.
-          </p>
+        <div className="card">
+          <EmptyState
+            icon={Vote}
+            title="No Elections Found"
+            description="There are currently no elections matching this filter. Admins can launch an election with custom candidate matchups."
+          />
         </div>
       ) : (
-        <div className="space-y-10">
+        <div className="space-y-6">
           {filteredElections.map((election) => {
             const now = new Date();
             const start = new Date(election.startDate);
@@ -371,8 +368,8 @@ const Elections = () => {
             const cand1User = cand1?.candidateId || {};
             const cand2User = cand2?.candidateId || {};
 
-            const cand1Photo = cand1?.photo || cand1User?.profilePicture || null;
-            const cand2Photo = cand2?.photo || cand2User?.profilePicture || null;
+            const cand1Photo = cand1?.photo || cand1User?.profilePicture || '';
+            const cand2Photo = cand2?.photo || cand2User?.profilePicture || '';
 
             const winnerId = election.winner?.candidateId?._id || election.winner?.candidateId;
             const isCand1Winner = isCompleted && ((winnerId && (winnerId === cand1?.candidateId?._id || winnerId === cand1?.candidateId)) || ((cand1?.votes || 0) > (cand2?.votes || 0)));
@@ -383,52 +380,52 @@ const Elections = () => {
                 key={election._id}
                 initial={{ opacity: 0, y: 25 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-[32px] border border-slate-200/80 shadow-xl overflow-hidden transition-all hover:shadow-2xl"
+                className="card overflow-hidden"
               >
                 {/* ── CARD HEADER: CLUB INFO & SCHEDULED TIME WINDOW ── */}
-                <div className="bg-slate-900 text-white px-6 py-5 md:px-8 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800">
-                  <div className="flex items-center gap-3.5">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-blue-500 text-white flex items-center justify-center font-black text-xl shadow-md shrink-0">
+                <div className="px-5 py-4 md:px-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-100">
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-lg shadow-md shadow-blue-600/20 shrink-0 overflow-hidden">
                       {election.clubId?.logo ? (
-                        <img src={election.clubId.logo} alt={election.clubId.name} className="w-full h-full object-cover rounded-2xl" />
+                        <img src={election.clubId.logo} alt={election.clubId.name} className="w-full h-full object-cover" />
                       ) : (
                         election.clubId?.name?.charAt(0) || 'C'
                       )}
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-black uppercase tracking-wider text-indigo-400">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-x-2 gap-y-1 flex-wrap">
+                        <span className="text-xs font-semibold text-blue-600 truncate max-w-full">
                           {election.clubId?.name || 'Campus Club'}
                         </span>
-                        <span className="text-slate-600">•</span>
-                        <span className="text-xs font-bold text-amber-300">
+                        <span className="text-slate-300">•</span>
+                        <span className="text-xs font-semibold text-slate-500">
                           {election.position || 'President'} Race
                         </span>
                         {user && (
                           isClubMember ? (
-                            <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 rounded font-black text-[10px] border border-emerald-400/30 flex items-center gap-1">
+                            <span className="badge-green">
                               <Check size={11} /> Eligible Voter
                             </span>
                           ) : (
-                            <span className="px-2 py-0.5 bg-amber-500/20 text-amber-300 rounded font-bold text-[10px] border border-amber-400/30 flex items-center gap-1">
+                            <span className="badge-amber">
                               <Lock size={11} /> Members Only
                             </span>
                           )
                         )}
                       </div>
-                      <h2 className="text-xl md:text-2xl font-black text-white tracking-tight">
+                      <h2 className="text-lg md:text-xl font-bold text-dark-900 tracking-tight break-words">
                         {election.title}
                       </h2>
                     </div>
                   </div>
 
                   {/* Scheduled Election Time Window & Countdown */}
-                  <div className="flex flex-wrap items-center gap-3">
-                    <div className="bg-slate-800/90 border border-slate-700/80 px-3.5 py-1.5 rounded-xl text-left">
-                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                        <Timer size={12} className="text-indigo-400" /> Floating Voting Window:
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <div className="bg-slate-50 border border-slate-200/70 px-3 py-1.5 rounded-xl text-left">
+                      <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                        <Timer size={12} className="text-blue-600" /> Floating Voting Window:
                       </div>
-                      <div className="text-xs font-black text-slate-200 font-mono">
+                      <div className="text-xs font-semibold text-dark-900 tabular-nums">
                         {format(start, 'hh:mm a')} – {format(end, 'hh:mm a')} ({format(start, 'dd MMM')})
                       </div>
                     </div>
@@ -443,7 +440,7 @@ const Elections = () => {
                     {isAdmin && !isCompleted && (
                       <button
                         onClick={() => handleConclude(election._id, election.title)}
-                        className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+                        className="btn btn-sm bg-amber-500 hover:bg-amber-600 text-white shadow-sm"
                         title="Conclude voting now and officially elevate the leading candidate to President"
                       >
                         <Award size={14} /> Conclude & Elect
@@ -453,7 +450,7 @@ const Elections = () => {
                     {isAdmin && (
                       <button
                         onClick={() => handleDelete(election._id)}
-                        className="p-2 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-xl transition cursor-pointer"
+                        className="btn-icon hover:!text-red-600 hover:!bg-red-50"
                         title="Delete Election"
                       >
                         <Trash2 size={16} />
@@ -463,42 +460,37 @@ const Elections = () => {
                 </div>
 
                 {/* ── CARD BODY: PROFILE 1 VS PROFILE 2 MATCHUP ── */}
-                <div className="p-6 md:p-10 relative bg-gradient-to-b from-slate-50/50 to-white">
-                  <div className="grid grid-cols-1 lg:grid-cols-11 gap-6 items-center">
+                <div className="p-4 sm:p-6 md:p-8 relative bg-slate-50/60">
+                  <div className="grid grid-cols-1 lg:grid-cols-11 gap-5 items-center">
                     {/* ──── CANDIDATE 1 (PROFILE ONE) ──── */}
-                    <div className={`lg:col-span-5 p-6 rounded-3xl border-2 transition-all relative ${
-                      isCand1Winner 
-                        ? 'bg-amber-500/5 border-amber-400 shadow-lg shadow-amber-500/10' 
-                        : 'bg-white border-slate-200/90 shadow-sm'
+                    <div className={`lg:col-span-5 p-5 sm:p-6 rounded-2xl border transition-all relative min-w-0 ${
+                      isCand1Winner
+                        ? 'bg-amber-50/60 border-amber-300 ring-2 ring-amber-300/40 shadow-sm'
+                        : 'bg-white border-slate-200/70 shadow-card'
                     }`}>
                       {isCand1Winner && (
-                        <div className="absolute -top-3.5 left-6 px-3.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-[11px] shadow-md flex items-center gap-1.5 uppercase tracking-wider">
-                          <Crown size={13} className="fill-slate-950" /> Elected {election.position || 'President'}
+                        <div className="absolute -top-3 left-5 px-3 py-0.5 rounded-full bg-amber-500 text-white font-semibold text-[11px] shadow-sm flex items-center gap-1.5">
+                          <Crown size={13} className="fill-white" /> Elected {election.position || 'President'}
                         </div>
                       )}
 
-                      <div className="flex flex-col sm:flex-row items-center gap-5 mb-4 text-center sm:text-left">
-                        <div className="relative">
-                          <div className={`w-24 h-24 rounded-2xl overflow-hidden border-4 shadow-md ${
-                            isCand1Winner ? 'border-amber-400 ring-4 ring-amber-300/30' : 'border-indigo-100'
+                      <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-5 mb-4 text-center sm:text-left">
+                        <div className="relative shrink-0">
+                          <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border-4 shadow-sm ${
+                            isCand1Winner ? 'border-amber-300' : 'border-indigo-50'
                           }`}>
-                            <img 
-                              src={cand1Photo} 
-                              alt={cand1?.name || 'Candidate 1'} 
-                              className="w-full h-full object-cover"
-                              onError={(e) => { e.target.src = null; }}
-                            />
+                            <CandidatePhoto src={cand1Photo} name={cand1?.name || cand1User?.name} tint="from-indigo-500 to-indigo-700" />
                           </div>
-                          <span className="absolute -bottom-2 -right-2 w-7 h-7 rounded-full bg-indigo-600 text-white font-black text-xs flex items-center justify-center shadow-md border-2 border-white">
+                          <span className="absolute -bottom-2 -right-2 w-7 h-7 rounded-full bg-indigo-600 text-white font-bold text-[11px] flex items-center justify-center shadow-md border-2 border-white">
                             #1
                           </span>
                         </div>
 
-                        <div className="flex-1 min-w-0">
-                          <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
+                        <div className="flex-1 min-w-0 w-full">
+                          <span className="badge-indigo">
                             Candidate Profile 1
                           </span>
-                          <h3 className="text-xl font-black text-slate-900 truncate mt-1">
+                          <h3 className="text-lg sm:text-xl font-bold tracking-tight text-dark-900 truncate mt-1.5">
                             {cand1?.name || cand1User?.name || 'Nominated Candidate'}
                           </h3>
                           <p className="text-xs font-semibold text-slate-500 mt-0.5">
@@ -508,19 +500,21 @@ const Elections = () => {
                       </div>
 
                       {/* Manifesto quote */}
-                      <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-4">
-                        <p className="text-xs text-slate-600 font-medium italic leading-relaxed">
-                          "{cand1?.manifesto || 'Pledging to organize premier inter-college tournaments and foster athletic excellence.'}"
-                        </p>
+                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 mb-4">
+                        {cand1?.manifesto ? (
+                          <p className="text-sm text-slate-600 italic leading-relaxed break-words">"{cand1.manifesto}"</p>
+                        ) : (
+                          <p className="text-sm text-slate-400">No manifesto submitted.</p>
+                        )}
                       </div>
 
                       {/* Live Votes Progress */}
                       <div className="space-y-1.5">
-                        <div className="flex justify-between items-center text-xs font-bold">
+                        <div className="flex justify-between items-center gap-2 text-xs font-semibold">
                           <span className="text-slate-500">Votes Secured</span>
-                          <span className="text-slate-900 font-black">{cand1?.votes || 0} votes ({pct1}%)</span>
+                          <span className="text-dark-900 font-bold tabular-nums">{cand1?.votes || 0} votes ({pct1}%)</span>
                         </div>
-                        <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+                        <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
                           <div 
                             className={`h-full transition-all duration-700 ${isCand1Winner ? 'bg-amber-500' : 'bg-indigo-600'}`}
                             style={{ width: `${pct1}%` }}
@@ -531,51 +525,46 @@ const Elections = () => {
 
                     {/* ──── CENTER: VERSUS (VS) EMBLEM ──── */}
                     <div className="lg:col-span-1 flex flex-col items-center justify-center py-2 text-center">
-                      <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-slate-900 via-indigo-900 to-slate-900 text-amber-400 font-black text-lg flex items-center justify-center shadow-xl border-4 border-white animate-pulse">
+                      <div className="w-14 h-14 rounded-full bg-brand-gradient text-white font-extrabold text-base flex items-center justify-center shadow-lg shadow-blue-900/20 border-4 border-white">
                         VS
                       </div>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-2">
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mt-2">
                         Matchup
                       </span>
-                      <span className="text-xs font-black text-slate-700 font-mono mt-0.5">
+                      <span className="text-xs font-bold text-dark-900 tabular-nums mt-0.5">
                         {totalVotes} Votes
                       </span>
                     </div>
 
                     {/* ──── CANDIDATE 2 (PROFILE TWO) ──── */}
-                    <div className={`lg:col-span-5 p-6 rounded-3xl border-2 transition-all relative ${
-                      isCand2Winner 
-                        ? 'bg-amber-500/5 border-amber-400 shadow-lg shadow-amber-500/10' 
-                        : 'bg-white border-slate-200/90 shadow-sm'
+                    <div className={`lg:col-span-5 p-5 sm:p-6 rounded-2xl border transition-all relative min-w-0 ${
+                      isCand2Winner
+                        ? 'bg-amber-50/60 border-amber-300 ring-2 ring-amber-300/40 shadow-sm'
+                        : 'bg-white border-slate-200/70 shadow-card'
                     }`}>
                       {isCand2Winner && (
-                        <div className="absolute -top-3.5 right-6 px-3.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-[11px] shadow-md flex items-center gap-1.5 uppercase tracking-wider">
-                          <Crown size={13} className="fill-slate-950" /> Elected {election.position || 'President'}
+                        <div className="absolute -top-3 right-5 px-3 py-0.5 rounded-full bg-amber-500 text-white font-semibold text-[11px] shadow-sm flex items-center gap-1.5">
+                          <Crown size={13} className="fill-white" /> Elected {election.position || 'President'}
                         </div>
                       )}
 
-                      <div className="flex flex-col sm:flex-row items-center gap-5 mb-4 text-center sm:text-left">
-                        <div className="relative">
-                          <div className={`w-24 h-24 rounded-2xl overflow-hidden border-4 shadow-md ${
-                            isCand2Winner ? 'border-amber-400 ring-4 ring-amber-300/30' : 'border-blue-100'
+                      <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-5 mb-4 text-center sm:text-left">
+                        <div className="relative shrink-0">
+                          <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border-4 shadow-sm ${
+                            isCand2Winner ? 'border-amber-300' : 'border-blue-50'
                           }`}>
-                            <img 
-                              src={cand2Photo} 
-                              alt={cand2?.name || 'Candidate 2'} 
-                              className="w-full h-full object-cover"
-                              onError={(e) => { e.target.src = null; }}
-                            />
+                            <CandidatePhoto src={cand2Photo} name={cand2?.name || cand2User?.name} tint="from-blue-500 to-blue-700" />
                           </div>
-                          <span className="absolute -bottom-2 -right-2 w-7 h-7 rounded-full bg-blue-600 text-white font-black text-xs flex items-center justify-center shadow-md border-2 border-white">
+                          <span className="absolute -bottom-2 -right-2 w-7 h-7 rounded-full bg-blue-600 text-white font-bold text-[11px] flex items-center justify-center shadow-md border-2 border-white">
                             #2
                           </span>
                         </div>
 
-                        <div className="flex-1 min-w-0">
-                          <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+                        <div className="flex-1 min-w-0 w-full">
+                          <span className="badge-blue">
                             Candidate Profile 2
                           </span>
-                          <h3 className="text-xl font-black text-slate-900 truncate mt-1">
+                          <h3 className="text-lg sm:text-xl font-bold tracking-tight text-dark-900 truncate mt-1.5">
                             {cand2?.name || cand2User?.name || 'Nominated Candidate'}
                           </h3>
                           <p className="text-xs font-semibold text-slate-500 mt-0.5">
@@ -585,19 +574,21 @@ const Elections = () => {
                       </div>
 
                       {/* Manifesto quote */}
-                      <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-4">
-                        <p className="text-xs text-slate-600 font-medium italic leading-relaxed">
-                          "{cand2?.manifesto || 'Committed to transparent club budgeting, vibrant workshops, and student representation.'}"
-                        </p>
+                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 mb-4">
+                        {cand2?.manifesto ? (
+                          <p className="text-sm text-slate-600 italic leading-relaxed break-words">"{cand2.manifesto}"</p>
+                        ) : (
+                          <p className="text-sm text-slate-400">No manifesto submitted.</p>
+                        )}
                       </div>
 
                       {/* Live Votes Progress */}
                       <div className="space-y-1.5">
-                        <div className="flex justify-between items-center text-xs font-bold">
+                        <div className="flex justify-between items-center gap-2 text-xs font-semibold">
                           <span className="text-slate-500">Votes Secured</span>
-                          <span className="text-slate-900 font-black">{cand2?.votes || 0} votes ({pct2}%)</span>
+                          <span className="text-dark-900 font-bold tabular-nums">{cand2?.votes || 0} votes ({pct2}%)</span>
                         </div>
-                        <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+                        <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
                           <div 
                             className={`h-full transition-all duration-700 ${isCand2Winner ? 'bg-amber-500' : 'bg-blue-600'}`}
                             style={{ width: `${pct2}%` }}
@@ -608,42 +599,42 @@ const Elections = () => {
                   </div>
 
                   {/* ── LOWER ACTION BAR: VOTE HIM OR VOTE HIM ── */}
-                  <div className="mt-8 pt-6 border-t border-slate-100">
+                  <div className="mt-6 pt-5 border-t border-slate-200/70">
                     {hasVoted ? (
-                      <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
+                      <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
                           <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
                             <CheckCircle2 size={22} />
                           </div>
-                          <div>
-                            <h4 className="font-black text-sm">Your Ballot Has Been Cast!</h4>
+                          <div className="min-w-0">
+                            <h4 className="font-bold text-sm text-emerald-900">Your Ballot Has Been Cast!</h4>
                             <p className="text-xs text-emerald-700">Thank you for participating in campus governance. Results update in real-time.</p>
                           </div>
                         </div>
-                        <span className="px-3 py-1 bg-emerald-200/60 rounded-full font-black text-xs text-emerald-900 uppercase">
+                        <span className="badge-green self-start sm:self-auto">
                           Verified Voter
                         </span>
                       </div>
                     ) : isLive && !user ? (
-                      <div className="p-4 rounded-2xl bg-slate-100 border border-slate-200 text-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                        <div className="flex items-center gap-2.5">
-                          <Lock size={18} className="text-slate-500" />
+                      <div className="p-4 rounded-xl bg-white border border-slate-200 text-slate-600 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <Lock size={18} className="text-slate-400 shrink-0" />
                           <span>Please log in with your student account to verify your club membership and vote.</span>
                         </div>
-                        <Link to="/login" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition shadow-sm">
+                        <Link to="/login" className="btn-primary btn-sm w-full sm:w-auto py-2.5 sm:py-1.5">
                           Log In to Vote
                         </Link>
                       </div>
                     ) : isLive && !isClubMember ? (
-                      <div className="p-4 rounded-2xl bg-amber-50/90 border border-amber-200 text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+                      <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex items-start sm:items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
                             <Lock size={20} />
                           </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h4 className="font-black text-sm text-amber-950">Voter Eligibility Restricted</h4>
-                              <span className="px-2 py-0.5 bg-amber-200/80 text-amber-900 rounded font-black text-[10px] uppercase tracking-wider">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h4 className="font-bold text-sm text-amber-900">Voter Eligibility Restricted</h4>
+                              <span className="badge-amber">
                                 {election.clubId?.name || 'Club'} Members Only
                               </span>
                             </div>
@@ -654,37 +645,37 @@ const Elections = () => {
                         </div>
                         <Link
                           to={`/clubs/${userClubId}`}
-                          className="px-4 py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-black text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 shrink-0"
+                          className="btn w-full sm:w-auto shrink-0 bg-amber-600 hover:bg-amber-700 text-white shadow-sm"
                         >
                           Join & Pay Membership Fee <ArrowUpRight size={14} />
                         </Link>
                       </div>
                     ) : isLive ? (
-                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                        <div className="text-center sm:text-left">
-                          <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center gap-1.5 text-xs font-black text-emerald-600 uppercase tracking-wider">
+                      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+                        <div className="text-center md:text-left">
+                          <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
+                            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-700">
                               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                               Live Voting Station Active
                             </span>
-                            <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-black text-[10px]">
+                            <span className="badge-green">
                               ✓ Verified Club Member
                             </span>
                           </div>
-                          <p className="text-xs text-slate-500 font-medium mt-0.5">
+                          <p className="text-xs text-slate-500 mt-1">
                             Select your candidate below. Votes are cryptographically recorded once.
                           </p>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3 w-full sm:w-auto">
+                        <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-2.5 w-full md:w-auto">
                           {cand1 && (
                             <button
                               onClick={() => handleVote(election._id, cand1.candidateId?._id || cand1.candidateId, cand1.name)}
                               disabled={votingElectionId === election._id}
-                              className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-2xl shadow-lg shadow-indigo-600/25 transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+                              className="btn bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20 hover:-translate-y-0.5 min-w-0"
                             >
-                              <Vote size={15} />
-                              <span>Vote {cand1.name?.split(' ')[0] || 'Candidate 1'}</span>
+                              <Vote size={16} className="shrink-0" />
+                              <span className="truncate">Vote {cand1.name?.split(' ')[0] || 'Candidate 1'}</span>
                             </button>
                           )}
 
@@ -692,26 +683,26 @@ const Elections = () => {
                             <button
                               onClick={() => handleVote(election._id, cand2.candidateId?._id || cand2.candidateId, cand2.name)}
                               disabled={votingElectionId === election._id}
-                              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-2xl shadow-lg shadow-blue-600/25 transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+                              className="btn-primary min-w-0"
                             >
-                              <Vote size={15} />
-                              <span>Vote {cand2.name?.split(' ')[0] || 'Candidate 2'}</span>
+                              <Vote size={16} className="shrink-0" />
+                              <span className="truncate">Vote {cand2.name?.split(' ')[0] || 'Candidate 2'}</span>
                             </button>
                           )}
                         </div>
                       </div>
                     ) : isCompleted ? (
-                      <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
+                      <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-start sm:items-center gap-3 min-w-0">
                           <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
                             <Trophy size={22} />
                           </div>
-                          <div>
-                            <h4 className="font-black text-sm">
+                          <div className="min-w-0">
+                            <h4 className="font-bold text-sm text-amber-900">
                               Election Concluded & Winner Formally Sworn In!
                             </h4>
-                            <p className="text-xs text-amber-800">
-                              {election.winner?.name 
+                            <p className="text-xs text-amber-800 break-words">
+                              {election.winner?.name
                                 ? `${election.winner.name} won with ${election.winner.votes || 0} votes and now has full ${election.position || 'President'} administrative authority.`
                                 : 'Final ballots tabulated. Winner elevated.'}
                             </p>
@@ -719,33 +710,33 @@ const Elections = () => {
                         </div>
 
                         <div className="flex items-center gap-2">
-                          <span className="px-3.5 py-1 bg-amber-200/80 rounded-full font-black text-xs text-amber-950 uppercase tracking-wider">
+                          <span className="badge-amber">
                             Officially Certified
                           </span>
                         </div>
                       </div>
                     ) : !isClubMember ? (
-                      <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-600 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                        <div className="flex items-center gap-2 font-bold">
-                          <Clock size={16} className="text-slate-400 shrink-0" />
+                      <div className="p-4 rounded-xl bg-white border border-slate-200 text-slate-600 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm">
+                        <div className="flex items-start sm:items-center gap-2.5 min-w-0">
+                          <Clock size={16} className="text-blue-600 shrink-0 mt-0.5 sm:mt-0" />
                           <span>Voting window opens on {format(start, 'PPP')} at {format(start, 'hh:mm a')}. Only approved members of {election.clubId?.name} are eligible to vote.</span>
                         </div>
                         <Link
                           to={`/clubs/${userClubId}`}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
+                          className="btn-primary btn-sm w-full sm:w-auto shrink-0 py-2.5 sm:py-1.5"
                         >
                           Join Club Ahead of Election <ArrowUpRight size={13} />
                         </Link>
                       </div>
                     ) : (
-                      <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-600 flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-2 font-bold">
-                          <Clock size={16} className="text-slate-400" />
+                      <div className="p-4 rounded-xl bg-white border border-slate-200 text-slate-600 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm">
+                        <div className="flex items-start sm:items-center gap-2.5 min-w-0">
+                          <Clock size={16} className="text-blue-600 shrink-0 mt-0.5 sm:mt-0" />
                           <span>Voting window opens on {format(start, 'PPP')} at {format(start, 'hh:mm a')}. You are verified to vote.</span>
                         </div>
                         <button
                           onClick={() => setShowNominateModal(election)}
-                          className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs transition cursor-pointer"
+                          className="btn-primary btn-sm w-full sm:w-auto shrink-0 py-2.5 sm:py-1.5"
                         >
                           Stand for Election
                         </button>
@@ -761,42 +752,42 @@ const Elections = () => {
 
       {/* ── MODAL: LAUNCH NEW ELECTION & CANDIDATE MATCHUP (PROFILE 1 VS PROFILE 2) ── */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }} 
-            animate={{ opacity: 1, scale: 1 }} 
-            className="bg-white rounded-[32px] p-6 md:p-8 max-w-3xl w-full my-8 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto custom-scrollbar"
+        <div className="modal-overlay">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.97 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="modal-panel sm:max-w-3xl"
           >
-            <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-100">
-              <div>
-                <h2 className="text-2xl font-black text-slate-900">Launch New Club Election</h2>
-                <p className="text-xs text-slate-500 font-medium">Float election timing and setup Candidate Profile 1 vs Profile 2 matchup.</p>
+            <div className="sticky top-0 z-10 bg-white flex justify-between items-start gap-3 px-5 py-4 sm:px-6 border-b border-slate-100">
+              <div className="min-w-0">
+                <h2 className="text-lg sm:text-xl font-bold tracking-tight text-dark-900">Launch New Club Election</h2>
+                <p className="text-xs text-slate-500 mt-0.5">Float election timing and setup Candidate Profile 1 vs Profile 2 matchup.</p>
               </div>
-              <button onClick={() => setShowCreateModal(false)} className="p-2.5 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-500 transition">
+              <button onClick={() => setShowCreateModal(false)} className="btn-icon shrink-0" aria-label="Close">
                 <X size={18}/>
               </button>
             </div>
 
-            <form onSubmit={handleCreateSubmit} className="space-y-6 text-xs">
+            <form onSubmit={handleCreateSubmit} className="space-y-5 p-5 sm:p-6">
               {/* Section 1: Election Scope */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="md:col-span-2">
-                  <label className="block font-bold text-slate-700 uppercase mb-1">Election Title</label>
+                  <label className="label">Election Title</label>
                   <input
                     required
                     type="text"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     placeholder="e.g. 2026 Cricket Club Presidential Race"
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none text-slate-900 text-xs"
+                    className="input"
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 uppercase mb-1">Target Leadership Post</label>
+                  <label className="label">Target Leadership Post</label>
                   <select
                     value={formData.position}
                     onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none text-slate-900 text-xs"
+                    className="input"
                   >
                     <option value="President">Club President</option>
                     <option value="Vice President">Vice President</option>
@@ -807,61 +798,61 @@ const Elections = () => {
               {/* Section 2: Club & Floating Voting Hours */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block font-bold text-slate-700 uppercase mb-1">Institutional Club</label>
+                  <label className="label">Institutional Club</label>
                   <select
                     required
                     value={formData.clubId}
                     onChange={(e) => setFormData({ ...formData, clubId: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none text-slate-900 text-xs"
+                    className="input"
                   >
                     <option value="">-- Choose Club --</option>
                     {clubs.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 uppercase mb-1">Voting Start Time (Float Start)</label>
+                  <label className="label">Voting Start Time (Float Start)</label>
                   <input
                     required
                     type="datetime-local"
                     value={formData.startDate}
                     onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-xs"
+                    className="input"
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 uppercase mb-1">Voting End Time (Float End)</label>
+                  <label className="label">Voting End Time (Float End)</label>
                   <input
                     required
                     type="datetime-local"
                     value={formData.endDate}
                     onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-xs"
+                    className="input"
                   />
                 </div>
               </div>
 
               {/* Section 3: Matchup Setup (Profile 1 vs Profile 2) */}
-              <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-black text-sm text-slate-900 flex items-center gap-2">
-                      <Flame size={16} className="text-amber-500" /> Candidates Standing for Election (Versus Matchup)
+              <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-sm text-dark-900 flex items-center gap-2">
+                      <Flame size={16} className="text-amber-500 shrink-0" /> Candidates Standing for Election (Versus Matchup)
                     </h3>
-                    <p className="text-[11px] text-slate-500">Pick two students who will face off on the ballot card.</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Pick two students who will face off on the ballot card.</p>
                   </div>
-                  <span className="px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-bold text-[10px]">
+                  <span className="badge-indigo self-start sm:self-auto shrink-0">
                     2 Candidates Required
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Candidate 1 Box */}
-                  <div className="p-4 bg-white rounded-2xl border border-indigo-200 shadow-sm space-y-3">
-                    <span className="font-black text-indigo-700 uppercase tracking-wider text-[11px] block">
+                  <div className="p-4 bg-white rounded-xl border border-indigo-200 shadow-card space-y-3 min-w-0">
+                    <span className="badge-indigo">
                       Candidate 1 (Profile One)
                     </span>
                     <div>
-                      <label className="block font-bold text-slate-600 mb-1">Student</label>
+                      <label className="label">Student</label>
                       <select
                         required
                         value={candidate1.candidateId}
@@ -874,7 +865,7 @@ const Elections = () => {
                             photo: candidate1.photo || u?.profilePicture || ''
                           });
                         }}
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none text-xs"
+                        className="input"
                       >
                         <option value="">-- Choose Candidate 1 --</option>
                         {users.map(u => <option key={u._id} value={u._id}>{u.name} ({u.role}) • {u.email}</option>)}
@@ -882,36 +873,36 @@ const Elections = () => {
                     </div>
 
                     <div>
-                      <label className="block font-bold text-slate-600 mb-1">Custom Photo URL (Optional)</label>
+                      <label className="label">Custom Photo URL (Optional)</label>
                       <input
                         type="text"
                         placeholder="https://..."
                         value={candidate1.photo}
                         onChange={(e) => setCandidate1({ ...candidate1, photo: e.target.value })}
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs"
+                        className="input"
                       />
                     </div>
 
                     <div>
-                      <label className="block font-bold text-slate-600 mb-1">Manifesto / Agenda</label>
+                      <label className="label">Manifesto / Agenda</label>
                       <textarea
                         required
                         rows={2}
                         placeholder="e.g. Elevate sports gear, introduce weekly masterclasses..."
                         value={candidate1.manifesto}
                         onChange={(e) => setCandidate1({ ...candidate1, manifesto: e.target.value })}
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs font-medium"
+                        className="input resize-y"
                       />
                     </div>
                   </div>
 
                   {/* Candidate 2 Box */}
-                  <div className="p-4 bg-white rounded-2xl border border-blue-200 shadow-sm space-y-3">
-                    <span className="font-black text-blue-700 uppercase tracking-wider text-[11px] block">
+                  <div className="p-4 bg-white rounded-xl border border-blue-200 shadow-card space-y-3 min-w-0">
+                    <span className="badge-blue">
                       Candidate 2 (Profile Two)
                     </span>
                     <div>
-                      <label className="block font-bold text-slate-600 mb-1">Student</label>
+                      <label className="label">Student</label>
                       <select
                         required
                         value={candidate2.candidateId}
@@ -924,7 +915,7 @@ const Elections = () => {
                             photo: candidate2.photo || u?.profilePicture || ''
                           });
                         }}
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none text-xs"
+                        className="input"
                       >
                         <option value="">-- Choose Candidate 2 --</option>
                         {users.map(u => <option key={u._id} value={u._id}>{u.name} ({u.role}) • {u.email}</option>)}
@@ -932,25 +923,25 @@ const Elections = () => {
                     </div>
 
                     <div>
-                      <label className="block font-bold text-slate-600 mb-1">Custom Photo URL (Optional)</label>
+                      <label className="label">Custom Photo URL (Optional)</label>
                       <input
                         type="text"
                         placeholder="https://..."
                         value={candidate2.photo}
                         onChange={(e) => setCandidate2({ ...candidate2, photo: e.target.value })}
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs"
+                        className="input"
                       />
                     </div>
 
                     <div>
-                      <label className="block font-bold text-slate-600 mb-1">Manifesto / Agenda</label>
+                      <label className="label">Manifesto / Agenda</label>
                       <textarea
                         required
                         rows={2}
                         placeholder="e.g. Expanding collegiate outreach, transparent funding..."
                         value={candidate2.manifesto}
                         onChange={(e) => setCandidate2({ ...candidate2, manifesto: e.target.value })}
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs font-medium"
+                        className="input resize-y"
                       />
                     </div>
                   </div>
@@ -958,18 +949,18 @@ const Elections = () => {
               </div>
 
               {/* Submit Button */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+              <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition"
+                  className="btn-secondary w-full sm:w-auto"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isCreating}
-                  className="px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black rounded-xl text-xs shadow-lg transition-all cursor-pointer"
+                  className="btn-primary w-full sm:w-auto"
                 >
                   {isCreating ? 'Launching Matchup...' : 'Launch Live Election'}
                 </button>
@@ -981,58 +972,58 @@ const Elections = () => {
 
       {/* ── MODAL: STAND FOR ELECTION (STUDENT NOMINATION) ── */}
       {showNominateModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }} 
-            animate={{ opacity: 1, scale: 1 }} 
-            className="bg-white rounded-[32px] p-6 md:p-8 max-w-md w-full shadow-2xl border border-slate-100 text-xs max-h-[90vh] overflow-y-auto"
+        <div className="modal-overlay">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.97 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="modal-panel"
           >
-            <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
-              <div>
-                <h3 className="text-xl font-black text-slate-900">Stand for Election</h3>
-                <p className="text-xs text-slate-400">Nominate yourself for "{showNominateModal.title}"</p>
+            <div className="flex justify-between items-start gap-3 px-5 py-4 sm:px-6 border-b border-slate-100">
+              <div className="min-w-0">
+                <h3 className="text-lg font-bold tracking-tight text-dark-900">Stand for Election</h3>
+                <p className="text-xs text-slate-500 mt-0.5 break-words">Nominate yourself for "{showNominateModal.title}"</p>
               </div>
-              <button onClick={() => setShowNominateModal(null)} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200">
+              <button onClick={() => setShowNominateModal(null)} className="btn-icon shrink-0" aria-label="Close">
                 <X size={16}/>
               </button>
             </div>
 
-            <form onSubmit={handleNominateSubmit} className="space-y-4">
+            <form onSubmit={handleNominateSubmit} className="space-y-4 p-5 sm:p-6">
               <div>
-                <label className="block font-bold text-slate-700 uppercase mb-1">Your Manifesto / Campaign Vision</label>
+                <label className="label">Your Manifesto / Campaign Vision</label>
                 <textarea
                   required
                   rows={3}
                   placeholder="Outline your promises, ideas, and dedication to this club..."
                   value={nominationManifesto}
                   onChange={(e) => setNominationManifesto(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs font-medium text-slate-800"
+                  className="input resize-y"
                 />
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 uppercase mb-1">Profile Photo / Banner (Optional URL)</label>
+                <label className="label">Profile Photo / Banner (Optional URL)</label>
                 <input
                   type="text"
                   placeholder="https://..."
                   value={nominationPhoto}
                   onChange={(e) => setNominationPhoto(e.target.value)}
-                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs"
+                  className="input"
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowNominateModal(null)}
-                  className="px-4 py-2 bg-slate-100 text-slate-600 font-bold rounded-xl text-xs"
+                  className="btn-secondary w-full sm:w-auto"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingNomination}
-                  className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl text-xs shadow-md transition"
+                  className="btn-primary w-full sm:w-auto"
                 >
                   {isSubmittingNomination ? 'Submitting...' : 'Confirm Nomination'}
                 </button>
