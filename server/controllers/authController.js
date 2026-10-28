@@ -260,6 +260,19 @@ const authUser = async (req, res) => {
         return res.status(401).json({ message: 'Please verify your email before logging in' });
       }
 
+      // Check if referee officiating time window has expired
+      if ((role === 'referee' || user.role === 'referee') && user.role !== 'admin') {
+        if (user.refereeExpiresAt) {
+          const expiryDate = new Date(user.refereeExpiresAt);
+          if (Date.now() > expiryDate.getTime()) {
+            const formattedExpiry = expiryDate.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+            return res.status(403).json({
+              message: `Your referee match officiating privileges expired on ${formattedExpiry}. You are only permitted to log in during your designated officiating window.`
+            });
+          }
+        }
+      }
+
       const token = generateToken(res, user._id);
       
       const effectiveRole = (role === 'referee' && (user.isReferee || user.role === 'referee')) ? 'referee' : user.role;
@@ -270,6 +283,8 @@ const authUser = async (req, res) => {
         email: user.email,
         role: effectiveRole,
         isReferee: Boolean(user.isReferee || user.role === 'referee'),
+        refereeSport: user.refereeSport || 'General',
+        refereeExpiresAt: user.refereeExpiresAt || null,
         profilePicture: user.profilePicture,
         roll_no: user.roll_no,
         department: user.department,
@@ -1211,12 +1226,22 @@ const bulkOnboardRole = async (req, res) => {
 
       if (!email && !roll_no) continue; // skip empty rows
 
-      // Calculate referee expiration date if referee
+      // Calculate referee expiration date & time
       let refereeExpiresAt = null;
       if (role === 'referee') {
-        const d = new Date();
-        d.setDate(d.getDate() + (validDays > 0 ? validDays : 30));
-        refereeExpiresAt = d;
+        const customDate = req.body.expiryDate || row.expiryDate || row.expiry || row.validUntil || row['valid until'];
+        const customTime = req.body.expiryTime || row.expiryTime || row.time || '23:59';
+        if (customDate) {
+          const parsed = new Date(`${customDate}T${customTime}`);
+          if (!isNaN(parsed.getTime())) {
+            refereeExpiresAt = parsed;
+          }
+        }
+        if (!refereeExpiresAt) {
+          const d = new Date();
+          d.setDate(d.getDate() + (validDays > 0 ? validDays : 14));
+          refereeExpiresAt = d;
+        }
       }
 
       // Check if user already exists

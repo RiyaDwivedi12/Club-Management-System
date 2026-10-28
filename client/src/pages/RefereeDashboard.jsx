@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import useMatchStore from '../store/matchStore';
 import useAuthStore from '../store/authStore';
-import { Shield, Plus, Minus, Check, Flag, Timer, ArrowRight } from 'lucide-react';
+import { Shield, Plus, Minus, Check, Flag, Timer, ArrowRight, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import PageHeader from '../components/ui/PageHeader';
@@ -50,6 +50,17 @@ const RefereeDashboard = () => {
   }, [user, navigate]);
 
   // Filter matches assigned to this referee or unassigned (or all if admin) that are scheduled/live
+  // Strict Time Expiry Check
+  const isTimeExpired = Boolean(
+    user?.role !== 'admin' &&
+    user?.refereeExpiresAt &&
+    new Date(user.refereeExpiresAt).getTime() < Date.now()
+  );
+
+  const formattedExpiry = user?.refereeExpiresAt
+    ? new Date(user.refereeExpiresAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
+    : null;
+
   const activeMatches = matches.filter(m => {
     const isAssigned = (m.refereeId?._id?.toString() === user?._id?.toString()) ||
                        (m.refereeId?.toString() === user?._id?.toString()) ||
@@ -112,9 +123,32 @@ const RefereeDashboard = () => {
             View Public Matches <ArrowRight size={16} />
           </Link>
         }
-      />
+      >
+        {formattedExpiry && (
+          <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold border ${
+            isTimeExpired
+              ? 'bg-red-500/20 text-red-200 border-red-400/40'
+              : 'bg-emerald-500/20 text-emerald-200 border-emerald-400/40'
+          }`}>
+            <Timer size={13} className="shrink-0" />
+            <span>
+              {isTimeExpired ? `Officiating Window Expired on ${formattedExpiry}` : `Valid Officiating Window: Until ${formattedExpiry}`}
+            </span>
+          </div>
+        )}
+      </PageHeader>
 
-      {activeMatches.length === 0 ? (
+      {isTimeExpired ? (
+        <div className="card border-red-200 bg-red-50/60 px-6 py-10 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4">
+            <Lock size={26} />
+          </div>
+          <h3 className="text-lg font-bold text-red-900">Match Officiating Window Closed</h3>
+          <p className="text-sm text-red-700 max-w-md mx-auto mt-1.5 leading-relaxed">
+            Your designated referee access expired on <strong>{formattedExpiry}</strong>. You are only authorized to officiate matches during your valid designated window.
+          </p>
+        </div>
+      ) : activeMatches.length === 0 ? (
         <div className="card">
           <EmptyState
             icon={Shield}
