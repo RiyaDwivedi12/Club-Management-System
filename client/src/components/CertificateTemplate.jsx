@@ -191,22 +191,49 @@ const CertificateTemplate = ({ cert, onClose }) => {
                   {recipientName}
                 </div>
 
-                {/* Roll Number & Course / Department Badge */}
-                {(cert.roll_no || cert.userId?.roll_no || cert.department || cert.userId?.department || cert.teamName) && (
+                {/* Position & Trophy Honors Badge */}
+                {(() => {
+                  const pos = cert.position || cert.achievement || (cert.type === 'winner' ? '1st Position' : cert.type === 'runner-up' ? '2nd Position' : cert.type === 'third-place' ? '3rd Position' : 'Participation');
+                  const isFirst = pos.includes('1st') || pos.toLowerCase().includes('winner');
+                  const isSecond = pos.includes('2nd') || pos.toLowerCase().includes('runner');
+                  const isThird = pos.includes('3rd') || pos.toLowerCase().includes('third');
+
+                  const badgeClass = isFirst
+                    ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-amber-950 border-amber-300 shadow-sm'
+                    : isSecond
+                    ? 'bg-gradient-to-r from-slate-200 to-slate-300 text-slate-800 border-slate-300'
+                    : isThird
+                    ? 'bg-gradient-to-r from-amber-700 to-amber-800 text-white border-amber-600'
+                    : 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white border-blue-500';
+
+                  const icon = isFirst ? '🥇' : isSecond ? '🥈' : isThird ? '🥉' : '📜';
+
+                  return (
+                    <div className={`my-1 px-4 py-1 rounded-full text-xs font-black tracking-wider border uppercase flex items-center gap-1.5 ${badgeClass}`}>
+                      <span>{icon}</span>
+                      <span>{pos}</span>
+                      <span>—</span>
+                      <span>{gameName}</span>
+                    </div>
+                  );
+                })()}
+
+                {/* Roll Number & Class Name Badge */}
+                {(cert.roll_no || cert.userId?.roll_no || cert.className || cert.department || cert.userId?.department || cert.teamName) && (
                   <div className="flex flex-wrap items-center justify-center gap-2 text-[10px] font-bold text-slate-600 uppercase tracking-wider my-1 font-mono">
                     {(cert.roll_no || cert.userId?.roll_no) && (
                       <span className="px-2.5 py-0.5 bg-slate-100 rounded-md border border-slate-200 text-slate-800">
                         Roll No: {cert.roll_no || cert.userId?.roll_no}
                       </span>
                     )}
-                    {(cert.department || cert.userId?.department) && (
-                      <span className="px-2.5 py-0.5 bg-slate-100 rounded-md border border-slate-200 text-slate-800">
-                        Course: {cert.department || cert.userId?.department} {cert.userId?.year || cert.year ? `(Yr ${cert.year || cert.userId?.year})` : ''}
+                    {(cert.className || cert.teamName) && (
+                      <span className="px-2.5 py-0.5 bg-blue-50 text-blue-900 rounded-md border border-blue-200 font-bold">
+                        Class: {cert.className || cert.teamName}
                       </span>
                     )}
-                    {cert.teamName && (
-                      <span className="px-2.5 py-0.5 bg-amber-50 text-amber-900 rounded-md border border-amber-200">
-                        Team: {cert.teamName}
+                    {(cert.department || cert.userId?.department) && !(cert.className) && (
+                      <span className="px-2.5 py-0.5 bg-slate-100 rounded-md border border-slate-200 text-slate-800">
+                        Dept: {cert.department || cert.userId?.department}
                       </span>
                     )}
                   </div>
@@ -214,7 +241,7 @@ const CertificateTemplate = ({ cert, onClose }) => {
 
                 {/* CITATION */}
                 <p className="text-[11px] uppercase font-semibold text-slate-700 tracking-[0.05em] leading-relaxed max-w-xl text-center mt-1">
-                  IN RECOGNITION OF HIS OUTSTANDING DEDICATION, CONSISTENT PERFORMANCE, AND PROFESSIONALISM AS A VALUED PLAYER IN THE {tournamentTitle.toUpperCase()}.
+                  IN RECOGNITION OF OUTSTANDING ATHLETIC EXCELLENCE, DEDICATION, AND SECURING {(cert.position || cert.achievement || 'HONORS').toUpperCase()} IN {gameName.toUpperCase()} AT THE {tournamentTitle.toUpperCase()}.
                 </p>
 
                 <p className="text-[10px] font-bold uppercase text-slate-500 tracking-[0.14em] mt-3">

@@ -124,30 +124,30 @@ const createCertificatePDF = (certData, filePath) => {
     doc.strokeColor('#C59B27').lineWidth(2);
     doc.moveTo(cx - 150, 230).lineTo(cx + 150, 230).stroke();
 
-    // 10. Roll Number & Department Badge
+    // 10. Roll Number & Class Name Badge
     const rollText = certData.roll_no ? `ROLL NO: ${certData.roll_no}` : '';
-    const deptText = certData.department ? ` • ${certData.department.toUpperCase()}` : '';
-    if (rollText) {
+    const classText = certData.className ? ` • CLASS: ${certData.className.toUpperCase()}` : (certData.department ? ` • ${certData.department.toUpperCase()}` : '');
+    if (rollText || classText) {
       doc.font('Helvetica-Bold')
          .fontSize(10)
          .fillColor('#475569')
-         .text(`${rollText}${deptText}`, 0, 238, {
+         .text(`${rollText}${classText}`.trim(), 0, 238, {
            width: contentW,
            align: 'center',
            characterSpacing: 1
          });
     }
 
-    // 11. Body Text with Game & Match Details
+    // 11. Body Text with Game & Position Details
     const game = certData.game || 'Sports Tournament';
-    const match = certData.matchDetails || certData.achievement || 'Match Victory';
+    const position = certData.position || certData.achievement || (certData.type === 'winner' ? '1st Position' : certData.type === 'runner-up' ? '2nd Position' : certData.type === 'third-place' ? '3rd Position' : 'Participation');
     const tournament = certData.tournamentName || certData.title || 'Inter-Department Annual Championship';
 
     doc.font('Helvetica')
        .fontSize(12)
        .fillColor('#334155')
        .text(
-         `In recognition of outstanding performance, sportsmanship, and triumph in ${game}. `,
+         `In recognition of outstanding athletic excellence, dedication, and sportsmanship in ${game}. `,
          cx - 240,
          265,
          {
@@ -157,14 +157,16 @@ const createCertificatePDF = (certData, filePath) => {
          }
        );
 
-    // Prominent Match Won highlight banner
+    // Prominent Position Won Banner (1st Position / 2nd Position / 3rd Position)
+    const posUpper = position.toUpperCase();
+    const posColor = (posUpper.includes('1ST') || posUpper.includes('WINNER')) ? '#B45309' : posUpper.includes('2ND') ? '#475569' : posUpper.includes('3RD') ? '#92400E' : '#1E40AF';
     doc.font('Helvetica-Bold')
-       .fontSize(14)
-       .fillColor('#7E1522')
-       .text(`VICTORY: ${match.toUpperCase()}`, 0, 305, {
+       .fontSize(15)
+       .fillColor(posColor)
+       .text(`★ ${posUpper} ★`, 0, 302, {
          width: contentW,
          align: 'center',
-         characterSpacing: 1
+         characterSpacing: 2
        });
 
     doc.font('Helvetica-Oblique')
@@ -536,7 +538,139 @@ export const deleteCertificate = async (req, res) => {
   }
 };
 
-// Legacy generator
+// @desc    Generate / Issue a Certificate directly with Class Name, Game, and Position (1st, 2nd, 3rd)
+// @route   POST /api/certificates/generate
+// @access  Private (Admin, Faculty, President)
 export const generateCertificates = async (req, res) => {
-  return res.status(200).json({ message: 'Use bulk-issue endpoint' });
+  try {
+    const {
+      recipientName,
+      roll_no,
+      className,
+      game,
+      position,
+      rank,
+      matchDetails,
+      tournamentId,
+      title,
+      issuedByName,
+      issuedByRole
+    } = req.body;
+
+    if (!recipientName && !roll_no) {
+      return res.status(400).json({ message: 'Student recipient name or roll number is required' });
+    }
+
+    const cleanRoll = (roll_no || '').trim();
+    const cleanName = (recipientName || '').trim();
+
+    // Try finding registered user by roll_no or name
+    let user = null;
+    if (cleanRoll) {
+      user = await User.findOne({
+        $or: [
+          { roll_no: new RegExp('^' + cleanRoll + '$', 'i') },
+          { username: new RegExp('^' + cleanRoll + '$', 'i') }
+        ]
+      });
+    }
+    if (!user && cleanName) {
+      user = await User.findOne({
+        name: new RegExp('^' + cleanName + '$', 'i')
+      });
+    }
+
+    const assignedRoll = cleanRoll || user?.roll_no || '';
+    const assignedName = cleanName || user?.name || 'Student Athlete';
+    const assignedClass = (className || '').trim() || user?.className || user?.department || '';
+    const assignedGame = (game || '').trim() || 'General Sports';
+    const assignedPosition = position || '1st Position';
+
+    let certType = 'winner';
+    let numericRank = Number(rank) || 1;
+    if (assignedPosition.includes('1st') || assignedPosition.toLowerCase().includes('winner')) {
+      certType = 'winner';
+      numericRank = 1;
+    } else if (assignedPosition.includes('2nd') || assignedPosition.toLowerCase().includes('runner')) {
+      certType = 'runner-up';
+      numericRank = 2;
+    } else if (assignedPosition.includes('3rd') || assignedPosition.toLowerCase().includes('third')) {
+      certType = 'third-place';
+      numericRank = 3;
+    } else {
+      certType = 'participation';
+      numericRank = 4;
+    }
+
+    const verificationHash = 'CERT-2026-' + crypto.randomBytes(4).toString('hex').toUpperCase();
+    const uploadDir = path.join(__dirname, '../uploads/certificates');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    const fileName = 'cert_' + verificationHash + '.pdf';
+    const filePath = path.join(uploadDir, fileName);
+
+    const certData = {
+      recipientName: assignedName,
+      userName: assignedName,
+      roll_no: assignedRoll,
+      className: assignedClass,
+      game: assignedGame,
+      position: assignedPosition,
+      rank: numericRank,
+      type: certType,
+      tournamentName: (title || '').trim() || 'Annual Campus Sports Championship',
+      title: (title || '').trim() || 'Annual Campus Sports Championship',
+      matchDetails: matchDetails || (assignedPosition + ' in ' + assignedGame),
+      achievement: assignedPosition + ' Winner',
+      issuedByName: (issuedByName || '').trim() || req.user?.name || 'Platform Administrator',
+      issuedByRole: issuedByRole || req.user?.role || 'admin',
+      verificationHash,
+      issueDate: new Date()
+    };
+
+    await createCertificatePDF(certData, filePath);
+
+    const certificate = await Certificate.create({
+      userId: user?._id || undefined,
+      tournamentId: tournamentId || undefined,
+      title: certData.title,
+      recipientName: assignedName,
+      roll_no: assignedRoll,
+      className: assignedClass,
+      game: assignedGame,
+      position: assignedPosition,
+      rank: numericRank,
+      matchDetails: certData.matchDetails,
+      achievement: certData.achievement,
+      type: certType,
+      verificationHash,
+      pdfUrl: '/uploads/certificates/' + fileName,
+      issuedByName: certData.issuedByName,
+      issuedByRole: certData.issuedByRole,
+      status: 'issued',
+      issueDate: new Date()
+    });
+
+    // Notify student in real-time
+    if (user?._id) {
+      const io = req.app.get('io');
+      Notification.create({
+        userId: user._id,
+        message: '🎓 You have been awarded a Certificate for ' + assignedPosition + ' in ' + assignedGame + '!',
+        type: 'certificate',
+        link: '/certificates'
+      }).then((notif) => {
+        if (io) io.to(user._id.toString()).emit('newNotification', notif);
+      }).catch(err => console.error('Notification error:', err));
+    }
+
+    res.status(201).json({
+      message: 'Certificate for ' + assignedPosition + ' in ' + assignedGame + ' issued successfully to ' + assignedName + '!',
+      certificate
+    });
+  } catch (error) {
+    console.error('Error generating certificate:', error);
+    res.status(500).json({ message: error.message });
+  }
 };

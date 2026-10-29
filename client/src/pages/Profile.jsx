@@ -281,7 +281,7 @@ const Profile = () => {
 
       {/* Student Stats */}
       {isStudent && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           <StatTile icon={Book} tint="blue" label="Clubs Joined" value={user?.clubsJoined || memberships.length || 0} />
           <StatTile
             icon={Receipt}
@@ -289,7 +289,6 @@ const Profile = () => {
             label="Paid Receipts"
             value={studentPayments.filter(p => p.status === 'success' || p.status === 'Paid').length}
           />
-          <StatTile icon={Gamepad2} tint="indigo" label="Games Played" value={user?.gamesPlayed || 0} />
           <StatTile icon={Award} tint="amber" label="Certificates" value={studentCertificates.length} />
         </div>
       )}
