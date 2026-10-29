@@ -55,7 +55,18 @@ app.use(helmet({
 app.use(morgan('dev'));
 app.use(cors({
   origin: (origin, callback) => callback(null, true),
-  credentials: true
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token', 'Accept'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  exposedHeaders: ['Authorization']
+}));
+
+// Handle preflight for all routes
+app.options('*', cors({
+  origin: (origin, callback) => callback(null, true),
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token', 'Accept'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
 }));
 
 // Serve uploaded files statically

@@ -7,9 +7,10 @@ const useAuthStore = create((set) => ({
   
   setCredentials: (userData) => {
     localStorage.setItem('userInfo', JSON.stringify(userData));
-    // Save token for cross-domain auth (Vercel + Render)
+    // Save token separately for cross-domain auth (Vercel + Render)
     if (userData.token) {
       localStorage.setItem('authToken', userData.token);
+      // Works for both Axios 1.x and older
       axios.defaults.headers.common['Authorization'] = `Bearer ${userData.token}`;
     }
     set({ user: userData, isAuthenticated: true });
@@ -23,10 +24,20 @@ const useAuthStore = create((set) => ({
   }
 }));
 
-// Restore token on page refresh
-const savedToken = localStorage.getItem('authToken');
-if (savedToken) {
-  axios.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
+// Restore token on page refresh — runs when store is first imported
+try {
+  const savedToken =
+    localStorage.getItem('authToken') ||
+    JSON.parse(localStorage.getItem('userInfo') || '{}')?.token;
+
+  if (savedToken) {
+    axios.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
+    if (!localStorage.getItem('authToken')) {
+      localStorage.setItem('authToken', savedToken);
+    }
+  }
+} catch (e) {
+  // ignore JSON parse errors on corrupt localStorage
 }
 
 export default useAuthStore;

@@ -3,19 +3,32 @@ import User from '../models/User.js';
 
 // Protect routes - Verify JWT
 const protect = async (req, res, next) => {
-  // Accept token from cookie OR Authorization header (for cross-domain Vercel+Render)
-  let token = req.cookies.jwt;
+  let token = null;
 
+  // 1. Try cookie first (same-domain)
+  if (req.cookies && req.cookies.jwt) {
+    token = req.cookies.jwt;
+  }
+
+  // 2. Try Authorization header (cross-domain: Vercel -> Render)
   if (!token && req.headers.authorization) {
-    const authHeader = req.headers.authorization.trim();
-    if (/^bearer\s+/i.test(authHeader)) {
-      token = authHeader.replace(/^bearer\s+/i, '').trim();
+    const authHeader = String(req.headers.authorization).trim();
+    const match = authHeader.match(/^Bearer\s+(.+)$/i);
+    if (match && match[1]) {
+      token = match[1].trim();
     }
+  }
+
+  // 3. Try x-auth-token header as fallback
+  if (!token && req.headers['x-auth-token']) {
+    token = String(req.headers['x-auth-token']).trim();
   }
 
   if (token) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret123');
+
+      // Emergency admin bypass
       if (decoded.userId === 'admin_emergency_id') {
         req.user = {
           _id: 'admin_emergency_id',
@@ -26,11 +39,15 @@ const protect = async (req, res, next) => {
         };
         return next();
       }
+
       req.user = await User.findById(decoded.userId).select('-password');
+      if (!req.user) {
+        return res.status(401).json({ message: 'Not authorized, user not found' });
+      }
       next();
     } catch (error) {
-      console.error(error);
-      res.status(401).json({ message: 'Not authorized, token failed' });
+      console.error('JWT verify error:', error.message);
+      res.status(401).json({ message: 'Not authorized, token failed or expired' });
     }
   } else {
     res.status(401).json({ message: 'Not authorized, no token' });
@@ -54,7 +71,7 @@ const authorize = (...roles) => {
 
     if (!isAuthorized) {
       return res.status(403).json({ 
-        message: `User role '${userRole}' is not authorized to access this route` 
+        message: `User role '${userRole}' is not authorized to access this route`
       });
     }
 

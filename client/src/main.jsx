@@ -24,6 +24,7 @@ try {
 // Dynamic request interceptor: attach Bearer token on EVERY outgoing HTTP call
 axios.interceptors.request.use(
   (config) => {
+    // --- 1. Attach auth token ---
     let token = localStorage.getItem('authToken');
     if (!token) {
       try {
@@ -34,15 +35,25 @@ axios.interceptors.request.use(
       }
     }
     if (token) {
-      config.headers = config.headers || {};
-      config.headers.Authorization = `Bearer ${token}`;
+      // Use .set() for Axios 1.x AxiosHeaders compatibility
+      if (typeof config.headers?.set === 'function') {
+        config.headers.set('Authorization', `Bearer ${token}`);
+      } else {
+        config.headers = config.headers || {};
+        config.headers['Authorization'] = `Bearer ${token}`;
+      }
     }
 
-    // Auto-fix for all document/file uploads:
-    // If request data is FormData, remove manual Content-Type so browser sets correct boundary
-    if (config.data instanceof FormData && config.headers) {
-      delete config.headers['Content-Type'];
-      delete config.headers['content-type'];
+    // --- 2. Auto-fix multipart boundary ---
+    // When sending FormData, remove any manually set Content-Type so
+    // the browser auto-appends the correct boundary parameter
+    if (config.data instanceof FormData) {
+      if (typeof config.headers?.delete === 'function') {
+        config.headers.delete('Content-Type');
+      } else if (config.headers) {
+        delete config.headers['Content-Type'];
+        delete config.headers['content-type'];
+      }
     }
 
     return config;
