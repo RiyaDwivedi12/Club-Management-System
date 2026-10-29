@@ -38,9 +38,11 @@ axios.interceptors.request.use(
       // Use .set() for Axios 1.x AxiosHeaders compatibility
       if (typeof config.headers?.set === 'function') {
         config.headers.set('Authorization', `Bearer ${token}`);
+        config.headers.set('x-auth-token', token);
       } else {
         config.headers = config.headers || {};
         config.headers['Authorization'] = `Bearer ${token}`;
+        config.headers['x-auth-token'] = token;
       }
     }
 
@@ -62,21 +64,21 @@ axios.interceptors.request.use(
 );
 
 
-// Auto-recover if token expired or changed
+// Clean session handler: If server returns 401 on protected routes, redirect cleanly
 axios.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error.response?.status;
-    const msg = error.response?.data?.message || '';
-    if (status === 401 && (msg.includes('token failed') || msg.includes('token expired'))) {
-      localStorage.removeItem('authToken');
-      try {
-        const u = JSON.parse(localStorage.getItem('userInfo') || '{}');
-        if (u?.token) {
-          delete u.token;
-          localStorage.setItem('userInfo', JSON.stringify(u));
+    const msg = String(error.response?.data?.message || '').toLowerCase();
+    if (status === 401 && (msg.includes('token failed') || msg.includes('token expired') || msg.includes('no token') || msg.includes('user not found'))) {
+      const currentPath = window.location.pathname;
+      if (currentPath.startsWith('/admin') || currentPath.startsWith('/profile') || currentPath.startsWith('/membership-fees')) {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userInfo');
+        if (!window.location.search.includes('expired=1')) {
+          window.location.href = '/login?expired=1';
         }
-      } catch (e) {}
+      }
     }
     return Promise.reject(error);
   }

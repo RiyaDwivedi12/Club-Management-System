@@ -1316,11 +1316,19 @@ const bulkOnboardRole = async (req, res) => {
         }
         await user.save();
       } else {
-        const cleanEmail = email ? email.toLowerCase() : `${(roll_no || name).replace(/[^a-zA-Z0-9]/g, '').toLowerCase()}@campus.edu`;
+        const cleanEmail = email ? email.toLowerCase().trim() : `${(roll_no || name).replace(/[^a-zA-Z0-9]/g, '').toLowerCase()}@campus.edu`;
+        
+        let baseUsername = (cleanEmail.split('@')[0] || name || 'user').toLowerCase().replace(/[^a-z0-9]/g, '');
+        let candidateUsername = baseUsername || `user_${Date.now()}`;
+        let counter = 1;
+        while (await User.findOne({ username: candidateUsername })) {
+          candidateUsername = `${baseUsername}${counter++}`;
+        }
+
         user = await User.create({
           name,
           email: cleanEmail,
-          username: cleanEmail.split('@')[0],
+          username: candidateUsername,
           password,
           role,
           roll_no: roll_no || undefined,
