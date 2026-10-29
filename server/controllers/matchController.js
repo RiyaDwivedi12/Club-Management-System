@@ -59,13 +59,47 @@ const createMatch = async (req, res) => {
       referee = req.user;
     }
 
+    // Enforcement: Teacher / Faculty Coordinator, President, and Vice President can ONLY create matches for their assigned club(s)
+    let finalClubId = clubId;
+    if (req.user && req.user.role !== 'admin') {
+      const allowedQuery = [];
+      if (req.user.role === 'faculty') {
+        allowedQuery.push({ facultyId: req.user._id });
+      } else if (req.user.role === 'president') {
+        allowedQuery.push({ presidentId: req.user._id });
+      } else if (req.user.role === 'vice_president') {
+        allowedQuery.push({ vicePresidentId: req.user._id }, { presidentId: req.user._id });
+      } else {
+        allowedQuery.push({ facultyId: req.user._id }, { presidentId: req.user._id }, { vicePresidentId: req.user._id });
+      }
+
+      const assignedClubs = await Club.find({ $or: allowedQuery });
+      if (!assignedClubs || assignedClubs.length === 0) {
+        return res.status(403).json({
+          message: 'Access denied. You have not been assigned as a Coordinator or Leader of any club by the Admin yet.'
+        });
+      }
+
+      const assignedClubIds = assignedClubs.map(c => c._id.toString());
+      if (!finalClubId && assignedClubs.length === 1) {
+        finalClubId = assignedClubs[0]._id;
+      }
+
+      if (!finalClubId || !assignedClubIds.includes(finalClubId.toString())) {
+        const clubNames = assignedClubs.map(c => c.name).join(', ');
+        return res.status(403).json({
+          message: `Access restricted. As a ${req.user.role.replace('_', ' ')}, you are only authorized to schedule matches for your assigned club: ${clubNames}.`
+        });
+      }
+    }
+
     // Lookup coordinator from club if not explicitly provided
     let finalCoordId = coordinatorId || null;
     let finalCoordName = coordinatorName || '';
     let finalSport = sport || 'Sports';
 
-    if (clubId) {
-      const club = await Club.findById(clubId).populate('facultyId', 'name email');
+    if (finalClubId) {
+      const club = await Club.findById(finalClubId).populate('facultyId', 'name email');
       if (club) {
         if (!finalCoordId && club.facultyId) {
           finalCoordId = club.facultyId._id;
@@ -79,7 +113,7 @@ const createMatch = async (req, res) => {
 
     const match = await Match.create({
       tournamentId: (tournamentId && tournamentId !== '') ? tournamentId : undefined,
-      clubId: (clubId && clubId !== '') ? clubId : undefined,
+      clubId: (finalClubId && finalClubId !== '') ? finalClubId : undefined,
       sport: finalSport,
       teamA: (teamA || '').trim(),
       teamB: (teamB || '').trim(),

@@ -34,8 +34,27 @@ const Matches = () => {
   useEffect(() => {
     fetchMatches();
     axios.get('/api/tournaments').then(res => setTournaments(res.data || [])).catch(console.error);
-    axios.get('/api/clubs').then(res => setClubs(res.data || [])).catch(console.error);
-  }, [fetchMatches]);
+
+    // For faculty coordinator, president, vice_president: only load assigned clubs
+    let clubsEndpoint = '/api/clubs';
+    if (user?.role === 'faculty') {
+      clubsEndpoint = '/api/clubs/coordinator';
+    } else if (user?.role === 'president' || user?.role === 'vice_president') {
+      clubsEndpoint = '/api/clubs/president';
+    }
+
+    axios.get(clubsEndpoint, { withCredentials: true }).then(res => {
+      const list = res.data || [];
+      setClubs(list);
+      if (list.length === 1) {
+        setFormData(prev => ({
+          ...prev,
+          clubId: list[0]._id,
+          sport: list[0].sportType || list[0].category || prev.sport
+        }));
+      }
+    }).catch(console.error);
+  }, [fetchMatches, user]);
 
   const handleScheduleSubmit = async (e) => {
     e.preventDefault();
@@ -85,7 +104,7 @@ const Matches = () => {
 
   const filteredMatches = filter === 'all' ? matches : matches.filter(m => m.status === filter);
 
-  const canCreateMatch = user && (user.role === 'president' || user.role === 'faculty' || user.role === 'admin');
+  const canCreateMatch = user && (user.role === 'president' || user.role === 'vice_president' || user.role === 'faculty' || user.role === 'admin');
 
   return (
     <motion.div
@@ -326,15 +345,37 @@ const Matches = () => {
               <form onSubmit={handleScheduleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="label">Club</label>
+                    <label className="label">{user?.role !== 'admin' ? 'Assigned Club *' : 'Club'}</label>
                     <select
                       value={formData.clubId}
-                      onChange={(e) => setFormData({ ...formData, clubId: e.target.value })}
-                      className="input"
+                      onChange={(e) => {
+                        const sel = clubs.find(c => c._id === e.target.value);
+                        setFormData({ 
+                          ...formData, 
+                          clubId: e.target.value,
+                          ...(sel ? { sport: sel.sportType || sel.category || formData.sport } : {})
+                        });
+                      }}
+                      className="input font-semibold"
+                      required={user?.role !== 'admin'}
+                      disabled={user?.role !== 'admin' && clubs.length === 1}
                     >
-                      <option value="">Select Club</option>
-                      {clubs.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                      {clubs.length === 0 ? (
+                        <option value="">No Assigned Club Found</option>
+                      ) : clubs.length === 1 ? (
+                        <option value={clubs[0]._id}>🔒 {clubs[0].name} (Your Assigned Club)</option>
+                      ) : (
+                        <>
+                          <option value="">Select Your Assigned Club</option>
+                          {clubs.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                        </>
+                      )}
                     </select>
+                    {user?.role !== 'admin' && clubs.length === 0 && (
+                      <p className="text-[11px] text-red-500 font-bold mt-1">
+                        ⚠️ You have not been assigned to any club yet. Please ask the Admin to assign you.
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="label">Sport</label>

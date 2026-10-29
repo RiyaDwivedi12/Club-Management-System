@@ -1,20 +1,24 @@
 import mongoose from 'mongoose';
 
+// Primary MongoDB Atlas Cloud Connection String
+const MONGO_ATLAS_URI = 'mongodb+srv://clubadmin:ClubAdmin2026@cluster0.d32voqg.mongodb.net/club-management?retryWrites=true&w=majority';
+
 const connectDB = async () => {
-  const uri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/club-management';
+  // Always prioritize MongoDB Atlas; ignore any legacy local 127.0.0.1 addresses
+  let uri = process.env.MONGO_URI;
+  if (!uri || uri.includes('127.0.0.1') || uri.includes('localhost')) {
+    uri = MONGO_ATLAS_URI;
+  }
+
   try {
-    const isAtlas = uri.includes('mongodb+srv');
-    const conn = await mongoose.connect(uri);
-    console.log(`✅ MongoDB Connected (${isAtlas ? 'Atlas Cloud' : 'Local'}): ${conn.connection.host}`);
+    const conn = await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 10000,
+      socketTimeoutMS: 45000,
+    });
+    console.log(`✅ Connected directly to MongoDB Atlas Cloud: ${conn.connection.host} (DB: ${conn.connection.name})`);
   } catch (error) {
-    console.error(`❌ MongoDB Connection Error: ${error.message}`);
-    if (uri.includes('mongodb+srv')) {
-      console.log('👉 For MongoDB Atlas:');
-      console.log('   1. Check your IP Access List in Atlas Network Access (make sure 0.0.0.0/0 is added).');
-      console.log('   2. Verify username and password in MONGO_URI.');
-    } else {
-      console.log('👉 Ensure your local MongoDB service is running on 127.0.0.1:27017.');
-    }
+    console.error(`❌ MongoDB Atlas Connection Error: ${error.message}`);
+    console.log('👉 Ensure Atlas Network Access allows 0.0.0.0/0 (anywhere).');
   }
 };
 
