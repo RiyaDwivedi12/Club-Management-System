@@ -178,14 +178,14 @@ const Login = () => {
                 {/* Identifier */}
                 <div>
                   <label htmlFor="login-identifier" className="label">
-                    {selectedRole === 'student' ? 'Roll Number / College Email / Username' : 'Official Email / Username'}
+                    {selectedRole === 'student' ? 'Roll Number / College Email / Username' : 'Full Name / Official Email / Username'}
                   </label>
                   <input
                     id="login-identifier"
                     type="text"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder={selectedRole === 'student' ? 'e.g. 23CS012 or student@college.edu' : `${selectedRole}@campus.edu`}
+                    placeholder={selectedRole === 'student' ? 'e.g. 23CS012 or student@college.edu' : 'e.g. Anubhav Singh or faculty@campus.edu'}
                     required
                     className="input py-3"
                   />

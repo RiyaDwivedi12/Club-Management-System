@@ -4,29 +4,22 @@ import bcrypt from 'bcryptjs';
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: [true, 'Please add a name']
+    required: true
   },
   username: {
     type: String,
-    required: [true, 'Please add a username'],
     unique: true,
+    sparse: true,
     trim: true
   },
   email: {
     type: String,
-    required: [true, 'Please add an email'],
-    unique: true,
-    trim: true,
-    lowercase: true,
-    match: [
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-      'Please add a valid email'
-    ]
+    required: true,
+    unique: true
   },
   password: {
     type: String,
-    required: [true, 'Please add a password'],
-    minlength: 4,
+    required: true,
     select: false
   },
   role: {
@@ -34,38 +27,42 @@ const userSchema = new mongoose.Schema({
     enum: ['student', 'president', 'vice_president', 'faculty', 'referee', 'admin'],
     default: 'student'
   },
-  profilePicture: {
-    type: String,
-    default: 'default.jpg' // In production, this will be a Cloudinary URL
+  isReferee: {
+    type: Boolean,
+    default: false
   },
-  isReferee: { type: Boolean, default: false },
-  refereeSport: { type: String, default: 'General' },
-  refereeExpiresAt: { type: Date, default: null },
+  refereeSport: {
+    type: String,
+    default: 'General'
+  },
+  refereeExpiresAt: {
+    type: Date,
+    default: null
+  },
   roll_no: {
     type: String,
-    required: function() { return this.role === 'student' && !this.isReferee; }
-  },
-  course: {
-    type: String, // e.g. B.Tech, BCA, MCA, M.Tech, MBA, B.Sc
-    default: 'B.Tech'
-  },
-  section: {
-    type: String, // e.g. A, B, C, D
-    default: 'A'
+    sparse: true
   },
   department: {
-    type: String,
-    required: function() { return this.role === 'student' && !this.isReferee; }
+    type: String
   },
   year: {
     type: Number,
-    required: function() { return this.role === 'student' && !this.isReferee; }
+    default: 1
   },
-  className: {
+  course: {
     type: String,
-    trim: true
+    default: 'B.Tech'
   },
-  classId: {
+  section: {
+    type: String,
+    default: 'A'
+  },
+  profilePicture: {
+    type: String,
+    default: ''
+  },
+  collegeClass: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'CollegeClass'
   },
@@ -104,7 +101,13 @@ userSchema.pre('save', async function(next) {
 
 // Match user entered password to hashed password in database
 userSchema.methods.matchPassword = async function(enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
+  if (!this.password) return false;
+  if (this.password === enteredPassword) return true;
+  try {
+    return await bcrypt.compare(enteredPassword, this.password);
+  } catch (err) {
+    return false;
+  }
 };
 
 const User = mongoose.model('User', userSchema);
