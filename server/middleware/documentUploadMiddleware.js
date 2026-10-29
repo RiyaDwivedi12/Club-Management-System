@@ -1,24 +1,25 @@
 import multer from 'multer';
+import path from 'path';
 
 // Memory storage keeps file buffer in memory for instant XLSX parsing
 const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
-  const allowedMimes = [
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
-    'application/vnd.ms-excel', // .xls
-    'text/csv', // .csv
-    'application/csv',
-    'text/plain'
-  ];
+  const ext = path.extname(file.originalname || '').toLowerCase();
+  const allowedExtensions = ['.xlsx', '.xls', '.csv', '.tsv', '.txt', '.ods'];
 
-  const allowedExtensions = ['.xlsx', '.xls', '.csv'];
-  const ext = file.originalname.toLowerCase().slice(file.originalname.lastIndexOf('.'));
-
-  if (allowedMimes.includes(file.mimetype) || allowedExtensions.includes(ext)) {
+  if (
+    allowedExtensions.includes(ext) ||
+    !file.mimetype ||
+    file.mimetype === 'application/octet-stream' ||
+    file.mimetype.includes('excel') ||
+    file.mimetype.includes('spreadsheet') ||
+    file.mimetype.includes('csv') ||
+    file.mimetype.includes('text')
+  ) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file format. Please upload an Excel (.xlsx, .xls) or CSV file.'), false);
+    cb(new Error(`Invalid file format '${ext}'. Please upload an Excel (.xlsx, .xls) or CSV file.`), false);
   }
 };
 
@@ -26,7 +27,7 @@ const documentUpload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 1024 * 1024 * 15 // 15MB limit
+    fileSize: 25 * 1024 * 1024 // 25MB limit
   }
 });
 

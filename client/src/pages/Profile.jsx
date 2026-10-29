@@ -139,10 +139,7 @@ const Profile = () => {
     setUploading(true);
     try {
       const res = await axios.post('/api/auth/profile-pic', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        },
-        withCredentials: true
+                withCredentials: true
       });
 
       setCredentials({ ...user, profilePicture: res.data.profilePicture });

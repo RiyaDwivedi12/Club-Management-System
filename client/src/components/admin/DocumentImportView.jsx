@@ -31,8 +31,7 @@ const DocumentImportView = ({ onImportSuccess }) => {
 
     try {
       const res = await axios.post('/api/student-directory/import-preview', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        withCredentials: true
+                withCredentials: true
       });
       setPreviewData(res.data);
       toast.success(`Analyzed ${res.data.totalRows} student rows from spreadsheet!`);

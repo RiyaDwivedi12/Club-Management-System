@@ -4,6 +4,7 @@ import Notification from '../models/Notification.js';
 import generateToken from '../utils/generateToken.js';
 import sendEmail from '../utils/sendEmail.js';
 import crypto from 'crypto';
+import XLSX from 'xlsx';
 
 // @desc    Register a new user
 // @route   POST /api/auth/register
@@ -1181,20 +1182,19 @@ const bulkOnboardRole = async (req, res) => {
     let records = [];
 
     // Parse uploaded Excel / CSV file if present
-    if (req.file) {
-      const xlsx = await import('xlsx');
-      const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+    if (req.file && req.file.buffer) {
+      const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
       const sheetName = workbook.SheetNames[0];
       if (!sheetName) return res.status(400).json({ message: 'Spreadsheet is empty' });
-      records = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
+      records = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
     } else if (Array.isArray(req.body.records) && req.body.records.length > 0) {
       records = req.body.records;
     } else {
-      return res.status(400).json({ message: 'Please upload an Excel / CSV file or provide record rows' });
+      return res.status(400).json({ message: 'Please upload an Excel (.xlsx, .xls) or CSV file, or provide record rows' });
     }
 
-    if (records.length === 0) {
-      return res.status(400).json({ message: 'No valid data found in the file' });
+    if (!records || records.length === 0) {
+      return res.status(400).json({ message: 'No valid data found in the spreadsheet or file is empty' });
     }
 
     // Helper: fuzzy column match
@@ -1202,7 +1202,9 @@ const bulkOnboardRole = async (req, res) => {
       const keys = Object.keys(row);
       for (const c of candidates) {
         const found = keys.find(k => k.toLowerCase().replace(/[^a-z0-9]/g, '') === c.toLowerCase().replace(/[^a-z0-9]/g, ''));
-        if (found && row[found] !== undefined && row[found] !== '') return String(row[found]).trim();
+        if (found && row[found] !== undefined && row[found] !== null && String(row[found]).trim() !== '') {
+          return String(row[found]).trim();
+        }
       }
       return '';
     };
@@ -1214,17 +1216,22 @@ const bulkOnboardRole = async (req, res) => {
 
     for (let i = 0; i < records.length; i++) {
       const row = records[i];
-      const name = findCol(row, ['name', 'facultyname', 'presidentname', 'refereename', 'fullname', 'studentname']) || 'Campus Member';
-      const email = findCol(row, ['email', 'gmail', 'mail', 'emailaddress']);
-      const roll_no = findCol(row, ['roll_no', 'rollno', 'rollnumber', 'roll', 'id']);
-      const password = findCol(row, ['password', 'pass', 'code', 'secretcode', 'secret']) || 
+      const name = findCol(row, ['name', 'facultyname', 'presidentname', 'refereename', 'fullname', 'studentname', 'teachername', 'coordinator', 'membername', 'personname', 'user']) || 'Campus Member';
+      let email = findCol(row, ['email', 'gmail', 'mail', 'emailaddress', 'emailid', 'gmailid', 'useremail', 'googlemail', 'contactmail', 'mailid']);
+      const roll_no = findCol(row, ['rollno', 'rollnumber', 'roll', 'id', 'studentid', 'enrollmentno', 'regno', 'registrationnumber']);
+      const password = findCol(row, ['password', 'pass', 'code', 'secretcode', 'secret', 'userpassword', 'pwd']) || 
         (role === 'faculty' ? 'faculty123' : role === 'president' ? 'president123' : role === 'vice_president' ? 'vp123' : 'referee123');
       const department = findCol(row, ['department', 'dept', 'branch', 'facultydept']) || (role === 'faculty' ? 'Academic Staff' : 'General');
-      const clubName = findCol(row, ['club', 'clubname', 'assignedclub']);
-      const sport = findCol(row, ['sport', 'game', 'discipline', 'assignedsport']) || 'General Sports';
-      const validDays = Number(findCol(row, ['validdays', 'duration', 'days', 'validuntil', 'expiry'])) || 30;
+      const clubName = findCol(row, ['club', 'clubname', 'assignedclub', 'clubtitle']);
+      const sport = findCol(row, ['sport', 'game', 'discipline', 'assignedsport', 'matchsport']) || 'General Sports';
+      const validDays = Number(findCol(row, ['validdays', 'duration', 'days', 'validuntil', 'expiry', 'validity'])) || 30;
 
-      if (!email && !roll_no) continue; // skip empty rows
+      // If neither email nor roll_no was found, derive a fallback institutional email from the name
+      if (!email && !roll_no) {
+        const sanitized = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (!sanitized) continue; // skip completely blank row
+        email = `${sanitized}@campus.edu`;
+      }
 
       // Calculate referee expiration date & time
       let refereeExpiresAt = null;

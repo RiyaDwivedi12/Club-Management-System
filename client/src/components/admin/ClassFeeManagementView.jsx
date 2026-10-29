@@ -366,8 +366,7 @@ const ClassFeeManagementView = ({ clubs = [] }) => {
 
     try {
       const res = await axios.post('/api/class-fees/upload-doc', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        withCredentials: true
+                withCredentials: true
       });
       toast.success(res.data.message || 'Document uploaded successfully!');
       if (res.data.aiSummary) {

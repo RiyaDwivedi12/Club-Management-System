@@ -55,7 +55,20 @@ router.get('/referees', getReferees);
 router.post('/revoke-referee', protect, authorize('admin'), revokeReferee);
 
 // Bulk Role Onboarding & Credentials System
-router.post('/bulk-onboard', protect, authorize('admin'), memUpload.single('file'), bulkOnboardRole);
+const optionalUpload = (req, res, next) => {
+  const contentType = (req.headers['content-type'] || '').toLowerCase();
+  if (contentType.includes('multipart/form-data')) {
+    return memUpload.single('file')(req, res, (err) => {
+      if (err) {
+        return res.status(400).json({ message: `File upload error: ${err.message}` });
+      }
+      next();
+    });
+  }
+  next();
+};
+
+router.post('/bulk-onboard', protect, authorize('admin'), optionalUpload, bulkOnboardRole);
 router.get('/template/role/:role', downloadRoleTemplate);
 router.get('/roles-summary', protect, authorize('admin'), getRolesSummary);
 

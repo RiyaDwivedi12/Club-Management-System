@@ -61,11 +61,10 @@ const CertificateManagementView = () => {
 
     try {
       const res = await axios.post('/api/certificates/bulk-preview', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
         withCredentials: true
       });
       setPreviewData(res.data);
-      toast.success(`Extracted ${res.data.totalRows} student entries from ${file.name}!`);
+      toast.success(`Extracted ${res.data.totalRows || (res.data.rows || []).length} student entries from ${file.name}!`);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to read spreadsheet');
       setPreviewData(null);
@@ -115,9 +114,9 @@ const CertificateManagementView = () => {
   };
 
   // Unique games in issued certificates
-  const uniqueGames = Array.from(new Set(certificates.map(c => c.game).filter(Boolean)));
+  const uniqueGames = Array.from(new Set((certificates || []).map(c => c.game).filter(Boolean)));
 
-  const filteredCerts = certificates.filter(c => {
+  const filteredCerts = (certificates || []).filter(c => {
     const q = searchQuery.toLowerCase().trim();
     const matchesSearch = !q ||
       c.recipientName?.toLowerCase().includes(q) ||

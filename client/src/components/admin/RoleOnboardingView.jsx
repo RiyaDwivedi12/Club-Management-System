@@ -59,7 +59,16 @@ const RoleOnboardingView = () => {
     setLoading(true);
     try {
       const res = await axios.get('/api/auth/roles-summary', { withCredentials: true });
-      setData(res.data);
+      if (res.data) {
+        setData({
+          counts: res.data.counts || { faculty: 0, presidents: 0, vicePresidents: 0, referees: 0, pendingElevations: 0 },
+          faculty: Array.isArray(res.data.faculty) ? res.data.faculty : [],
+          presidents: Array.isArray(res.data.presidents) ? res.data.presidents : [],
+          vicePresidents: Array.isArray(res.data.vicePresidents) ? res.data.vicePresidents : [],
+          referees: Array.isArray(res.data.referees) ? res.data.referees : [],
+          pendingElevations: Array.isArray(res.data.pendingElevations) ? res.data.pendingElevations : []
+        });
+      }
     } catch (err) {
       toast.error('Failed to load role credentials summary');
     } finally {
@@ -97,11 +106,10 @@ const RoleOnboardingView = () => {
 
     try {
       const res = await axios.post('/api/auth/bulk-onboard', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
         withCredentials: true
       });
       setPreviewData(res.data);
-      toast.success(`Extracted ${res.data.total} ${uploadRole.replace('_', ' ')} entries!`);
+      toast.success(`Extracted ${res.data.total || (res.data.records || []).length} ${uploadRole.replace('_', ' ')} entries!`);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to parse file');
       setPreviewData(null);
@@ -232,10 +240,10 @@ const RoleOnboardingView = () => {
 
   // Combined list for directory table
   const allUsersList = [
-    ...data.faculty.map(f => ({ ...f, displayRole: 'Faculty / Mentor', roleKey: 'faculty', icon: Building2, color: 'text-blue-600 bg-blue-50 border-blue-200' })),
-    ...data.presidents.map(p => ({ ...p, displayRole: 'Club President', roleKey: 'president', icon: Crown, color: 'text-amber-600 bg-amber-50 border-amber-200' })),
-    ...data.vicePresidents.map(v => ({ ...v, displayRole: 'Vice President', roleKey: 'vice_president', icon: Award, color: 'text-purple-600 bg-purple-50 border-purple-200' })),
-    ...data.referees.map(r => ({ ...r, displayRole: 'Match Referee', roleKey: 'referee', icon: Timer, color: 'text-emerald-600 bg-emerald-50 border-emerald-200' }))
+    ...(data?.faculty || []).map(f => ({ ...f, displayRole: 'Faculty / Mentor', roleKey: 'faculty', icon: Building2, color: 'text-blue-600 bg-blue-50 border-blue-200' })),
+    ...(data?.presidents || []).map(p => ({ ...p, displayRole: 'Club President', roleKey: 'president', icon: Crown, color: 'text-amber-600 bg-amber-50 border-amber-200' })),
+    ...(data?.vicePresidents || []).map(v => ({ ...v, displayRole: 'Vice President', roleKey: 'vice_president', icon: Award, color: 'text-purple-600 bg-purple-50 border-purple-200' })),
+    ...(data?.referees || []).map(r => ({ ...r, displayRole: 'Match Referee', roleKey: 'referee', icon: Timer, color: 'text-emerald-600 bg-emerald-50 border-emerald-200' }))
   ];
 
   const filteredUsers = allUsersList.filter(u => {
@@ -295,7 +303,7 @@ const RoleOnboardingView = () => {
       </div>
 
       {/* ── ELECTION WINNERS READY FOR ELEVATION BANNER ────────────── */}
-      {data.pendingElevations.length > 0 && (
+      {(data?.pendingElevations || []).length > 0 && (
         <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-2 border-amber-400 p-5 rounded-3xl space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
@@ -304,7 +312,7 @@ const RoleOnboardingView = () => {
               </div>
               <div>
                 <h3 className="font-black text-slate-900 text-sm">
-                  {data.pendingElevations.length} Elected Leadership Candidate(s) Ready for Official Access!
+                  {data?.pendingElevations?.length} Elected Leadership Candidate(s) Ready for Official Access!
                 </h3>
                 <p className="text-xs text-slate-500 font-medium">
                   These students won their club elections. Grant their official credentials so they can enter their leadership portal.
@@ -314,7 +322,7 @@ const RoleOnboardingView = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
-            {data.pendingElevations.map((el, i) => (
+            {(data?.pendingElevations || []).map((el, i) => (
               <div key={i} className="bg-white p-4 rounded-2xl border border-amber-200 shadow-sm flex items-center justify-between gap-3">
                 <div>
                   <span className="text-[10px] font-black uppercase text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">
@@ -345,7 +353,7 @@ const RoleOnboardingView = () => {
                 <Building2 size={22} />
               </div>
               <span className="px-2.5 py-1 bg-blue-50 text-blue-700 font-bold text-xs rounded-full">
-                {data.counts.faculty} Active
+                {data?.counts?.faculty ?? 0} Active
               </span>
             </div>
             <h3 className="font-black text-slate-900 text-base">Faculty Coordinators</h3>
@@ -373,7 +381,7 @@ const RoleOnboardingView = () => {
                 <Crown size={22} />
               </div>
               <span className="px-2.5 py-1 bg-amber-50 text-amber-700 font-bold text-xs rounded-full">
-                {data.counts.presidents} Active
+                {data?.counts?.presidents ?? 0} Active
               </span>
             </div>
             <h3 className="font-black text-slate-900 text-base">Club Presidents</h3>
@@ -401,7 +409,7 @@ const RoleOnboardingView = () => {
                 <Award size={22} />
               </div>
               <span className="px-2.5 py-1 bg-purple-50 text-purple-700 font-bold text-xs rounded-full">
-                {data.counts.vicePresidents} Active
+                {data?.counts?.vicePresidents ?? 0} Active
               </span>
             </div>
             <h3 className="font-black text-slate-900 text-base">Club Vice-Presidents</h3>
@@ -429,7 +437,7 @@ const RoleOnboardingView = () => {
                 <Timer size={22} />
               </div>
               <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 font-bold text-xs rounded-full">
-                {data.counts.referees} Active
+                {data?.counts?.referees ?? 0} Active
               </span>
             </div>
             <h3 className="font-black text-slate-900 text-base">Match Referees</h3>

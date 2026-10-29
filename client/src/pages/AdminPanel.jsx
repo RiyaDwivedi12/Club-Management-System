@@ -205,8 +205,7 @@ const AdminPanel = () => {
         const formData = new FormData();
         formData.append('profilePic', file);
         const res = await axios.post('/api/auth/profile-pic', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-          withCredentials: true
+                    withCredentials: true
         });
         if (res.data?.profilePicture) {
           const syncedUser = { ...updatedUser, profilePicture: res.data.profilePicture };

@@ -37,6 +37,14 @@ axios.interceptors.request.use(
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Auto-fix for all document/file uploads:
+    // If request data is FormData, remove manual Content-Type so browser sets correct boundary
+    if (config.data instanceof FormData && config.headers) {
+      delete config.headers['Content-Type'];
+      delete config.headers['content-type'];
+    }
+
     return config;
   },
   (error) => Promise.reject(error)
