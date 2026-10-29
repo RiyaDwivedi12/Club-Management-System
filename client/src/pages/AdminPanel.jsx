@@ -316,7 +316,8 @@ const AdminPanel = () => {
   // Forms
   const [clubForm, setClubForm] = useState({ name: '', category: 'Sports', description: '', logo: '', facultyId: '' });
   const [eventForm, setEventForm] = useState({ title: '', description: '', clubId: '', category: 'Sports', maxParticipants: 0, date: '', poster: '' });
-  const [matchForm, setMatchForm] = useState({ clubId: '', sport: 'Cricket', wing: 'General', teamA: '', teamB: '', refereeId: '', date: '', timeSlot: '09:00 AM - 10:30 AM' });
+  const [refereeInputMode, setRefereeInputMode] = useState('manual');
+  const [matchForm, setMatchForm] = useState({ clubId: '', sport: 'Cricket', wing: 'General', teamA: '', teamB: '', refereeId: '', refereeUsername: '', date: '', timeSlot: '09:00 AM - 10:30 AM' });
   const [recruitmentForm, setRecruitmentForm] = useState({ clubIds: [], joinFee: 500, isAcceptingMembers: true });
   const [adminForm, setAdminForm] = useState({ name: '', username: '', email: '', secretCode: '' });
   const [gameForm, setGameForm] = useState({ name: '', type: 'team-based', description: '' });
@@ -1815,13 +1816,38 @@ const AdminPanel = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <label className="label">Assigned Referee</label>
-                      <select required value={matchForm.refereeId} onChange={(e) => setMatchForm({...matchForm, refereeId: e.target.value})} className="input">
-                        <option value="">Select Referee</option>
-                        {users.filter(u => u.role === 'referee' || u.isReferee || u.role === 'admin').map(u => (
-                          <option key={u._id} value={u._id}>{u.name} ({u.role}{u.isReferee ? ', Student Referee' : ''})</option>
-                        ))}
-                      </select>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="label mb-0">Assigned Referee</label>
+                        <button
+                          type="button"
+                          onClick={() => setRefereeInputMode(refereeInputMode === 'dropdown' ? 'manual' : 'dropdown')}
+                          className="text-[10px] text-blue-600 font-bold hover:underline cursor-pointer"
+                        >
+                          {refereeInputMode === 'dropdown' ? '✏️ Type Username' : '📋 Select from List'}
+                        </button>
+                      </div>
+
+                      {refereeInputMode === 'dropdown' ? (
+                        <select
+                          value={matchForm.refereeId}
+                          onChange={(e) => setMatchForm({...matchForm, refereeId: e.target.value, refereeUsername: ''})}
+                          className="input"
+                        >
+                          <option value="">Select Referee</option>
+                          {users.filter(u => u.role === 'referee' || u.isReferee || u.role === 'admin').map(u => (
+                            <option key={u._id} value={u._id}>{u.name} (@{u.username || u.name})</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          placeholder="Enter referee username or name (e.g. anubhav123)"
+                          value={matchForm.refereeUsername || ''}
+                          onChange={(e) => setMatchForm({...matchForm, refereeUsername: e.target.value, refereeId: ''})}
+                          className="input"
+                          required={!matchForm.refereeId}
+                        />
+                      )}
                     </div>
                     <div>
                       <label className="label">Date</label>

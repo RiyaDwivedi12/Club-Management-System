@@ -61,6 +61,27 @@ axios.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+
+// Auto-recover if token expired or changed
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error.response?.status;
+    const msg = error.response?.data?.message || '';
+    if (status === 401 && (msg.includes('token failed') || msg.includes('token expired'))) {
+      localStorage.removeItem('authToken');
+      try {
+        const u = JSON.parse(localStorage.getItem('userInfo') || '{}');
+        if (u?.token) {
+          delete u.token;
+          localStorage.setItem('userInfo', JSON.stringify(u));
+        }
+      } catch (e) {}
+    }
+    return Promise.reject(error);
+  }
+);
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />

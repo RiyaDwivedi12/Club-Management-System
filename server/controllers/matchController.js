@@ -25,6 +25,7 @@ const createMatch = async (req, res) => {
       wing, 
       refereeEmail, 
       refereeId,
+      refereeUsername,
       coordinatorId,
       coordinatorName,
       round,
@@ -34,6 +35,35 @@ const createMatch = async (req, res) => {
     let referee = null;
     if (refereeId) {
       referee = await User.findById(refereeId);
+    } else if (refereeUsername && refereeUsername.trim()) {
+      const cleanRef = refereeUsername.trim();
+      referee = await User.findOne({
+        $or: [
+          { username: new RegExp('^' + cleanRef + '$', 'i') },
+          { name: new RegExp('^' + cleanRef + '$', 'i') },
+          { email: new RegExp('^' + cleanRef + '$', 'i') },
+          { roll_no: new RegExp('^' + cleanRef + '$', 'i') }
+        ]
+      });
+
+      if (!referee) {
+        // Auto-create referee account with that username/name so they can log in
+        const cleanUsername = cleanRef.replace(/\s+/g, '_').toLowerCase();
+        const genEmail = cleanRef.includes('@') ? cleanRef.toLowerCase() : (cleanUsername + '@campus.edu');
+        referee = await User.create({
+          name: cleanRef,
+          username: cleanUsername,
+          email: genEmail,
+          password: 'referee123',
+          role: 'referee',
+          isReferee: true,
+          roll_no: 'REF' + Math.floor(1000 + Math.random() * 9000),
+          department: 'Sports Board',
+          year: 3,
+          course: 'B.Tech',
+          section: 'A'
+        });
+      }
     } else if (refereeEmail) {
       referee = await User.findOne({ email: refereeEmail.trim().toLowerCase() });
     }

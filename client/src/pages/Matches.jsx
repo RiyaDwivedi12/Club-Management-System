@@ -74,6 +74,7 @@ const Matches = () => {
         teamA: formData.teamA.trim(),
         teamB: formData.teamB.trim(),
         refereeEmail: formData.refereeEmail.trim() || user?.email,
+        refereeUsername: formData.refereeEmail.trim(),
         date: formData.date,
         tournamentId: formData.tournamentId || undefined,
         clubId: formData.clubId || undefined,
@@ -461,10 +462,10 @@ const Matches = () => {
                 </div>
 
                 <div>
-                  <label className="label">Referee Email</label>
+                  <label className="label">Referee Username / Email</label>
                   <input
                     type="email"
-                    placeholder="referee@example.com (Auto-creates referee account if new)"
+                    placeholder="Enter referee username or email (e.g. rahul_ref or referee@example.com)"
                     value={formData.refereeEmail}
                     onChange={(e) => setFormData({ ...formData, refereeEmail: e.target.value })}
                     className="input"

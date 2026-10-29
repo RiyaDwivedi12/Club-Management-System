@@ -38,6 +38,14 @@ const matchSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   },
+  refereeName: {
+    type: String,
+    default: ''
+  },
+  refereeUsername: {
+    type: String,
+    default: ''
+  },
   coordinatorId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
