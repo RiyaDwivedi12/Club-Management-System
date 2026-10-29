@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import useClubStore from '../store/clubStore';
 import ClubCard from '../components/ClubCard';
-import { Search, Compass } from 'lucide-react';
+import { Search, Compass, CreditCard } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import LoadingState from '../components/ui/LoadingState';
 import EmptyState from '../components/EmptyState';
@@ -34,7 +35,37 @@ const Clubs = () => {
         icon={Compass}
         title="Discover Campus Clubs"
         description="Connect with student organizations, develop leadership skills, participate in regional tournaments, and build lifelong friendships."
+        actions={
+          <Link
+            to="/membership-fees"
+            className="btn-primary text-sm inline-flex items-center gap-2 shadow-sm"
+          >
+            <CreditCard size={15} />
+            Pay Membership Fee
+          </Link>
+        }
       />
+
+      {/* Quick membership dues callout banner */}
+      <div className="card bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+            <CreditCard size={20} />
+          </div>
+          <div>
+            <h4 className="font-bold text-dark-900 text-sm">Official Club Membership Fee Gateway</h4>
+            <p className="text-slate-600 text-xs">
+              Pay your annual membership dues directly through Razorpay to unlock voting rights and official collegiate receipts.
+            </p>
+          </div>
+        </div>
+        <Link
+          to="/membership-fees"
+          className="btn-secondary text-xs font-semibold shrink-0 py-2 px-3.5 inline-flex items-center gap-1.5"
+        >
+          View Dues & Pay
+        </Link>
+      </div>
 
       {/* Search and Filters Bar */}
       <div className="card p-3 sm:p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">

@@ -19,6 +19,7 @@ import Chat from './pages/Chat';
 import Tournaments from './pages/Tournaments';
 import TournamentBracket from './pages/TournamentBracket';
 import Certificates from './pages/Certificates';
+import MembershipFees from './pages/MembershipFees';
 import AdminPanel from './pages/AdminPanel';
 import PresidentDashboard from './pages/PresidentDashboard';
 import VicePresidentDashboard from './pages/VicePresidentDashboard';
@@ -473,6 +474,8 @@ function App() {
           <Route path="/tournaments/:id/bracket" element={<TournamentBracket />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/certificates" element={<Certificates />} />
+          <Route path="/membership-fees" element={<MembershipFees />} />
+          <Route path="/fees" element={<Navigate to="/membership-fees" replace />} />
           <Route path="/elections" element={<Elections />} />
           
           {/* Management Panels */}

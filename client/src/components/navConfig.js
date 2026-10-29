@@ -1,11 +1,12 @@
 import {
   Users, Calendar, Trophy, Vote, Medal, User, MessageSquare, Award,
-  Shield, Crown, Timer, Building2, Swords
+  Shield, Crown, Timer, Building2, Swords, CreditCard
 } from 'lucide-react';
 
 // Portal navigation shared by the desktop sidebar and the mobile menu.
 export const studentNavItems = [
   { name: 'Clubs & Hub', path: '/clubs', icon: Users },
+  { name: 'Pay Membership Fee', path: '/membership-fees', icon: CreditCard },
   { name: 'My Profile', path: '/profile', icon: User },
   { name: 'Messages', path: '/chat', icon: MessageSquare },
   { name: 'Events', path: '/events', icon: Calendar },

@@ -15,6 +15,7 @@ const FinanceView = ({ clubs = [] }) => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [clubFilter, setClubFilter] = useState('all');
   const [selectedReceipt, setSelectedReceipt] = useState(null);
 
   // Fee waiver form state
@@ -36,7 +37,7 @@ const FinanceView = ({ clubs = [] }) => {
       const [analyticsRes, transRes, budgetsRes] = await Promise.all([
         axios.get('/api/finance/analytics', { withCredentials: true }),
         axios.get('/api/finance/transactions', {
-          params: { status: statusFilter !== 'all' ? statusFilter : undefined, search: search.trim() || undefined },
+          params: { status: statusFilter !== 'all' ? statusFilter : undefined, clubId: clubFilter !== 'all' ? clubFilter : undefined, search: search.trim() || undefined },
           withCredentials: true
         }),
         axios.get('/api/finance/budgets', { withCredentials: true })
@@ -54,7 +55,7 @@ const FinanceView = ({ clubs = [] }) => {
 
   useEffect(() => {
     fetchFinancialData();
-  }, [statusFilter]);
+  }, [statusFilter, clubFilter]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -224,14 +225,27 @@ const FinanceView = ({ clubs = [] }) => {
               </button>
             </form>
 
-            <div className="w-full md:w-56">
+            <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full md:w-auto">
+              <select
+                value={clubFilter}
+                onChange={(e) => setClubFilter(e.target.value)}
+                className="input w-full sm:w-48 text-sm"
+              >
+                <option value="all">All Campus Clubs</option>
+                {clubs.map((c) => (
+                  <option key={c._id} value={c._id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="input"
+                className="input w-full sm:w-48 text-sm"
               >
                 <option value="all">All Payment Statuses</option>
-                <option value="success">Successful</option>
+                <option value="success">Paid / Successful</option>
                 <option value="refunded">Refunded</option>
                 <option value="failed">Failed</option>
               </select>

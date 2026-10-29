@@ -16,6 +16,22 @@ const membershipSchema = new mongoose.Schema({
     enum: ['Pending', 'Approved', 'Rejected'],
     default: 'Pending'
   },
+  paymentStatus: {
+    type: String,
+    enum: ['Unpaid', 'Pending', 'Paid'],
+    default: 'Unpaid'
+  },
+  amountPaid: {
+    type: Number,
+    default: 0
+  },
+  paymentDate: {
+    type: Date
+  },
+  paymentId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Payment'
+  },
   joinDate: {
     type: Date,
     default: Date.now
