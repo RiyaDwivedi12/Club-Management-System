@@ -5,8 +5,9 @@ import App from './App.jsx'
 import './index.css'
 
 // Connect to live Render backend in production automatically
-const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://club-management-system-1-t4a7.onrender.com' : '');
+let API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://club-management-system-1-t4a7.onrender.com' : '');
 if (API_BASE) {
+  API_BASE = API_BASE.replace(/\/+$/, '').replace(/\/api$/, '');
   axios.defaults.baseURL = API_BASE;
 }
 axios.defaults.withCredentials = true;
@@ -64,24 +65,10 @@ axios.interceptors.request.use(
 );
 
 
-// Clean session handler: If server returns 401 on protected routes, redirect cleanly
+// Passive response handler: preserve active user session, never force logout on background errors
 axios.interceptors.response.use(
   (response) => response,
-  (error) => {
-    const status = error.response?.status;
-    const msg = String(error.response?.data?.message || '').toLowerCase();
-    if (status === 401 && (msg.includes('token failed') || msg.includes('token expired') || msg.includes('no token') || msg.includes('user not found'))) {
-      const currentPath = window.location.pathname;
-      if (currentPath.startsWith('/admin') || currentPath.startsWith('/profile') || currentPath.startsWith('/membership-fees')) {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('userInfo');
-        if (!window.location.search.includes('expired=1')) {
-          window.location.href = '/login?expired=1';
-        }
-      }
-    }
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 ReactDOM.createRoot(document.getElementById('root')).render(
