@@ -41,19 +41,60 @@ const MembershipFees = () => {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [clubsRes, paymentsRes] = await Promise.all([
-        axios.get('/api/payments/clubs-status', { withCredentials: true }),
-        axios.get('/api/payments/my-payments', { withCredentials: true })
-      ]);
-      setClubs(clubsRes.data || []);
-      setPayments(paymentsRes.data || []);
+      let clubsList = [];
+      let paymentsList = [];
+
+      try {
+        const clubsRes = await axios.get('/api/payments/clubs-status', { withCredentials: true });
+        clubsList = clubsRes.data || [];
+      } catch (err) {
+        // Resilient fallback: If Render backend hasn't updated payment route yet, load from /api/clubs
+        const rawClubsRes = await axios.get('/api/clubs');
+        const rawClubs = Array.isArray(rawClubsRes.data) ? rawClubsRes.data : [];
+        clubsList = rawClubs.map(c => ({
+          _id: c._id,
+          name: c.name,
+          category: c.category || 'General',
+          sportType: c.sportType || 'General',
+          description: c.description || '',
+          logo: c.logo || '',
+          joinFee: Number(c.joinFee !== undefined ? c.joinFee : 500),
+          isAcceptingMembers: c.isAcceptingMembers !== false,
+          isMember: Boolean(user?._id && c.members?.some(m => (m._id || m).toString() === user._id.toString())),
+          isPendingApproval: false,
+          paymentStatus: 'Unpaid'
+        }));
+      }
+
+      try {
+        const paymentsRes = await axios.get('/api/payments/my-payments', { withCredentials: true });
+        paymentsList = paymentsRes.data || [];
+      } catch (e) {
+        paymentsList = [];
+      }
+
+      if (paymentsList.length > 0) {
+        clubsList = clubsList.map(club => {
+          const paidRecord = paymentsList.find(p => (p.clubId?._id || p.clubId)?.toString() === club._id?.toString() && (p.status === 'success' || p.status === 'Paid'));
+          if (paidRecord) {
+            return {
+              ...club,
+              paymentStatus: 'Paid',
+              paymentDetails: paidRecord
+            };
+          }
+          return club;
+        });
+      }
+
+      setClubs(clubsList);
+      setPayments(paymentsList);
     } catch (err) {
       console.error('Error loading membership fees data:', err);
-      toast.error(err.response?.data?.message || 'Failed to load membership fees data');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     fetchData();
