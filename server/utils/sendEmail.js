@@ -6,9 +6,9 @@ import nodemailer from 'nodemailer';
 const getMailConfig = () => {
   const host = process.env.SMTP_HOST || 'smtp-relay.brevo.com';
   const port = Number(process.env.SMTP_PORT) || 587;
-  const user = (process.env.BREVO_USER || process.env.SMTP_USER || process.env.EMAIL_USER || 'offical.clubo2026@gmail.com').trim();
-  const pass = (process.env.BREVO_PASS || process.env.BREVO_API_KEY || process.env.SMTP_PASS || process.env.EMAIL_PASS || '').trim();
-  const senderEmail = (process.env.BREVO_SENDER || process.env.SENDER_EMAIL || user).trim();
+  const user = (process.env.BREVO_USER || process.env.SMTP_USER || 'c0befc001@smtp-brevo.com').trim();
+  const pass = (process.env.BREVO_PASS || process.env.BREVO_API_KEY || process.env.SMTP_PASS || 'bskVpm1hbpAWEHC').trim();
+  const senderEmail = (process.env.BREVO_SENDER || process.env.SENDER_EMAIL || process.env.EMAIL_USER || 'offical.clubo2026@gmail.com').trim();
 
   // Check if Brevo API key is available (starts with xkeysib- or xsmtpsib-)
   const apiKey = (process.env.BREVO_API_KEY || (pass.startsWith('xkeysib-') || pass.startsWith('xsmtpsib-') ? pass : '')).trim();
