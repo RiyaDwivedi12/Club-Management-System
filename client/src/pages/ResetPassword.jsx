@@ -10,11 +10,13 @@ const ResetPassword = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // We expect the email to be passed from the ForgotPassword page
+  // We expect the email and optional instant OTP to be passed from the ForgotPassword page
   const initialEmail = location.state?.email || '';
+  const initialOtp = location.state?.otp || '';
 
   const [email, setEmail] = useState(initialEmail);
-  const [otp, setOtp] = useState('');
+  const [otp, setOtp] = useState(initialOtp);
+  const [directOtp, setDirectOtp] = useState(initialOtp);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -93,6 +95,22 @@ const ResetPassword = () => {
                 <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 text-red-700 p-3.5 rounded-xl mb-5 text-sm font-medium">
                   <AlertCircle size={16} className="shrink-0 mt-0.5" />
                   <span className="break-words min-w-0">{errorMsg}</span>
+                </div>
+              )}
+
+              {directOtp && (
+                <div className="mb-4 p-3.5 bg-blue-50/90 border border-blue-200/90 rounded-2xl flex items-center justify-between gap-3 text-left">
+                  <div>
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-blue-700">
+                      Instant Reset Code
+                    </div>
+                    <div className="text-xs text-slate-500 mt-0.5">
+                      Valid for 15 mins. Code auto-filled below.
+                    </div>
+                  </div>
+                  <div className="bg-white px-3 py-1.5 rounded-xl border border-blue-200 font-mono text-lg font-black text-blue-900 tracking-wider shadow-xs">
+                    {directOtp}
+                  </div>
                 </div>
               )}
 

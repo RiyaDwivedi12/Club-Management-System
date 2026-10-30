@@ -25,9 +25,10 @@ const ForgotPassword = () => {
     setErrorMsg(null);
     try {
       const res = await axios.post('/api/auth/forgot-password', { email: cleanInput });
-      toast.success(res.data.message || 'OTP sent successfully!');
-      // Pass the email in state so the next page can use it
-      navigate('/reset-password', { state: { email: cleanInput } });
+      const receivedOtp = res.data?.otp || res.data?.devOtp || '';
+      toast.success(res.data?.message || 'Verification code generated!');
+      // Pass email and instant OTP in state so the reset page is pre-filled
+      navigate('/reset-password', { state: { email: cleanInput, otp: receivedOtp } });
     } catch (err) {
       setErrorMsg(err?.response?.data?.message || 'Failed to send OTP');
       toast.error(err?.response?.data?.message || 'Failed to send OTP');

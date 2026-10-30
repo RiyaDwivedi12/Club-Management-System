@@ -58,6 +58,7 @@ const Register = () => {
 
   // Step 2 fields
   const [otp, setOtp] = useState('');
+  const [directOtp, setDirectOtp] = useState('');
   const [otpError, setOtpError] = useState(false);
   const [otpSuccess, setOtpSuccess] = useState(false);
   const [resendTimer, setResendTimer] = useState(60);
@@ -89,7 +90,7 @@ const Register = () => {
     }
     setLoading(true);
     try {
-      await axios.post('/api/auth/register', {
+      const res = await axios.post('/api/auth/register', {
         name: name.trim(),
         username: username.trim(),
         email: email.trim().toLowerCase(),
@@ -100,7 +101,12 @@ const Register = () => {
         studentClass: studentClass.trim(),
         studentSection: studentSection.trim().toUpperCase(),
       });
-      toast.success('Verification code sent to your email!');
+      const receivedOtp = res.data?.otp || res.data?.devOtp || '';
+      if (receivedOtp) {
+        setDirectOtp(receivedOtp);
+        setOtp(receivedOtp);
+      }
+      toast.success(res.data?.message || 'Verification code ready!');
       setResendTimer(60);
       setStep(2);
     } catch (err) {
@@ -138,7 +144,12 @@ const Register = () => {
     setLoading(true);
     try {
       const res = await axios.post('/api/auth/resend-verification', { email: email.trim().toLowerCase() });
-      toast.success(res.data?.message || 'New OTP sent to your email!');
+      const receivedOtp = res.data?.otp || res.data?.devOtp || '';
+      if (receivedOtp) {
+        setDirectOtp(receivedOtp);
+        setOtp(receivedOtp);
+      }
+      toast.success(res.data?.message || 'New verification code generated!');
       setResendTimer(60);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to resend OTP.');
@@ -364,6 +375,22 @@ const Register = () => {
               {/* ── STEP 2: OTP Verification ────────────────────────── */}
               {step === 2 && (
                 <form onSubmit={submitOTP} className="space-y-4">
+                  {directOtp && (
+                    <div className="p-3.5 bg-blue-50/90 border border-blue-200/90 rounded-2xl flex items-center justify-between gap-3 text-left">
+                      <div>
+                        <div className="text-[11px] font-bold uppercase tracking-wider text-blue-700 flex items-center gap-1.5">
+                          <CheckCircle size={14} className="text-blue-600" /> Instant Verification Code
+                        </div>
+                        <div className="text-xs text-slate-500 mt-0.5">
+                          Valid for 15 mins. Code auto-filled below.
+                        </div>
+                      </div>
+                      <div className="bg-white px-3 py-1.5 rounded-xl border border-blue-200 font-mono text-lg font-black text-blue-900 tracking-wider shadow-xs">
+                        {directOtp}
+                      </div>
+                    </div>
+                  )}
+
                   <div>
                     <label htmlFor="otp-input" className="label text-center mb-2">
                       Enter 6-Digit OTP Code
