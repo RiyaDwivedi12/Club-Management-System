@@ -356,18 +356,50 @@ const AdminPanel = () => {
       toast.error('Please choose an image file (PNG, JPG, WEBP)');
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size must be smaller than 5MB');
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error('Image size must be smaller than 8MB');
       return;
     }
+
     const reader = new FileReader();
     reader.onload = (event) => {
-      const base64 = event.target.result;
-      setElectionForm(prev => ({
-        ...prev,
-        [candidateKey]: { ...prev[candidateKey], photo: base64 }
-      }));
-      toast.success(`${candidateKey === 'candidate1' ? 'Candidate 1' : 'Candidate 2'} photo loaded from system!`);
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxDim = 500;
+        let width = img.width;
+        let height = img.height;
+        if (width > height) {
+          if (width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          }
+        } else {
+          if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+
+        setElectionForm(prev => ({
+          ...prev,
+          [candidateKey]: { ...prev[candidateKey], photo: compressedBase64 }
+        }));
+        toast.success(`${candidateKey === 'candidate1' ? 'Candidate 1' : 'Candidate 2'} photo loaded from system!`);
+      };
+      img.onerror = () => {
+        setElectionForm(prev => ({
+          ...prev,
+          [candidateKey]: { ...prev[candidateKey], photo: event.target.result }
+        }));
+        toast.success(`${candidateKey === 'candidate1' ? 'Candidate 1' : 'Candidate 2'} photo loaded from system!`);
+      };
+      img.src = event.target.result;
     };
     reader.readAsDataURL(file);
   };
@@ -562,43 +594,70 @@ const AdminPanel = () => {
 
   const handleCreateElection = async (e) => {
     e.preventDefault();
+    if (!electionForm.title?.trim()) {
+      return toast.error('Please enter an election title');
+    }
     if (!electionForm.clubId) {
       return toast.error('Please select a club');
     }
+    if (!electionForm.startDate || !electionForm.endDate) {
+      return toast.error('Please select both start and end dates/times');
+    }
+    if (new Date(electionForm.endDate) <= new Date(electionForm.startDate)) {
+      return toast.error('Voting end date and time must be after the start date and time');
+    }
+
+    // Resolve Candidate 1
+    const roll1 = (electionForm.candidate1.roll_no || '').trim().toUpperCase();
+    const id1 = electionForm.candidate1.candidateId;
+    const u1 = users.find(usr => 
+      (id1 && usr._id === id1) ||
+      (roll1 && usr.roll_no?.toUpperCase() === roll1) ||
+      (roll1 && usr.username?.toUpperCase() === roll1)
+    );
+
+    // Resolve Candidate 2
+    const roll2 = (electionForm.candidate2.roll_no || '').trim().toUpperCase();
+    const id2 = electionForm.candidate2.candidateId;
+    const u2 = users.find(usr => 
+      (id2 && usr._id === id2) ||
+      (roll2 && usr.roll_no?.toUpperCase() === roll2) ||
+      (roll2 && usr.username?.toUpperCase() === roll2)
+    );
+
+    if (!u1) {
+      return toast.error('Candidate 1 must be a valid registered student in the system. Check the roll number.');
+    }
+    if (!u2) {
+      return toast.error('Candidate 2 must be a valid registered student in the system. Check the roll number.');
+    }
+    if (u1._id === u2._id) {
+      return toast.error('Candidate 1 and Candidate 2 must be different students!');
+    }
+
     setLoading(true);
     try {
-      const candidates = [];
-      if (electionForm.candidate1.roll_no || electionForm.candidate1.studentName || electionForm.candidate1.candidateId) {
-        const u = users.find(usr => 
-          (electionForm.candidate1.candidateId && usr._id === electionForm.candidate1.candidateId) ||
-          (electionForm.candidate1.roll_no && usr.roll_no?.toUpperCase() === electionForm.candidate1.roll_no.trim().toUpperCase())
-        );
-        candidates.push({
-          candidateId: u ? u._id : electionForm.candidate1.candidateId || null,
-          roll_no: electionForm.candidate1.roll_no?.trim() || u?.roll_no || '',
-          studentName: electionForm.candidate1.studentName?.trim() || u?.name || '',
-          name: electionForm.candidate1.name?.trim() || electionForm.candidate1.studentName?.trim() || u?.name || 'Candidate 1',
-          manifesto: electionForm.candidate1.manifesto || 'Committed to student empowerment and excellence.',
-          photo: electionForm.candidate1.photo || u?.profilePicture || ''
-        });
-      }
-      if (electionForm.candidate2.roll_no || electionForm.candidate2.studentName || electionForm.candidate2.candidateId) {
-        const u = users.find(usr => 
-          (electionForm.candidate2.candidateId && usr._id === electionForm.candidate2.candidateId) ||
-          (electionForm.candidate2.roll_no && usr.roll_no?.toUpperCase() === electionForm.candidate2.roll_no.trim().toUpperCase())
-        );
-        candidates.push({
-          candidateId: u ? u._id : electionForm.candidate2.candidateId || null,
-          roll_no: electionForm.candidate2.roll_no?.trim() || u?.roll_no || '',
-          studentName: electionForm.candidate2.studentName?.trim() || u?.name || '',
-          name: electionForm.candidate2.name?.trim() || electionForm.candidate2.studentName?.trim() || u?.name || 'Candidate 2',
-          manifesto: electionForm.candidate2.manifesto || 'Empowering club members with collaborative leadership.',
-          photo: electionForm.candidate2.photo || u?.profilePicture || ''
-        });
-      }
+      const candidates = [
+        {
+          candidateId: u1._id,
+          roll_no: u1.roll_no || roll1,
+          studentName: u1.name,
+          name: electionForm.candidate1.name?.trim() || u1.name,
+          manifesto: electionForm.candidate1.manifesto?.trim() || 'Committed to student empowerment and excellence.',
+          photo: electionForm.candidate1.photo || u1.profilePicture || ''
+        },
+        {
+          candidateId: u2._id,
+          roll_no: u2.roll_no || roll2,
+          studentName: u2.name,
+          name: electionForm.candidate2.name?.trim() || u2.name,
+          manifesto: electionForm.candidate2.manifesto?.trim() || 'Empowering club members with collaborative leadership.',
+          photo: electionForm.candidate2.photo || u2.profilePicture || ''
+        }
+      ];
 
       const payload = {
-        title: electionForm.title,
+        title: electionForm.title.trim(),
         clubId: electionForm.clubId,
         position: electionForm.position || 'President',
         startDate: electionForm.startDate,
@@ -620,7 +679,7 @@ const AdminPanel = () => {
       const res = await axios.get('/api/elections');
       setElections(res.data || []);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to create election');
+      toast.error(err.response?.data?.message || err.message || 'Failed to create election');
     } finally {
       setLoading(false);
     }

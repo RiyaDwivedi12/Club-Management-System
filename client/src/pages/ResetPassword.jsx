@@ -22,6 +22,7 @@ const ResetPassword = () => {
 
   const submitHandler = async (e) => {
     e.preventDefault();
+    if (loading) return;
 
     if (password !== confirmPassword) {
       setErrorMsg('Passwords do not match');
@@ -32,8 +33,8 @@ const ResetPassword = () => {
     setErrorMsg(null);
     try {
       const res = await axios.post('/api/auth/reset-password', {
-        email,
-        otp,
+        email: email.trim().toLowerCase(),
+        otp: otp.trim(),
         password
       });
       toast.success(res.data.message || 'Password reset successfully!');

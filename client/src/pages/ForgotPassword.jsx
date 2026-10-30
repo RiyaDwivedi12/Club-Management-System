@@ -15,13 +15,19 @@ const ForgotPassword = () => {
 
   const submitHandler = async (e) => {
     e.preventDefault();
+    if (loading) return;
+    const cleanInput = email.trim();
+    if (!cleanInput) {
+      toast.error('Please enter your email address or roll number.');
+      return;
+    }
     setLoading(true);
     setErrorMsg(null);
     try {
-      const res = await axios.post('/api/auth/forgot-password', { email });
+      const res = await axios.post('/api/auth/forgot-password', { email: cleanInput });
       toast.success(res.data.message || 'OTP sent successfully!');
       // Pass the email in state so the next page can use it
-      navigate('/reset-password', { state: { email } });
+      navigate('/reset-password', { state: { email: cleanInput } });
     } catch (err) {
       setErrorMsg(err?.response?.data?.message || 'Failed to send OTP');
       toast.error(err?.response?.data?.message || 'Failed to send OTP');

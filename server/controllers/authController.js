@@ -58,11 +58,7 @@ const registerUser = async (req, res) => {
       return res.status(400).json({ message: 'An account with these details is already registered. Please sign in.' });
     }
 
-    // 2. Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const verificationTokenExpire = Date.now() + 15 * 60 * 1000; // 15 minutes
-
-    // 3. Check if there is an UNVERIFIED pending registration with this email, roll_no, or username
+    // 2. Check if there is an UNVERIFIED pending registration with this email, roll_no, or username
     // (e.g. user went back to edit details or did not complete OTP/password steps earlier)
     const existingPendingUser = await User.findOne({
       isVerified: { $ne: true },
@@ -72,6 +68,19 @@ const registerUser = async (req, res) => {
         { username: cleanUsername }
       ]
     });
+
+    // Reuse existing valid OTP if requested recently (< 60s) to prevent invalidating in-flight email on double-click
+    let otp;
+    const isRecentPending = existingPendingUser?.verificationToken &&
+      existingPendingUser?.verificationTokenExpire &&
+      (existingPendingUser.verificationTokenExpire - Date.now() > 14 * 60 * 1000);
+
+    if (isRecentPending) {
+      otp = existingPendingUser.verificationToken;
+    } else {
+      otp = Math.floor(100000 + Math.random() * 900000).toString();
+    }
+    const verificationTokenExpire = Date.now() + 15 * 60 * 1000; // 15 minutes
 
     let user;
     if (existingPendingUser) {
@@ -109,15 +118,20 @@ const registerUser = async (req, res) => {
 
     console.log(`[Registration OTP for ${user.email} (${user.roll_no || 'No roll'})]: ${otp}`);
 
-    // Send email with OTP asynchronously (non-blocking)
+    // Send email with OTP and await to verify SMTP delivery
     const message = `Hello ${user.name},\n\nYour account verification code for CampusHub is:\n\n${otp}\n\nThis OTP will expire in 15 minutes.\n\nRoll Number: ${user.roll_no || 'N/A'}`;
-    sendEmail({
-      email: user.email,
-      subject: 'Your CampusHub Account Verification Code',
-      message,
-    }).catch((err) => {
-      console.error('Email send failed (non-fatal):', err.message);
-    });
+    
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: 'Your CampusHub Account Verification Code',
+        message,
+        otp,
+        userName: user.name,
+      });
+    } catch (emailErr) {
+      console.error('[Registration] Email dispatch notice:', emailErr.message);
+    }
 
     res.status(201).json({
       message: 'OTP sent to your email. Please verify to continue.',
@@ -570,23 +584,39 @@ const resendVerification = async (req, res) => {
       return res.status(400).json({ message: 'Account is already verified. Please sign in.' });
     }
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    user.verificationToken = otp;
-    user.verificationTokenExpire = Date.now() + 15 * 60 * 1000;
-    await user.save();
+    // Cooldown check: if token was created < 45 seconds ago, reuse it so rapid clicks don't invalidate the email in transit
+    let otp;
+    const isRecent = user.verificationToken &&
+      user.verificationTokenExpire &&
+      (user.verificationTokenExpire - Date.now() > 14 * 60 * 1000);
+
+    if (isRecent) {
+      otp = user.verificationToken;
+    } else {
+      otp = Math.floor(100000 + Math.random() * 900000).toString();
+      user.verificationToken = otp;
+      user.verificationTokenExpire = Date.now() + 15 * 60 * 1000;
+      await user.save();
+    }
 
     console.log(`[Resend OTP for ${user.email}]: ${otp}`);
 
     const message = `Hello ${user.name},\n\nYour new verification code for CampusHub is:\n\n${otp}\n\nThis OTP will expire in 15 minutes.`;
 
-    sendEmail({
-      email: user.email,
-      subject: 'New Verification Code for CampusHub',
-      message,
-    }).catch(err => console.error('Resend email error:', err.message));
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: 'New Verification Code for CampusHub',
+        message,
+        otp,
+        userName: user.name,
+      });
+    } catch (err) {
+      console.error('Resend email error:', err.message);
+    }
 
     res.json({
-      message: 'A new verification code has been sent to your email.',
+      message: 'A verification code has been sent to your email.',
       devOtp: process.env.NODE_ENV !== 'production' ? otp : undefined
     });
   } catch (error) {
@@ -618,20 +648,36 @@ const forgotPassword = async (req, res) => {
       return res.status(404).json({ message: 'No registered account found with this email or roll number. Please check your spelling or sign up.' });
     }
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    user.verificationToken = otp;
-    user.verificationTokenExpire = Date.now() + 15 * 60 * 1000;
-    await user.save();
+    // Cooldown check: if token was created < 45 seconds ago, reuse it
+    let otp;
+    const isRecent = user.verificationToken &&
+      user.verificationTokenExpire &&
+      (user.verificationTokenExpire - Date.now() > 14 * 60 * 1000);
+
+    if (isRecent) {
+      otp = user.verificationToken;
+    } else {
+      otp = Math.floor(100000 + Math.random() * 900000).toString();
+      user.verificationToken = otp;
+      user.verificationTokenExpire = Date.now() + 15 * 60 * 1000;
+      await user.save();
+    }
 
     console.log(`[Password Reset OTP for ${user.email} (${user.roll_no || 'N/A'})]: ${otp}`);
 
     const message = `Hello ${user.name},\n\nYou requested to reset your password for CampusHub.\n\nYour One-Time Password (OTP) is:\n\n${otp}\n\nThis OTP will expire in 15 minutes. If you did not request this, you can safely ignore this email.`;
 
-    sendEmail({
-      email: user.email,
-      subject: 'Password Reset Verification Code - CampusHub',
-      message,
-    }).catch(err => console.error('Forgot password email error (non-fatal):', err.message));
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: 'Password Reset Verification Code - CampusHub',
+        message,
+        otp,
+        userName: user.name,
+      });
+    } catch (err) {
+      console.error('Forgot password email error:', err.message);
+    }
 
     res.json({ 
       message: `Password reset OTP sent to ${user.email}`,
@@ -1191,6 +1237,78 @@ const updateUserRole = async (req, res) => {
 // BULK ROLE CREDENTIALS ONBOARDING & MANAGEMENT
 // ==========================================
 
+/**
+ * Robust CSV parser supporting quotes, embedded commas, semicolons, tabs, and BOM stripping
+ */
+const parseCSVText = (text) => {
+  if (!text || typeof text !== 'string') return [];
+  const clean = text.replace(/^\uFEFF/, '').trim();
+  if (!clean) return [];
+
+  const firstLine = clean.split(/\r\n|\n|\r/)[0] || '';
+  const commaCount = (firstLine.match(/,/g) || []).length;
+  const semiCount = (firstLine.match(/;/g) || []).length;
+  const tabCount = (firstLine.match(/\t/g) || []).length;
+
+  let delimiter = ',';
+  if (semiCount > commaCount && semiCount > tabCount) delimiter = ';';
+  else if (tabCount > commaCount && tabCount > semiCount) delimiter = '\t';
+
+  const rows = [];
+  let currentRow = [];
+  let currentVal = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < clean.length; i++) {
+    const char = clean[i];
+    const nextChar = clean[i + 1];
+
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        currentVal += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === delimiter && !inQuotes) {
+      currentRow.push(currentVal.trim());
+      currentVal = '';
+    } else if ((char === '\r' || char === '\n') && !inQuotes) {
+      if (char === '\r' && nextChar === '\n') {
+        i++;
+      }
+      currentRow.push(currentVal.trim());
+      currentVal = '';
+      if (currentRow.some(val => val !== '')) {
+        rows.push(currentRow);
+      }
+      currentRow = [];
+    } else {
+      currentVal += char;
+    }
+  }
+
+  if (currentVal !== '' || currentRow.length > 0) {
+    currentRow.push(currentVal.trim());
+    if (currentRow.some(val => val !== '')) {
+      rows.push(currentRow);
+    }
+  }
+
+  if (rows.length < 2) return [];
+
+  const headers = rows[0].map(h => h.replace(/^["']|["']$/g, '').trim());
+  const dataRows = rows.slice(1);
+
+  return dataRows.map(row => {
+    const obj = {};
+    headers.forEach((h, idx) => {
+      obj[h] = row[idx] !== undefined ? row[idx].replace(/^["']|["']$/g, '').trim() : '';
+    });
+    return obj;
+  });
+};
+
 // @desc    Bulk preview or onboard role credentials (Faculty, President, VP, Referee)
 // @route   POST /api/auth/bulk-onboard
 // @access  Private (Admin only)
@@ -1206,25 +1324,60 @@ const bulkOnboardRole = async (req, res) => {
 
     // Parse uploaded Excel / CSV file if present
     if (req.file && req.file.buffer) {
-      const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
-      const sheetName = workbook.SheetNames[0];
-      if (!sheetName) return res.status(400).json({ message: 'Spreadsheet is empty' });
-      records = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
+      const isCsv = (req.file.originalname && req.file.originalname.toLowerCase().endsWith('.csv')) ||
+                    (req.file.mimetype && (req.file.mimetype.includes('csv') || req.file.mimetype.includes('text')));
+
+      if (isCsv) {
+        const text = req.file.buffer.toString('utf-8');
+        records = parseCSVText(text);
+
+        // Fallback to SheetJS if text parsing returned no rows
+        if (!records || records.length === 0) {
+          try {
+            const workbook = XLSX.read(req.file.buffer, { type: 'buffer', raw: true });
+            const sheetName = workbook.SheetNames[0];
+            if (sheetName) {
+              records = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
+            }
+          } catch (sheetErr) {
+            console.warn('SheetJS fallback parsing notice:', sheetErr.message);
+          }
+        }
+      } else {
+        // Standard Excel workbook (.xlsx, .xls)
+        const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        if (!sheetName) return res.status(400).json({ message: 'Spreadsheet contains no sheets or is empty' });
+        records = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
+      }
     } else if (Array.isArray(req.body.records) && req.body.records.length > 0) {
       records = req.body.records;
     } else {
-      return res.status(400).json({ message: 'Please upload an Excel (.xlsx, .xls) or CSV file, or provide record rows' });
+      return res.status(400).json({ message: 'Please upload an Excel (.xlsx, .xls) or CSV file, or provide user record rows' });
     }
 
     if (!records || records.length === 0) {
-      return res.status(400).json({ message: 'No valid data found in the spreadsheet or file is empty' });
+      return res.status(400).json({ message: 'No valid data rows found in the uploaded spreadsheet or CSV file' });
     }
 
-    // Helper: fuzzy column match
+    // Comprehensive fuzzy column matcher (handles "Gmail / Email", "Faculty Name", prefixes, suffixes)
     const findCol = (row, candidates) => {
       const keys = Object.keys(row);
+      // 1. Exact cleaned match
       for (const c of candidates) {
-        const found = keys.find(k => k.toLowerCase().replace(/[^a-z0-9]/g, '') === c.toLowerCase().replace(/[^a-z0-9]/g, ''));
+        const cleanC = c.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const found = keys.find(k => k.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanC);
+        if (found && row[found] !== undefined && row[found] !== null && String(row[found]).trim() !== '') {
+          return String(row[found]).trim();
+        }
+      }
+      // 2. Substring match (e.g. "Gmail / Email" contains "gmail" or "email")
+      for (const c of candidates) {
+        const cleanC = c.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const found = keys.find(k => {
+          const cleanK = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+          return cleanK.includes(cleanC) || cleanC.includes(cleanK);
+        });
         if (found && row[found] !== undefined && row[found] !== null && String(row[found]).trim() !== '') {
           return String(row[found]).trim();
         }
@@ -1234,13 +1387,19 @@ const bulkOnboardRole = async (req, res) => {
 
     const isPreviewOnly = req.body.preview === 'true' || req.query.preview === 'true';
     const processed = [];
+    const rowErrors = [];
+    const seenBatchEmails = new Set();
     const Club = (await import('../models/Club.js')).default;
     const allClubs = await Club.find({});
 
     for (let i = 0; i < records.length; i++) {
       const row = records[i];
-      const name = findCol(row, ['name', 'facultyname', 'presidentname', 'refereename', 'fullname', 'studentname', 'teachername', 'coordinator', 'membername', 'personname', 'user']) || 'Campus Member';
-      let email = findCol(row, ['email', 'gmail', 'mail', 'emailaddress', 'emailid', 'gmailid', 'useremail', 'googlemail', 'contactmail', 'mailid']);
+      // Skip completely empty rows
+      const hasAnyData = Object.values(row).some(v => v !== undefined && v !== null && String(v).trim() !== '');
+      if (!hasAnyData) continue;
+
+      const nameCandidate = findCol(row, ['name', 'facultyname', 'presidentname', 'refereename', 'fullname', 'studentname', 'teachername', 'coordinator', 'membername', 'personname', 'user']);
+      let email = findCol(row, ['email', 'gmail', 'mail', 'emailaddress', 'emailid', 'gmailid', 'useremail', 'googlemail', 'contactmail', 'mailid', 'gmailemail', 'emailgmail']);
       const roll_no = findCol(row, ['rollno', 'rollnumber', 'roll', 'id', 'studentid', 'enrollmentno', 'regno', 'registrationnumber']);
       const password = findCol(row, ['password', 'pass', 'code', 'secretcode', 'secret', 'userpassword', 'pwd']) || 
         (role === 'faculty' ? 'faculty123' : role === 'president' ? 'president123' : role === 'vice_president' ? 'vp123' : 'referee123');
@@ -1249,12 +1408,30 @@ const bulkOnboardRole = async (req, res) => {
       const sport = findCol(row, ['sport', 'game', 'discipline', 'assignedsport', 'matchsport']) || 'General Sports';
       const validDays = Number(findCol(row, ['validdays', 'duration', 'days', 'validuntil', 'expiry', 'validity'])) || 30;
 
-      // If neither email nor roll_no was found, derive a fallback institutional email from the name
-      if (!email && !roll_no) {
+      // If name is missing and no email/roll, skip invalid row
+      if (!nameCandidate && !email && !roll_no) {
+        continue;
+      }
+
+      const name = nameCandidate || 'Campus Member';
+
+      // Validate email or derive institutional fallback
+      if (email) {
+        email = email.toLowerCase().trim();
+      } else if (roll_no) {
+        email = `${roll_no.toLowerCase().trim()}@campus.edu`;
+      } else {
         const sanitized = name.toLowerCase().replace(/[^a-z0-9]/g, '');
-        if (!sanitized) continue; // skip completely blank row
+        if (!sanitized) continue;
         email = `${sanitized}@campus.edu`;
       }
+
+      // Check duplicate within the uploaded batch itself
+      let isDuplicateInBatch = false;
+      if (seenBatchEmails.has(email)) {
+        isDuplicateInBatch = true;
+      }
+      seenBatchEmails.add(email);
 
       // Calculate referee expiration date & time
       let refereeExpiresAt = null;
@@ -1274,20 +1451,20 @@ const bulkOnboardRole = async (req, res) => {
         }
       }
 
-      // Check if user already exists
+      // Check if user already exists in DB
       let existingUser = null;
       if (email) {
         existingUser = await User.findOne({ email: email.toLowerCase() });
       }
       if (!existingUser && roll_no) {
-        existingUser = await User.findOne({ roll_no: roll_no });
+        existingUser = await User.findOne({ roll_no });
       }
 
       if (isPreviewOnly) {
         processed.push({
           rowIndex: i + 1,
           name,
-          email: email || (existingUser ? existingUser.email : 'N/A'),
+          email,
           roll_no: roll_no || (existingUser ? existingUser.roll_no : ''),
           password,
           role,
@@ -1295,72 +1472,79 @@ const bulkOnboardRole = async (req, res) => {
           clubName,
           sport,
           validDays,
-          isExisting: Boolean(existingUser)
+          isExisting: Boolean(existingUser),
+          isDuplicateInBatch
         });
         continue;
       }
 
-      // Commit Mode: Create or update user
-      let user = existingUser;
-      if (user) {
-        user.name = name || user.name;
-        user.role = role;
-        user.password = password; // pre-save hook will hash
-        user.isVerified = true;
-        if (department) user.department = department;
-        if (roll_no) user.roll_no = roll_no;
-        if (role === 'referee') {
-          user.isReferee = true;
-          user.refereeSport = sport;
-          user.refereeExpiresAt = refereeExpiresAt;
-        }
-        await user.save();
-      } else {
-        const cleanEmail = email ? email.toLowerCase().trim() : `${(roll_no || name).replace(/[^a-zA-Z0-9]/g, '').toLowerCase()}@campus.edu`;
-        
-        let baseUsername = (cleanEmail.split('@')[0] || name || 'user').toLowerCase().replace(/[^a-z0-9]/g, '');
-        let candidateUsername = baseUsername || `user_${Date.now()}`;
-        let counter = 1;
-        while (await User.findOne({ username: candidateUsername })) {
-          candidateUsername = `${baseUsername}${counter++}`;
-        }
-
-        user = await User.create({
-          name,
-          email: cleanEmail,
-          username: candidateUsername,
-          password,
-          role,
-          roll_no: roll_no || undefined,
-          department,
-          isVerified: true,
-          isReferee: role === 'referee',
-          refereeSport: role === 'referee' ? sport : undefined,
-          refereeExpiresAt: role === 'referee' ? refereeExpiresAt : undefined
-        });
-      }
-
-      // Link to club if clubName provided
-      if (clubName && (role === 'president' || role === 'vice_president')) {
-        const matchedClub = allClubs.find(c => c.name?.toLowerCase() === clubName.toLowerCase() || c.name?.toLowerCase().includes(clubName.toLowerCase()));
-        if (matchedClub) {
-          if (role === 'president') {
-            matchedClub.presidentId = user._id;
-          } else {
-            matchedClub.vicePresidentId = user._id;
+      // Commit Mode: Create or update user safely
+      try {
+        let user = existingUser;
+        if (user) {
+          user.name = name || user.name;
+          user.role = role;
+          user.password = password; // pre-save hook will hash
+          user.isVerified = true;
+          if (department) user.department = department;
+          if (roll_no) user.roll_no = roll_no;
+          if (role === 'referee') {
+            user.isReferee = true;
+            user.refereeSport = sport;
+            user.refereeExpiresAt = refereeExpiresAt;
           }
-          await matchedClub.save();
-        }
-      }
+          await user.save();
+        } else {
+          let baseUsername = (email.split('@')[0] || name || 'user').toLowerCase().replace(/[^a-z0-9]/g, '');
+          let candidateUsername = baseUsername || `user_${Date.now()}`;
+          let counter = 1;
+          while (await User.findOne({ username: candidateUsername })) {
+            candidateUsername = `${baseUsername}${counter++}`;
+          }
 
-      processed.push({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        roll_no: user.roll_no,
-        refereeExpiresAt: user.refereeExpiresAt
-      });
+          user = await User.create({
+            name,
+            email,
+            username: candidateUsername,
+            password,
+            role,
+            roll_no: roll_no || undefined,
+            department,
+            isVerified: true,
+            isReferee: role === 'referee',
+            refereeSport: role === 'referee' ? sport : undefined,
+            refereeExpiresAt: role === 'referee' ? refereeExpiresAt : undefined
+          });
+        }
+
+        // Link to club if clubName provided for leadership roles
+        if (clubName && (role === 'president' || role === 'vice_president')) {
+          const matchedClub = allClubs.find(c => 
+            c.name?.toLowerCase() === clubName.toLowerCase() || 
+            c.name?.toLowerCase().includes(clubName.toLowerCase())
+          );
+          if (matchedClub) {
+            if (role === 'president') {
+              matchedClub.presidentId = user._id;
+            } else {
+              matchedClub.vicePresidentId = user._id;
+            }
+            await matchedClub.save();
+          }
+        }
+
+        processed.push({
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          roll_no: user.roll_no,
+          refereeExpiresAt: user.refereeExpiresAt
+        });
+      } catch (rowErr) {
+        console.error(`Row ${i + 1} commit error (${email}):`, rowErr.message);
+        rowErrors.push({ row: i + 1, email, error: rowErr.message });
+      }
     }
 
     if (isPreviewOnly) {
@@ -1375,7 +1559,8 @@ const bulkOnboardRole = async (req, res) => {
     res.status(201).json({
       message: `Successfully onboarded ${processed.length} ${role.replace('_', ' ').toUpperCase()} accounts! They can now log in directly.`,
       count: processed.length,
-      users: processed
+      users: processed,
+      errors: rowErrors.length > 0 ? rowErrors : undefined
     });
   } catch (error) {
     console.error('bulkOnboardRole error:', error);
@@ -1456,29 +1641,32 @@ const getRolesSummary = async (req, res) => {
       return { ...v.toObject(), clubName: club ? club.name : 'Unassigned' };
     });
 
-    // Extract election winners that need elevation
+    // Extract election winners that need elevation safely
     const pendingElectionElevations = [];
     for (const elect of concludedElections) {
-      if (elect.winner?.candidateId) {
+      if (elect.winner && elect.winner.candidateId) {
         const candidate = elect.winner.candidateId;
-        const targetRole = elect.position === 'Vice President' ? 'vice_president' : 'president';
-        if (candidate.role !== targetRole) {
-          pendingElectionElevations.push({
-            electionId: elect._id,
-            electionTitle: elect.title,
-            clubId: elect.clubId?._id,
-            clubName: elect.clubId?.name || 'Club',
-            position: elect.position,
-            targetRole,
-            candidate: {
-              _id: candidate._id,
-              name: candidate.name,
-              email: candidate.email,
-              roll_no: candidate.roll_no,
-              currentRole: candidate.role
-            },
-            votes: elect.winner.votes || 0
-          });
+        // Verify candidate object and role exist to prevent null property access
+        if (candidate && typeof candidate === 'object' && candidate.role) {
+          const targetRole = elect.position === 'Vice President' ? 'vice_president' : 'president';
+          if (candidate.role !== targetRole) {
+            pendingElectionElevations.push({
+              electionId: elect._id,
+              electionTitle: elect.title,
+              clubId: elect.clubId?._id || elect.clubId,
+              clubName: elect.clubId?.name || 'Club',
+              position: elect.position,
+              targetRole,
+              candidate: {
+                _id: candidate._id,
+                name: candidate.name || 'Candidate',
+                email: candidate.email || 'N/A',
+                roll_no: candidate.roll_no || '',
+                currentRole: candidate.role
+              },
+              votes: elect.winner.votes || 0
+            });
+          }
         }
       }
     }

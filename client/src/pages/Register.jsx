@@ -82,6 +82,7 @@ const Register = () => {
   // ── Handlers ──────────────────────────────────────────────────────
   const submitDetails = async (e) => {
     e.preventDefault();
+    if (loading) return;
     if (!rollNo || !department || !year) {
       toast.error('Please fill in all student details.');
       return;
@@ -89,17 +90,18 @@ const Register = () => {
     setLoading(true);
     try {
       await axios.post('/api/auth/register', {
-        name,
-        username,
-        email,
+        name: name.trim(),
+        username: username.trim(),
+        email: email.trim().toLowerCase(),
         role: 'student',
-        roll_no: rollNo,
-        department,
-        year,
+        roll_no: rollNo.trim().toUpperCase(),
+        department: department.trim(),
+        year: Number(year),
         studentClass: studentClass.trim(),
         studentSection: studentSection.trim().toUpperCase(),
       });
-      toast.success('OTP sent to your email!');
+      toast.success('Verification code sent to your email!');
+      setResendTimer(60);
       setStep(2);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Registration failed. Please try again.');
@@ -110,6 +112,7 @@ const Register = () => {
 
   const submitOTP = async (e) => {
     e.preventDefault();
+    if (loading) return;
     if (otp.length !== 6) {
       toast.error('OTP must be 6 digits.');
       return;
@@ -117,7 +120,7 @@ const Register = () => {
     setLoading(true);
     setOtpError(false);
     try {
-      await axios.post('/api/auth/verify-otp', { email, otp });
+      await axios.post('/api/auth/verify-otp', { email: email.trim().toLowerCase(), otp: otp.trim() });
       setOtpSuccess(true);
       toast.success('Email verified!');
       setTimeout(() => setStep(3), 900);
@@ -131,10 +134,11 @@ const Register = () => {
   };
 
   const handleResend = async () => {
+    if (loading || resendTimer > 0) return;
     setLoading(true);
     try {
-      await axios.post('/api/auth/resend-verification', { email });
-      toast.success('New OTP sent!');
+      const res = await axios.post('/api/auth/resend-verification', { email: email.trim().toLowerCase() });
+      toast.success(res.data?.message || 'New OTP sent to your email!');
       setResendTimer(60);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to resend OTP.');

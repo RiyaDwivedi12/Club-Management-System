@@ -11,6 +11,8 @@ if (API_BASE) {
   axios.defaults.baseURL = API_BASE;
 }
 axios.defaults.withCredentials = true;
+// Set 45s request timeout to allow Render free tier wake-ups without hanging indefinitely
+axios.defaults.timeout = 45000;
 
 // Ensure authToken is populated from userInfo if previously logged in
 try {
@@ -65,10 +67,21 @@ axios.interceptors.request.use(
 );
 
 
-// Passive response handler: preserve active user session, never force logout on background errors
+// Passive response handler: preserve active user session, format timeout errors cleanly
 axios.interceptors.response.use(
   (response) => response,
-  (error) => Promise.reject(error)
+  (error) => {
+    if (error.code === 'ECONNABORTED' || (error.message && error.message.includes('timeout'))) {
+      if (!error.response) {
+        error.response = {
+          data: {
+            message: 'Server request timed out. Free-tier cloud servers take 30-45s to wake up from idle sleep. Please wait a moment and try again.'
+          }
+        };
+      }
+    }
+    return Promise.reject(error);
+  }
 );
 
 ReactDOM.createRoot(document.getElementById('root')).render(

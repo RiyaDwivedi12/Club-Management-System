@@ -5,6 +5,7 @@ import Club from '../models/Club.js';
 import Vote from '../models/Vote.js';
 import AuditLog from '../models/AuditLog.js';
 import Membership from '../models/Membership.js';
+import { cloudinary } from '../config/cloudinary.js';
 
 // Helper to check if a user is an eligible voting member of a club
 const checkUserClubMembership = async (userId, clubId, userRole = null) => {
@@ -150,38 +151,78 @@ const createElection = async (req, res) => {
       return res.status(400).json({ message: 'Title, Club, Start Date, and End Date are required.' });
     }
 
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return res.status(400).json({ message: 'Invalid start date or end date format.' });
+    }
+    if (end <= start) {
+      return res.status(400).json({ message: 'Voting End Date must be after the Start Date.' });
+    }
+
+    if (!Array.isArray(candidates) || candidates.length < 2) {
+      return res.status(400).json({ message: 'At least two candidate profiles (Candidate 1 vs Candidate 2) are required to launch a matchup election.' });
+    }
+
     const processedCandidates = [];
-    if (Array.isArray(candidates)) {
-      for (const cand of candidates) {
-        let u = null;
-        if (cand.candidateId) {
-          u = await User.findById(cand.candidateId);
-        }
-        if (!u && cand.roll_no) {
-          u = await User.findOne({ 
-            $or: [
-              { roll_no: new RegExp('^' + cand.roll_no.trim() + '$', 'i') },
-              { username: new RegExp('^' + cand.roll_no.trim() + '$', 'i') }
-            ]
-          });
-        }
-        if (!u && (cand.studentName || cand.name)) {
-          const searchName = cand.studentName || cand.name;
-          u = await User.findOne({ name: new RegExp('^' + searchName.trim() + '$', 'i') });
-        }
+    for (let idx = 0; idx < candidates.length; idx++) {
+      const cand = candidates[idx];
+      let u = null;
 
-        const candidateId = u ? u._id : (cand.candidateId || null);
-        const candidateName = cand.name || cand.studentName || u?.name || 'Candidate';
-        const candidatePhoto = cand.photo || u?.profilePicture || '';
-
-        processedCandidates.push({
-          candidateId,
-          name: candidateName,
-          photo: candidatePhoto,
-          manifesto: cand.manifesto || 'Dedicated to student empowerment and excellence.',
-          votes: 0
+      if (cand.candidateId) {
+        u = await User.findById(cand.candidateId);
+      }
+      if (!u && cand.roll_no) {
+        const cleanRoll = cand.roll_no.trim();
+        u = await User.findOne({ 
+          $or: [
+            { roll_no: new RegExp('^' + cleanRoll + '$', 'i') },
+            { username: new RegExp('^' + cleanRoll + '$', 'i') }
+          ]
         });
       }
+      if (!u && (cand.studentName || cand.name)) {
+        const searchName = (cand.studentName || cand.name).trim();
+        u = await User.findOne({ name: new RegExp('^' + searchName + '$', 'i') });
+      }
+
+      if (!u) {
+        const candidateLabel = cand.name || cand.studentName || cand.roll_no || `Profile #${idx + 1}`;
+        return res.status(400).json({
+          message: `Candidate "${candidateLabel}" was not found in registered students. Please select a registered student or ensure their account exists.`
+        });
+      }
+
+      const candidateId = u._id;
+      const candidateName = cand.name || cand.studentName || u.name;
+      let candidatePhoto = cand.photo || u.profilePicture || '';
+
+      // Upload base64 photos to Cloudinary to keep MongoDB small and fast
+      if (candidatePhoto && candidatePhoto.startsWith('data:image')) {
+        try {
+          const uploadRes = await cloudinary.uploader.upload(candidatePhoto, {
+            folder: 'club-management/elections',
+            transformation: [{ width: 500, height: 500, crop: 'limit' }]
+          });
+          candidatePhoto = uploadRes.secure_url;
+        } catch (uploadErr) {
+          console.error('[createElection] Cloudinary candidate photo upload notice:', uploadErr.message);
+        }
+      }
+
+      processedCandidates.push({
+        candidateId,
+        name: candidateName,
+        photo: candidatePhoto,
+        manifesto: cand.manifesto?.trim() || 'Dedicated to student empowerment and excellence.',
+        votes: 0
+      });
+    }
+
+    // Ensure Candidate 1 and Candidate 2 are different students
+    const candidateIdStrings = processedCandidates.map(c => c.candidateId.toString());
+    if (new Set(candidateIdStrings).size !== candidateIdStrings.length) {
+      return res.status(400).json({ message: 'Candidate 1 and Candidate 2 must be different students.' });
     }
 
     const election = await Election.create({
@@ -189,8 +230,8 @@ const createElection = async (req, res) => {
       clubId,
       position: position || 'President',
       banner: banner || '',
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
+      startDate: start,
+      endDate: end,
       candidates: processedCandidates,
       votedUsers: []
     });

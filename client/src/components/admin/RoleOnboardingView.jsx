@@ -111,7 +111,7 @@ const RoleOnboardingView = () => {
       setPreviewData(res.data);
       toast.success(`Extracted ${res.data.total || (res.data.records || []).length} ${uploadRole.replace('_', ' ')} entries!`);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to parse file');
+      toast.error(err.response?.data?.message || err.message || 'Failed to parse spreadsheet file');
       setPreviewData(null);
       setSelectedFile(null);
     } finally {
@@ -137,12 +137,15 @@ const RoleOnboardingView = () => {
 
       const res = await axios.post('/api/auth/bulk-onboard', payload, { withCredentials: true });
       toast.success(res.data.message || 'Accounts successfully onboarded!');
+      if (res.data.errors && res.data.errors.length > 0) {
+        toast.error(`Note: ${res.data.errors.length} row(s) had errors during import.`);
+      }
       setPreviewData(null);
       setSelectedFile(null);
       setUploadRole(null);
       fetchData();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to onboard accounts');
+      toast.error(err.response?.data?.message || err.message || 'Failed to onboard accounts');
     } finally {
       setIssuing(false);
     }
@@ -369,7 +372,13 @@ const RoleOnboardingView = () => {
             >
               <Upload size={14} /> Upload Faculty CSV/Excel
             </button>
-            
+            <a
+              href="/api/auth/template/role/faculty"
+              download="FACULTY_Credentials_Template.csv"
+              className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <Download size={13} /> Download Template (.csv)
+            </a>
           </div>
         </div>
 
@@ -397,7 +406,13 @@ const RoleOnboardingView = () => {
             >
               <Upload size={14} /> Upload President CSV/Excel
             </button>
-            
+            <a
+              href="/api/auth/template/role/president"
+              download="PRESIDENT_Credentials_Template.csv"
+              className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <Download size={13} /> Download Template (.csv)
+            </a>
           </div>
         </div>
 
@@ -425,7 +440,13 @@ const RoleOnboardingView = () => {
             >
               <Upload size={14} /> Upload VP CSV/Excel
             </button>
-            
+            <a
+              href="/api/auth/template/role/vice_president"
+              download="VICE_PRESIDENT_Credentials_Template.csv"
+              className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <Download size={13} /> Download Template (.csv)
+            </a>
           </div>
         </div>
 
@@ -453,7 +474,13 @@ const RoleOnboardingView = () => {
             >
               <Upload size={14} /> Upload Referee CSV/Excel
             </button>
-            
+            <a
+              href="/api/auth/template/role/referee"
+              download="REFEREE_Credentials_Template.csv"
+              className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <Download size={13} /> Download Template (.csv)
+            </a>
           </div>
         </div>
       </div>
