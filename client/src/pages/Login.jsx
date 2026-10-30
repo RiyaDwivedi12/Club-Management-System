@@ -25,6 +25,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [unverifiedData, setUnverifiedData] = useState(null);
 
   useEffect(() => {
     if (user) {
@@ -78,6 +79,11 @@ const Login = () => {
         navigate('/clubs');
       }
     } catch (err) {
+      if (err?.response?.data?.isUnverified) {
+        setUnverifiedData(err.response.data);
+      } else {
+        setUnverifiedData(null);
+      }
       let msg = err?.response?.data?.message;
       const rawData = typeof err?.response?.data === 'string' ? err.response.data : '';
       const isConnError = rawData.includes('ECONNREFUSED') || rawData.includes('connect') || err?.message?.includes('Network Error');
@@ -167,7 +173,20 @@ const Login = () => {
                 <div className="p-3.5 rounded-xl mb-5 text-sm font-medium bg-red-50 text-red-700 border border-red-200">
                   <div className="flex items-start gap-2.5">
                     <AlertCircle size={16} className="shrink-0 mt-0.5" />
-                    <span className="break-words min-w-0">{errorMsg}</span>
+                    <div className="min-w-0 flex-1">
+                      <span className="break-words">{errorMsg}</span>
+                      {unverifiedData && (
+                        <div className="mt-2.5 pt-2 border-t border-red-200/80">
+                          <Link
+                            to="/forgot-password"
+                            state={{ email: unverifiedData.email || email }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white font-bold text-xs hover:bg-blue-700 transition shadow-xs"
+                          >
+                            Set Password & Verify Now →
+                          </Link>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}

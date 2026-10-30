@@ -327,30 +327,16 @@ const authUser = async (req, res) => {
         token
       });
     } else {
-      res.status(401).json({ message: 'Invalid email or password' });
-    }
-      
-      const effectiveRole = (role === 'referee' && (user.isReferee || user.role === 'referee')) ? 'referee' : user.role;
-
-      res.json({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: effectiveRole,
-        isReferee: Boolean(user.isReferee || user.role === 'referee'),
-        refereeSport: user.refereeSport || 'General',
-        refereeExpiresAt: user.refereeExpiresAt || null,
-        profilePicture: user.profilePicture,
-        roll_no: user.roll_no,
-        department: user.department,
-        year: user.year,
-        course: user.course || 'B.Tech',
-        section: user.section || 'A',
-        clubMemberships: user.clubMemberships || [],
-        token
-      });
-    } else {
-      res.status(401).json({ message: 'Invalid email or password' });
+      // Check if user is an unverified student who never finished OTP/password setup
+      if (!user.isVerified && user.role === 'student' && !user.isReferee) {
+        return res.status(401).json({
+          message: 'Your account is not verified yet. Please click "Set Password / Verify" to choose your login password.',
+          isUnverified: true,
+          email: user.email,
+          roll_no: user.roll_no
+        });
+      }
+      res.status(401).json({ message: 'Invalid credentials. Please verify your password or click "Forgot password?".' });
     }
   } catch (error) {
     console.error('Login error:', error);
@@ -741,6 +727,7 @@ const resetPassword = async (req, res) => {
     }
 
     user.password = password;
+    user.isVerified = true;
     user.verificationToken = undefined;
     user.verificationTokenExpire = undefined;
     await user.save();
